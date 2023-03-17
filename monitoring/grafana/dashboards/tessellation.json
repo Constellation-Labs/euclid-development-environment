@@ -395,7 +395,7 @@
       },
       "id": 23,
       "panels": [],
-      "title": "Global Snapshot",
+      "title": "L0 Global Snapshot",
       "type": "row"
     },
     {
@@ -477,7 +477,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "dag_global_snapshot_ordinal{ip=~\"$ip\", peer_id=~\"$peer_id\"}",
+          "expr": "dag_global_snapshot_ordinal{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -565,7 +565,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "max(dag_global_snapshot_tips_count{ip=~\"$ip\", peer_id=~\"$peer_id\", tip_type=\"active\"})",
+          "expr": "max(dag_global_snapshot_tips_count{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\", tip_type=\"active\"})",
           "legendFormat": "Max",
           "range": true,
           "refId": "A"
@@ -573,7 +573,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "min(dag_global_snapshot_tips_count{ip=~\"$ip\", peer_id=~\"$peer_id\", tip_type=\"active\"})",
+          "expr": "min(dag_global_snapshot_tips_count{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\", tip_type=\"active\"})",
           "hide": false,
           "legendFormat": "Min",
           "range": true,
@@ -670,7 +670,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "rate(dag_consensus_duration_seconds_sum{ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_duration_seconds_count{ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
+          "expr": "rate(dag_consensus_duration_seconds_sum{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_duration_seconds_count{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
           "hide": false,
           "legendFormat": "{{peer_id_short}}",
           "range": true,
@@ -759,7 +759,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "max(dag_global_snapshot_transactions_total{ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "expr": "max(dag_global_snapshot_transactions_total{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
           "legendFormat": "Max",
           "range": true,
           "refId": "A"
@@ -850,7 +850,7 @@
           "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(dag_consensus_proposal_affinity_sum{ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_proposal_affinity_count{ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
+          "expr": "rate(dag_consensus_proposal_affinity_sum{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_proposal_affinity_count{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1016,7 +1016,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "max(dag_global_snapshot_blocks_total{ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "expr": "max(dag_global_snapshot_blocks_total{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
           "legendFormat": "Max",
           "range": true,
           "refId": "A"
@@ -1024,7 +1024,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "min(dag_global_snapshot_blocks_total{ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "expr": "min(dag_global_snapshot_blocks_total{application=\"dag-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
           "hide": false,
           "legendFormat": "Min",
           "range": true,
@@ -1042,9 +1042,658 @@
         "x": 0,
         "y": 46
       },
+      "id": 23,
+      "panels": [],
+      "title": "L0 Currency Snapshot",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 47
+      },
+      "id": 34,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "dag_global_snapshot_ordinal{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}",
+          "legendFormat": "{{peer_id_short}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Ordinal",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 47
+      },
+      "id": 29,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "max(dag_global_snapshot_tips_count{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\", tip_type=\"active\"})",
+          "legendFormat": "Max",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "min(dag_global_snapshot_tips_count{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\", tip_type=\"active\"})",
+          "hide": false,
+          "legendFormat": "Min",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Active tips",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": -1,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 17
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 55
+      },
+      "id": 42,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.1.6",
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "rate(dag_consensus_duration_seconds_sum{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_duration_seconds_count{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
+          "hide": false,
+          "legendFormat": "{{peer_id_short}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Consensus duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 55
+      },
+      "id": 36,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "max(dag_global_snapshot_transactions_total{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "legendFormat": "Max",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "min(dag_global_snapshot_transactions_total{ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "hide": false,
+          "legendFormat": "Min",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Transactions",
+      "type": "timeseries"
+    },
+    {
+      "backgroundColor": "rgba(128,128,128,0.1)",
+      "colorMaps": [
+        {
+          "$$hashKey": "object:877",
+          "color": "#F2495C",
+          "text": "MINORITY"
+        },
+        {
+          "$$hashKey": "object:880",
+          "color": "#73BF69",
+          "text": "MAJORITY"
+        },
+        {
+          "$$hashKey": "object:883",
+          "color": "#5794F2",
+          "text": "UNANIMITY"
+        },
+        {
+          "$$hashKey": "object:5593",
+          "color": "#00000000",
+          "text": "-"
+        },
+        {
+          "$$hashKey": "object:10534",
+          "color": "#00000000",
+          "text": "N/A"
+        }
+      ],
+      "crosshairColor": "#8F070C",
+      "datasource": "prometheus",
+      "description": "Percent of the facilitators that proposed the same value",
+      "display": "timeline",
+      "expandFromQueryS": 0,
+      "extendLastValue": true,
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 63
+      },
+      "highlightOnMouseover": true,
+      "id": 49,
+      "legendSortBy": "-ms",
+      "lineColor": "rgba(0,0,0,0.1)",
+      "metricNameColor": "#ccccdc",
+      "pluginVersion": "8.5.5",
+      "rangeMaps": [
+        {
+          "$$hashKey": "object:449",
+          "from": "0.000000000001",
+          "text": "MINORITY",
+          "to": "0.499999999999999999999999"
+        },
+        {
+          "$$hashKey": "object:857",
+          "from": "0.5",
+          "text": "MAJORITY",
+          "to": "0.999999999999"
+        }
+      ],
+      "rowHeight": 20,
+      "showLegend": false,
+      "showLegendNames": true,
+      "showLegendPercent": true,
+      "showLegendTime": false,
+      "showLegendValues": true,
+      "showTimeAxis": false,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(dag_consensus_proposal_affinity_sum{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_proposal_affinity_count{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{peer_id_short}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "textSize": 12,
+      "textSizeTime": 12,
+      "timeOptions": [
+        {
+          "name": "Years",
+          "value": "years"
+        },
+        {
+          "name": "Months",
+          "value": "months"
+        },
+        {
+          "name": "Weeks",
+          "value": "weeks"
+        },
+        {
+          "name": "Days",
+          "value": "days"
+        },
+        {
+          "name": "Hours",
+          "value": "hours"
+        },
+        {
+          "name": "Minutes",
+          "value": "minutes"
+        },
+        {
+          "name": "Seconds",
+          "value": "seconds"
+        },
+        {
+          "name": "Milliseconds",
+          "value": "milliseconds"
+        }
+      ],
+      "timePrecision": {
+        "name": "Minutes",
+        "value": "minutes"
+      },
+      "timeTextColor": "#d8d9da",
+      "title": "Proposal affinity",
+      "type": "natel-discrete-panel",
+      "units": "short",
+      "use12HourClock": false,
+      "useTimePrecision": false,
+      "valueMaps": [
+        {
+          "$$hashKey": "object:855",
+          "op": "=",
+          "text": "-",
+          "value": "0"
+        },
+        {
+          "$$hashKey": "object:859",
+          "op": "=",
+          "text": "UNANIMITY",
+          "value": "1"
+        },
+        {
+          "$$hashKey": "object:72537",
+          "op": "=",
+          "text": "UNANIMITY",
+          "value": "1.00"
+        },
+        {
+          "$$hashKey": "object:74219",
+          "op": "=",
+          "text": "UNANIMITY",
+          "value": "1.000"
+        }
+      ],
+      "valueTextColor": "#ccccdc",
+      "writeAllValues": false,
+      "writeLastValue": true,
+      "writeMetricNames": true
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 63
+      },
+      "id": 35,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "max(dag_global_snapshot_blocks_total{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "legendFormat": "Max",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "min(dag_global_snapshot_blocks_total{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "hide": false,
+          "legendFormat": "Min",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Blocks",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 75
+      },
       "id": 2,
       "panels": [],
-      "title": "Gossip",
+      "title": "Global Gossip",
       "type": "row"
     },
     {
@@ -1069,7 +1718,7 @@
         "h": 8,
         "w": 6,
         "x": 0,
-        "y": 47
+        "y": 76
       },
       "id": 14,
       "options": {
@@ -1099,7 +1748,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (content_type_short) (increase(dag_rumors_spread_total{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
+          "expr": "sum by (content_type_short) (increase(dag_rumors_spread_total{application=~\"dag-l0|dag-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1130,7 +1779,7 @@
         "h": 8,
         "w": 6,
         "x": 6,
-        "y": 47
+        "y": 76
       },
       "id": 18,
       "options": {
@@ -1160,7 +1809,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (rumor_type) (increase(dag_rumors_spread_total{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
+          "expr": "sum by (rumor_type) (increase(dag_rumors_spread_total{application=~\"dag-l0|dag-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1230,7 +1879,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 47
+        "y": 76
       },
       "id": 38,
       "options": {
@@ -1251,7 +1900,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "increase(dag_gossip_round_succeeded_total{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m])",
+          "expr": "increase(dag_gossip_round_succeeded_total{application=~\"dag-l0|dag-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m])",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -1322,7 +1971,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 55
+        "y": 84
       },
       "id": 4,
       "options": {
@@ -1344,7 +1993,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (peer_id_short) (increase(dag_rumors_spread_total{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
+          "expr": "sum by (peer_id_short) (increase(dag_rumors_spread_total{application=~\"dag-l0|dag-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -1415,7 +2064,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 55
+        "y": 84
       },
       "id": 39,
       "options": {
@@ -1437,7 +2086,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (peer_id_short) (increase(dag_rumors_consumed_total{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
+          "expr": "sum by (peer_id_short) (increase(dag_rumors_consumed_total{application=~\"dag-l0|dag-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -1476,7 +2125,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 63
+        "y": 92
       },
       "heatmap": {},
       "hideZeroBuckets": false,
@@ -1529,7 +2178,525 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "rate(dag_gossip_round_duration_seconds_sum{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])/rate(dag_gossip_round_duration_seconds_count{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])",
+          "expr": "rate(dag_gossip_round_duration_seconds_sum{application=~\"dag-l0|dag-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])/rate(dag_gossip_round_duration_seconds_count{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Round duration",
+      "tooltip": {
+        "show": true,
+        "showHistogram": false
+      },
+      "type": "heatmap",
+      "xAxis": {
+        "show": true
+      },
+      "yAxis": {
+        "decimals": 0,
+        "format": "s",
+        "logBase": 1,
+        "show": true
+      },
+      "yBucketBound": "auto"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 105
+      },
+      "id": 2,
+      "panels": [],
+      "title": "Currency Gossip",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 106
+      },
+      "id": 14,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "sum by (content_type_short) (increase(dag_rumors_spread_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Rumor spreads by content type",
+      "type": "piechart"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 106
+      },
+      "id": 18,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": false,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "sum by (rumor_type) (increase(dag_rumors_spread_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Rumor spreads by rumor type",
+      "type": "piechart"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 106
+      },
+      "id": 38,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "increase(dag_gossip_round_succeeded_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m])",
+          "legendFormat": "{{peer_id_short}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Gossip rounds/min",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 114
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "sum by (peer_id_short) (increase(dag_rumors_spread_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
+          "legendFormat": "{{peer_id_short}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Rumors spreaded/min",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 114
+      },
+      "id": 39,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "sum by (peer_id_short) (increase(dag_rumors_consumed_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
+          "legendFormat": "{{peer_id_short}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Rumors consumed/min",
+      "type": "timeseries"
+    },
+    {
+      "cards": {},
+      "color": {
+        "cardColor": "#b4ff00",
+        "colorScale": "sqrt",
+        "colorScheme": "interpolatePlasma",
+        "exponent": 0.5,
+        "mode": "spectrum"
+      },
+      "dataFormat": "timeseries",
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 122
+      },
+      "heatmap": {},
+      "hideZeroBuckets": false,
+      "highlightCards": true,
+      "id": 40,
+      "legend": {
+        "show": false
+      },
+      "options": {
+        "calculate": true,
+        "calculation": {},
+        "cellGap": 2,
+        "cellValues": {},
+        "color": {
+          "exponent": 0.5,
+          "fill": "#b4ff00",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Plasma",
+          "steps": 128
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "legend": {
+          "show": false
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "showValue": "never",
+        "tooltip": {
+          "show": true,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "decimals": 0,
+          "reverse": false,
+          "unit": "s"
+        }
+      },
+      "pluginVersion": "9.1.6",
+      "reverseYBuckets": false,
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "rate(dag_gossip_round_duration_seconds_sum{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])/rate(dag_gossip_round_duration_seconds_count{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])",
           "legendFormat": "{{ip}}",
           "range": true,
           "refId": "A"
