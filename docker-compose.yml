@@ -1,0 +1,251 @@
+# docker-compose.yml
+# We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
+version: '3'
+services:
+  ubuntu:
+    build: ./ubuntu-with-java-and-sbt/.
+    image: ubuntu-with-java-and-sbt
+  l0-global:
+    container_name: l0-global
+    build: ./global-l0/.
+    image: global-l0
+    depends_on:
+      - ubuntu
+    environment:
+      - CL_KEYSTORE=token-key.p12
+      - CL_KEYALIAS=token-key
+      - CL_PASSWORD=password
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_ENV=dev
+    volumes:
+      - ./common_keys:/code/keys/
+      - ./jars:/code/jars/
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.2
+    command: >
+      sh -c "cp keys/token-key.p12 token-key.p12 && \
+             cp global-l0.jar jars/ && \
+             cp currency-l0.jar jars/ && \
+             cp currency-l1.jar jars/ && \
+             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l0-currency:
+    container_name: l0-currency
+    build: ./currency-l0/.
+    image: currency-l0
+    depends_on:
+      l0-global:
+          condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key.p12
+      - CL_KEYALIAS=token-key
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ./common_keys:/code/keys/
+      - ./jars:/code/jars/
+      - ./currency-l0/genesis:/code/genesis/
+    ports:
+      - '9100:9000'
+      - '9101:9001'
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.3
+    command: >
+      sh -c "cp genesis/genesis.csv genesis.csv && \
+             cp keys/token-key.p12 token-key.p12 && \
+             cp jars/currency-l0.jar currency-l0.jar && \
+             java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.3"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l0-currency:9000/cluster/info" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-currency-1:
+    container_name: l1-currency-1
+    build: ./currency-l1/.
+    image: currency-l1
+    depends_on:
+      l0-currency:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key.p12
+      - CL_KEYALIAS=token-key
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-currency
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ./common_keys:/code/keys/
+      - ./jars:/code/jars/
+    ports:
+      - '9200:9000'
+      - '9201:9001'
+      - '9202:9002'
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.4
+    command: >
+      sh -c "cp keys/token-key.p12 token-key.p12 && \
+             cp jars/currency-l1.jar currency-l1.jar && \
+             java -jar currency-l1.jar run-initial-validator --ip 172.50.0.4"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-currency-1:9000/cluster/info" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-currency-2:
+    container_name: l1-currency-2
+    image: currency-l1
+    depends_on:
+      l0-currency:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key-1.p12
+      - CL_KEYALIAS=token-key-1
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-currency
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ./common_keys:/code/keys/
+      - ./jars:/code/jars/
+    ports:
+      - '9300:9000'
+      - '9301:9001'
+      - '9302:9002'
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.5
+    command: >
+      sh -c "cp keys/token-key-1.p12 token-key-1.p12 && \
+             cp jars/currency-l1.jar currency-l1.jar && \
+             java -jar currency-l1.jar run-validator --ip 172.50.0.5"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-currency-2:9000/metrics" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-currency-3:
+    container_name: l1-currency-3
+    image: currency-l1
+    depends_on:
+      l0-currency:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key-2.p12
+      - CL_KEYALIAS=token-key-2
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-currency
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ./common_keys:/code/keys/
+      - ./jars:/code/jars/
+    ports:
+      - '9400:9000'
+      - '9401:9001'
+      - '9402:9002'
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.6
+    command: >
+      sh -c "cp keys/token-key-2.p12 token-key-2.p12 && \
+             cp jars/currency-l1.jar currency-l1.jar && \
+             java -jar currency-l1.jar run-validator --ip 172.50.0.6"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-currency-3:9000/metrics" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    depends_on:
+      l1-currency-1:
+        condition: service_healthy
+      l1-currency-2:
+        condition: service_healthy
+      l1-currency-3:
+        condition: service_healthy
+    ports:
+      - '9090:9090'
+    command:
+      - --storage.tsdb.path=monitoring/prometheus/data
+      - --storage.tsdb.retention.time=200h
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus:/prometheus
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.7
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss:latest
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/config:/etc/grafana/provisioning
+      - ./monitoring/grafana/storage:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE="Admin"
+      - GF_AUTH_ANONYMOUS_ORG_ROLE="Viewer"
+      - GF_AUTH_ANONYMOUS_ORG_NAME="Constellation"
+      - GF_INSTALL_PLUGINS=natel-discrete-panel
+    networks:
+      mynet:
+        ipv4_address: 172.50.0.8
+networks:
+  mynet:
+    ipam:
+      config:
+        - subnet: 172.50.0.0/24
