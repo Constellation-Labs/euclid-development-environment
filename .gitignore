@@ -1,0 +1,4 @@
+monitoring/grafana/storage/
+monitoring/grafana/config/
+monitoring/prometheus/data/
+monitoring/prometheus/monitoring/
