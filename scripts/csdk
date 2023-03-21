@@ -139,8 +139,8 @@ build() {
       echo "Joining currency l1 containers to build the cluster ..."
       for ((i = 1; i <= 11; i++)); do
         if curl -v http://localhost:9300/metrics &> /dev/null && curl -v http://localhost:9400/metrics &> /dev/null; then
-          docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
-          docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+          docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
+          docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
           echo "Currency L1 cluster built successfully"
           break
         else
@@ -297,8 +297,8 @@ build_currency_l1() {
       for ((i = 1; i <= 11; i++)); do
         if curl -v http://localhost:9300/metrics &> /dev/null && curl -v http://localhost:9400/metrics &> /dev/null; then
           echo "Validators booted"
-          docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
-          docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+          docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
+          docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
           break
         else
           echo "L1 validators still booting... waiting 30s ($i/10)"
@@ -406,8 +406,8 @@ start() {
   echo "Joining currency l1 containers to build the cluster ..."
   for ((i = 1; i <= 11; i++)); do
     if curl http://localhost:9300/metrics &> /dev/null && curl http://localhost:9400/metrics &> /dev/null; then
-      docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
-      docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+      docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
+      docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
       echo "Currency L1 cluster built successfully"
       break
     else
@@ -523,8 +523,8 @@ start_currency_l1() {
   echo "Joining currency l1 containers to build the cluster ..."
   for ((i = 1; i <= 11; i++)); do
     if curl -v http://localhost:9300/metrics &> /dev/null && curl -v http://localhost:9400/metrics &> /dev/null; then
-      docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
-      docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+      docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
+      docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &> /dev/null
       echo "Currency L1 cluster built successfully"
       break
     else
