@@ -1,7 +1,7 @@
 # @cmd Build all the containers
 # @flag  --no_cache   Build docker containers with no cache
 # @flag  --run   Run containers after build
-build_complete() {
+build() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
@@ -337,7 +337,7 @@ build_monitoring() {
 }
 
 # @cmd Start all the containers
-start_complete() {
+start() {
   if ! docker inspect --type=image global-l0 &> /dev/null; then
     echo "You need to build the Global L0 first"
     exit
@@ -565,7 +565,7 @@ start_monitoring() {
 
 # @cmd Destroy all the containers
 # @flag  --delete_local_codebase   Delete all local codebase
-destroy_complete() {
+destroy() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR || exit
   cd ..
