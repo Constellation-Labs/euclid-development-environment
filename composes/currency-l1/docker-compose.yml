@@ -43,8 +43,8 @@ services:
       timeout: 10s
       retries: 10
   l1-currency-2:
-    build: ../../images/currency-l1
     container_name: l1-currency-2
+    build: ../../images/currency-l1/validators
     image: currency-l1-validator
     depends_on:
       l1-currency-1:
@@ -86,8 +86,8 @@ services:
       timeout: 10s
       retries: 10
   l1-currency-3:
-    build: ../../images/currency-l1
     container_name: l1-currency-3
+    build: ../../images/currency-l1/validators
     image: currency-l1-validator
     depends_on:
       l1-currency-1:
