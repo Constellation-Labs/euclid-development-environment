@@ -138,7 +138,7 @@ build_complete() {
 
       echo "Joining currency l1 containers to build the cluster ..."
       for ((i = 1; i <= 11; i++)); do
-        if curl -v http://localhost:9300/metrics && curl -v http://localhost:9400/metrics; then
+        if curl -v http://localhost:9300/metrics &> /dev/null && curl -v http://localhost:9400/metrics &> /dev/null; then
           docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
           docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
           echo "Currency L1 cluster built successfully"
@@ -161,6 +161,8 @@ build_complete() {
 }
 
 # @cmd Build global L0 container
+# @flag  --no_cache   Build docker containers with no cache
+# @flag  --run   Run containers after build
 build_global_l0() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
@@ -184,13 +186,31 @@ build_global_l0() {
     cd ../../
 
     cd composes/global-l0 || exit
-    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
-    docker-compose up -d
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Global L0 image... (NO CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache --progress plain
+    else
+      echo "Building Global L0 image... (USING CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --progress plain
+    fi
     cd ../../
+    echo "Global L0 image built"
+
+    if [ ! -z "$argc_run" ]; then
+      cd composes/global-l0 || exit
+      echo "Starting Global L0 image ..."
+      docker-compose up -d
+      echo "Global L0 image started"
+
+      echo "Containers successfully built. URLs:"
+      echo "Global L0: http://localhost:9000/cluster/info"
+    fi
   fi
 }
 
 # @cmd Build currency L0 container
+# @flag  --no_cache   Build docker containers with no cache
+# @flag  --run   Run containers after build
 build_currency_l0() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
@@ -214,13 +234,31 @@ build_currency_l0() {
     cd ../../
 
     cd composes/currency-l0 || exit
-    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
-    docker-compose up -d
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Currency L0 image... (NO CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache --progress plain
+    else
+      echo "Building Currency L0 image... (USING CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --progress plain
+    fi
     cd ../../
+    echo "Currency L0 image built"
+
+    if [ ! -z "$argc_run" ]; then
+      cd composes/currency-l0 || exit
+      echo "Starting Currency L0 image ..."
+      docker-compose up -d
+      echo "Currency L0 image started"
+
+      echo "Containers successfully built. URLs:"
+      echo "Currency L0: http://localhost:9100/cluster/info"
+    fi
   fi
 }
 
 # @cmd Build currency L1 container
+# @flag  --no_cache   Build docker containers with no cache
+# @flag  --run   Run containers after build
 build_currency_l1() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
@@ -239,32 +277,42 @@ build_currency_l1() {
     cp -r tessellation images/currency-l1/initial-validator
     mv tessellation/ images/currency-l1/validators/
 
-    cd composes/shared || exit
-    docker-compose build
-    docker-compose up -d
-    cd ../../
-
     cd composes/currency-l1 || exit
-    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
-
-    docker-compose up -d
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Currency L1 images... (NO CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache --progress plain
+    else
+      echo "Building Currency L1 images... (USING CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --progress plain
+    fi
     cd ../../
+    echo "Currency L1 images built"
 
-    for ((i = 1; i <= 11; i++)); do
-      if curl -v http://localhost:9300/metrics && curl -v http://localhost:9400/metrics; then
-        echo "Validators booted"
-        docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
-        docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
-        break
-      else
-        echo "L1 validators still booting... waiting 30s ($i/10)"
-        sleep 30s
-      fi
-    done
+    if [ ! -z "$argc_run" ]; then
+      cd composes/currency-l1 || exit
+      echo "Starting Currency L1 image ..."
+      docker-compose up -d
+      echo "Currency L1 image started"
+
+      for ((i = 1; i <= 11; i++)); do
+        if curl -v http://localhost:9300/metrics &> /dev/null && curl -v http://localhost:9400/metrics &> /dev/null; then
+          echo "Validators booted"
+          docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+          docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+          break
+        else
+          echo "L1 validators still booting... waiting 30s ($i/10)"
+          sleep 30s
+        fi
+      done
+      echo "Containers successfully built. URLs:"
+      echo "Currency L1: http://localhost:9200/cluster/info"
+    fi
   fi
 }
 
 # @cmd Build monitoring containers such as Grafana with Prometheus
+# @flag  --run   Run containers after build
 build_monitoring() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
@@ -276,13 +324,33 @@ build_monitoring() {
 
   cd composes/monitoring || exit
   docker-compose build
-  docker-compose up -d
-  cd ../../
+
+  if [ ! -z "$argc_run" ]; then
+    echo "Starting monitoring image ..."
+    docker-compose up -d
+    echo "monitoring started"
+
+    echo "Containers successfully built. URLs:"
+    echo "Grafana: http://localhost:3000"
+  fi
 
 }
 
 # @cmd Start all the containers
 start_complete() {
+  if ! docker inspect --type=image global-l0 &> /dev/null; then
+    echo "You need to build the Global L0 first"
+    exit
+  fi
+  if ! docker inspect --type=image currency-l0 &> /dev/null; then
+    echo "You need to build the Currency L0 first"
+    exit
+  fi
+  if ! docker inspect --type=image currency-l1 &> /dev/null; then
+    echo "You need to build the Currency L1 first"
+    exit
+  fi
+
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
@@ -353,11 +421,15 @@ start_complete() {
   echo "Currency L0: http://localhost:9100/cluster/info"
   echo "Currency L1: http://localhost:9200/cluster/info"
   echo "Grafana: http://localhost:3000/"
-
 }
 
 # @cmd Start Global L0 container
 start_global_l0() {
+  if ! docker inspect --type=image global-l0 &> /dev/null; then
+    echo "You need to build the Global L0 first"
+    exit
+  fi
+
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
@@ -380,6 +452,10 @@ start_global_l0() {
 
 # @cmd Start Currency L0 containers
 start_currency_l0() {
+  if ! docker inspect --type=image currency-l0 &> /dev/null; then
+    echo "You need to build the Currency L0 first"
+    exit
+  fi
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
@@ -413,6 +489,10 @@ start_currency_l0() {
 
 # @cmd Start Currency L1 containers
 start_currency_l1() {
+  if ! docker inspect --type=image currency-l1 &> /dev/null; then
+    echo "You need to build the Currency L1 first"
+    exit
+  fi
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
@@ -442,7 +522,7 @@ start_currency_l1() {
 
   echo "Joining currency l1 containers to build the cluster ..."
   for ((i = 1; i <= 11; i++)); do
-    if curl -v http://localhost:9300/metrics && curl -v http://localhost:9400/metrics; then
+    if curl -v http://localhost:9300/metrics &> /dev/null && curl -v http://localhost:9400/metrics &> /dev/null; then
       docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
       docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
       echo "Currency L1 cluster built successfully"
@@ -488,8 +568,7 @@ start_monitoring() {
 destroy_complete() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR || exit
-
-  cd .. || exit
+  cd ..
   chmod -R +w images
 
   echo "Starting destroying containers ..."
@@ -546,7 +625,6 @@ destroy_complete() {
 destroy_global_l0() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
-
   cd ..
   chmod -R +w images
   if [ ! -z "$argc_delete_local_codebase" ]; then
@@ -568,7 +646,6 @@ destroy_global_l0() {
 destroy_currency_l0() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
-
   cd ..
   chmod -R +w images
   if [ ! -z "$argc_delete_local_codebase" ]; then
@@ -590,7 +667,7 @@ destroy_currency_l0() {
 destroy_currency_l1() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
-
+  cd ..
   chmod -R +w images
 
   if [ ! -z "$argc_delete_local_codebase" ]; then
@@ -613,7 +690,6 @@ destroy_monitoring() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
   cd ..
-
   echo "Destroying monitoring containers"
   cd composes/monitoring || exit
   docker-compose down --remove-orphans
