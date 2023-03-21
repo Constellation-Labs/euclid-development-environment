@@ -346,7 +346,7 @@ start_complete() {
     echo "You need to build the Currency L0 first"
     exit
   fi
-  if ! docker inspect --type=image currency-l1 &> /dev/null; then
+  if ! docker inspect --type=image currency-l1-initial-validator &> /dev/null; then
     echo "You need to build the Currency L1 first"
     exit
   fi
@@ -489,7 +489,7 @@ start_currency_l0() {
 
 # @cmd Start Currency L1 containers
 start_currency_l1() {
-  if ! docker inspect --type=image currency-l1 &> /dev/null; then
+  if ! docker inspect --type=image currency-l1-initial-validator  &> /dev/null; then
     echo "You need to build the Currency L1 first"
     exit
   fi
@@ -575,29 +575,28 @@ destroy_complete() {
 
   if [ ! -z "$argc_delete_local_codebase" ]; then
     cd images || exit
-    echo "Removing the Tessellation codebase at Global L0..."
-    rm -r global-l0/tessellation
-    echo "Removed!"
-
-    echo "Removing the Tessellation codebase at Currency L0..."
-    rm -r currency-l0/tessellation
+    echo "Removing the Tessellation codebase at Currency L1 - validators..."
+    rm -r currency-l1/validators/tessellation
     echo "Removed!"
 
     echo "Removing the Tessellation codebase at Currency L1 - initial validator ..."
     rm -r currency-l1/initial-validator/tessellation
     echo "Removed!"
 
-    echo "Removing the Tessellation codebase at Currency L1 - validators..."
-    rm -r currency-l1/validators/tessellation
+    echo "Removing the Tessellation codebase at Currency L0..."
+    rm -r currency-l0/tessellation
     echo "Removed!"
-    cd ../
+
+    echo "Removing the Tessellation codebase at Global L0..."
+    rm -r global-l0/tessellation
+    echo "Removed!"
   fi
 
-  echo "Destroying Global L0 container"
-  cd composes/global-l0 || exit
+  echo "Destroying Currency L1 containers"
+  cd composes/currency-l1 || exit
   docker-compose down --remove-orphans
   cd ../../
-  echo "Global L0 container destroyed"
+  echo "Currency L1 containers destroyed"
 
   echo "Destroying Currency L0 container"
   cd composes/currency-l0 || exit
@@ -605,11 +604,11 @@ destroy_complete() {
   cd ../../
   echo "Currency L0 container destroyed"
 
-  echo "Destroying Currency L1 containers"
-  cd composes/currency-l1 || exit
+  echo "Destroying Global L0 container"
+  cd composes/global-l0 || exit
   docker-compose down --remove-orphans
   cd ../../
-  echo "Currency L1 containers destroyed"
+  echo "Global L0 container destroyed"
 
   echo "Destroying monitoring container"
   cd composes/monitoring || exit
