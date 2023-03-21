@@ -1,0 +1,623 @@
+# @cmd Build all the containers
+# @flag  --no_cache   Build docker containers with no cache
+# @flag  --run   Run containers after build
+build_complete() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  echo "Please provide your GITHUB_TOKEN:"
+  read github_token
+
+  if [ -z "$github_token" ]; then
+    echo "You should provide the GITHUB_PERSONAL_TOKEN"
+    exit
+  else
+    cd ..
+    chmod -R +w images
+    export DOCKER_BUILDKIT=0
+
+    echo "Creating docker custom-network..."
+    docker network ls | grep custom-network >/dev/null || docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    echo "Network created"
+
+    echo "Cloning tessellation repository to local codebase..."
+    git clone https://github.com/Constellation-Labs/tessellation.git
+
+    echo "Copying tessellation to images/global-l0..."
+    cp -r tessellation images/global-l0
+    echo "Copied"
+
+    echo "Copying tessellation to images/currency-l0..."
+    cp -r tessellation images/currency-l0
+    echo "Copied"
+
+    echo "Copying tessellation to images/currency-l1/initial-validator..."
+    cp -r tessellation images/currency-l1/initial-validator
+    echo "Copied"
+
+    echo "Copying tessellation to images/currency-l1/validators..."
+    mv tessellation/ images/currency-l1/validators/
+    echo "Copied"
+
+    echo "Building ubuntu shared image..."
+    cd composes/shared || exit
+    docker-compose build
+    cd ../../
+    echo "Ubuntu image built"
+
+    cd composes/global-l0 || exit
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Global L0 image... (NO CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache --progress plain
+    else
+      echo "Building Global L0 image... (USING CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --progress plain
+    fi
+    cd ../../
+    echo "Global L0 image built"
+
+    cd composes/currency-l0 || exit
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Currency L0 image... (NO CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache --progress plain
+    else
+      echo "Building Currency L0 image... (USING CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --progress plain
+    fi
+    cd ../../
+    echo "Currency L0 image built"
+
+    cd composes/currency-l1 || exit
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Currency L1 images... (NO CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache --progress plain
+    else
+      echo "Building Currency L1 images... (USING CACHE)"
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --progress plain
+    fi
+    cd ../../
+    echo "Currency L1 images built"
+
+    cd composes/monitoring || exit
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building monitoring images... (NO CACHE)"
+      docker-compose build --no-cache --progress plain
+    else
+      echo "Building monitoring images... (USING CACHE)"
+      docker-compose build --progress plain
+    fi
+    docker-compose up -d
+    cd ../../
+    echo "Monitoring images built"
+
+    if [ ! -z "$argc_run" ]; then
+      cd composes/global-l0 || exit
+      echo "Starting Global L0 image ..."
+      docker-compose up -d
+      cd ../
+      echo "Global L0 image started"
+
+      for ((i = 1; i <= 11; i++)); do
+        if ! curl http://localhost:9000/metrics &> /dev/null; then
+          if [ $i -eq 10 ]; then
+            echo "Could not find the Global L0 instance, make sure to run the Global L0 container"
+            exit
+          fi
+          echo "Global L0 still booting... waiting 10s ($i/10)"
+          sleep 10s
+        fi
+      done
+
+      cd currency-l0 || exit
+      echo "Starting Currency L0 image ..."
+      docker-compose up -d
+      cd ../
+      echo "Currency L0 image started"
+
+      for ((i = 1; i <= 11; i++)); do
+        if ! curl http://localhost:9100/metrics &> /dev/null; then
+          if [ $i -eq 10 ]; then
+            echo "Could not find the Currency L0 instance, make sure to run the Currency L0 container"
+            exit
+          fi
+          echo "Currency L0 still booting... waiting 10s ($i/10)"
+          sleep 10s
+        fi
+      done
+
+      cd currency-l1 || exit
+      echo "Starting Currency L1 images ..."
+      docker-compose up -d
+      cd ../
+      echo "Currency L1 images started"
+
+      cd monitoring || exit
+      echo "Starting monitoring images ..."
+      docker-compose up -d
+      echo "monitoring images started"
+
+      echo "Joining currency l1 containers to build the cluster ..."
+      for ((i = 1; i <= 11; i++)); do
+        if curl -v http://localhost:9300/metrics && curl -v http://localhost:9400/metrics; then
+          docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+          docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+          echo "Currency L1 cluster built successfully"
+          break
+        else
+          echo "L1 validators still booting... waiting 30s ($i/10)"
+          sleep 30s
+        fi
+      done
+
+      echo "Containers successfully built. URLs:"
+      echo "Global L0: http://localhost:9000/cluster/info"
+      echo "Currency L0: http://localhost:9100/cluster/info"
+      echo "Currency L1 - 1: http://localhost:9200/cluster/info"
+      echo "Currency L1 - 2: http://localhost:9300/cluster/info"
+      echo "Currency L1 - 3: http://localhost:9400/cluster/info"
+      echo "Grafana: http://localhost:3000/"
+    fi
+  fi
+}
+
+# @cmd Build global L0 container
+build_global_l0() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  echo "Please provide your GITHUB_TOKEN:"
+  read github_token
+
+  if [ -z "$github_token" ]; then
+    echo "You should provide the GITHUB_PERSONAL_TOKEN"
+  else
+    cd ..
+    chmod -R +w images
+    export DOCKER_BUILDKIT=0
+    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    git clone https://github.com/Constellation-Labs/tessellation.git
+    mv tessellation/ images/global-l0
+
+    cd composes/shared || exit
+    docker-compose build
+    docker-compose up -d
+    cd ../../
+
+    cd composes/global-l0 || exit
+    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+    docker-compose up -d
+    cd ../../
+  fi
+}
+
+# @cmd Build currency L0 container
+build_currency_l0() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  echo "Please provide your GITHUB_TOKEN:"
+  read github_token
+
+  if [ -z "$github_token" ]; then
+    echo "You should provide the GITHUB_PERSONAL_TOKEN"
+  else
+    cd ..
+    chmod -R +w images
+    export DOCKER_BUILDKIT=0
+    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    git clone https://github.com/Constellation-Labs/tessellation.git
+    mv tessellation/ images/currency-l0
+
+    cd composes/shared || exit
+    docker-compose build
+    docker-compose up -d
+    cd ../../
+
+    cd composes/currency-l0 || exit
+    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+    docker-compose up -d
+    cd ../../
+  fi
+}
+
+# @cmd Build currency L1 container
+build_currency_l1() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  echo "Please provide your GITHUB_TOKEN:"
+  read github_token
+
+  if [ -z "$github_token" ]; then
+    echo "You should provide the GITHUB_PERSONAL_TOKEN"
+  else
+    cd ..
+    chmod -R +w images
+    export DOCKER_BUILDKIT=0
+    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    git clone https://github.com/Constellation-Labs/tessellation.git
+    cp -r tessellation images/currency-l1/initial-validator
+    mv tessellation/ images/currency-l1/validators/
+
+    cd composes/shared || exit
+    docker-compose build
+    docker-compose up -d
+    cd ../../
+
+    cd composes/currency-l1 || exit
+    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+
+    docker-compose up -d
+    cd ../../
+
+    for ((i = 1; i <= 11; i++)); do
+      if curl -v http://localhost:9300/metrics && curl -v http://localhost:9400/metrics; then
+        echo "Validators booted"
+        docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+        docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+        break
+      else
+        echo "L1 validators still booting... waiting 30s ($i/10)"
+        sleep 30s
+      fi
+    done
+  fi
+}
+
+# @cmd Build monitoring containers such as Grafana with Prometheus
+build_monitoring() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ..
+  chmod -R +w images
+  export DOCKER_BUILDKIT=0
+  docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+
+  cd composes/monitoring || exit
+  docker-compose build
+  docker-compose up -d
+  cd ../../
+
+}
+
+# @cmd Start all the containers
+start_complete() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ../composes
+  chmod -R +w images
+  export DOCKER_BUILDKIT=0
+
+  echo "Creating docker custom-network..."
+  docker network ls | grep custom-network >/dev/null || docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  echo "Network created"
+
+  cd global-l0 || exit
+  echo "Starting Global L0 image ..."
+  docker-compose up -d
+  cd ../
+  echo "Global L0 image started"
+
+  for ((i = 0; i < 10; i++)); do
+    if ! curl http://localhost:9000/metrics &> /dev/null; then
+      echo "Global L0 still booting... waiting 15s"
+      sleep 15s
+    fi
+  done
+
+  cd currency-l0 || exit
+  echo "Starting Currency L0 image ..."
+  docker-compose up -d
+  cd ../
+  echo "Currency L0 image started"
+
+  for ((i = 1; i <= 11; i++)); do
+    if ! curl http://localhost:9100/metrics &> /dev/null; then
+      if [ $i -eq 10 ]; then
+        echo "Could not find the Currency L0 instance, make sure to run the Currency L0 container"
+        exit
+      fi
+      echo "Currency L0 still booting... waiting 10s ($i/10)"
+      sleep 10s
+    fi
+  done
+
+  cd currency-l1 || exit
+  echo "Starting Currency L1 images ..."
+  docker-compose up -d
+  cd ../
+  echo "Currency L1 images started"
+
+  cd monitoring || exit
+  echo "Starting monitoring images ..."
+  docker-compose up -d
+  echo "monitoring images started"
+
+  echo "Joining currency l1 containers to build the cluster ..."
+  for ((i = 1; i <= 11; i++)); do
+    if curl http://localhost:9300/metrics &> /dev/null && curl http://localhost:9400/metrics &> /dev/null; then
+      docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+      docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+      echo "Currency L1 cluster built successfully"
+      break
+    else
+      echo "L1 validators still booting... waiting 30s ($i/10)"
+      sleep 30s
+    fi
+  done
+
+  echo "Containers successfully built. URLs:"
+  echo "Global L0: http://localhost:9000/cluster/info"
+  echo "Currency L0: http://localhost:9100/cluster/info"
+  echo "Currency L1: http://localhost:9200/cluster/info"
+  echo "Grafana: http://localhost:3000/"
+
+}
+
+# @cmd Start Global L0 container
+start_global_l0() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ../composes
+  export DOCKER_BUILDKIT=0
+
+  echo "Creating docker custom-network..."
+  docker network ls | grep custom-network >/dev/null || docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  echo "Network created"
+
+  cd composes/global-l0 || exit
+  echo "Starting Global L0 image ..."
+  docker-compose up -d
+  cd ../
+  echo "Global L0 image started"
+
+  echo "Global L0 container successfully built. Url:"
+  echo "Global L0: http://localhost:9000/cluster/info"
+}
+
+# @cmd Start Currency L0 containers
+start_currency_l0() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ../composes
+  export DOCKER_BUILDKIT=0
+
+  for ((i = 1; i <= 11; i++)); do
+    if ! curl http://localhost:9000/metrics &> /dev/null; then
+      if [ $i -eq 10 ]; then
+        echo "Could not find the Global L0 instance, make sure to run the Global L0 container"
+        exit
+      fi
+      echo "Global L0 still booting... waiting 10s ($i/10)"
+      sleep 10s
+    fi
+  done
+
+  echo "Creating docker custom-network..."
+  docker network ls | grep custom-network >/dev/null || docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  echo "Network created"
+
+  cd currency-l0 || exit
+  echo "Starting Currency L0 image ..."
+  docker-compose up -d
+  cd ../
+  echo "Currency L0 image started"
+
+  echo "Currency L0 container successfully built. URLs:"
+  echo "Currency L0: http://localhost:9100/cluster/info"
+}
+
+# @cmd Start Currency L1 containers
+start_currency_l1() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ../composes
+  export DOCKER_BUILDKIT=0
+
+  for ((i = 1; i <= 11; i++)); do
+    if ! curl http://localhost:9100/metrics &> /dev/null; then
+      if [ $i -eq 10 ]; then
+        echo "Could not find the Currency L0 instance, make sure to run the Currency L0 container"
+        exit
+      fi
+      echo "Currency L0 still booting... waiting 10s ($i/10)"
+      sleep 10s
+    fi
+  done
+
+  echo "Creating docker custom-network..."
+  docker network ls | grep custom-network >/dev/null || docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  echo "Network created"
+
+  cd currency-l1 || exit
+  echo "Starting Currency L1 images ..."
+  docker-compose up -d
+  cd ../
+  echo "Currency L1 images started"
+
+  echo "Joining currency l1 containers to build the cluster ..."
+  for ((i = 1; i <= 11; i++)); do
+    if curl -v http://localhost:9300/metrics && curl -v http://localhost:9400/metrics; then
+      docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+      docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }'
+      echo "Currency L1 cluster built successfully"
+      break
+    else
+      echo "L1 validators still booting... waiting 30s ($i/10)"
+      sleep 30s
+    fi
+  done
+
+  echo "Containers successfully built. URLs:"
+  echo "Currency L1 - 1: http://localhost:9200/cluster/info"
+  echo "Currency L1 - 2: http://localhost:9300/cluster/info"
+  echo "Currency L1 - 3: http://localhost:9400/cluster/info"
+
+}
+
+# @cmd Start monitoring containers
+start_monitoring() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ../composes
+  chmod -R +w images
+  export DOCKER_BUILDKIT=0
+
+  echo "Creating docker custom-network..."
+  docker network ls | grep custom-network >/dev/null || docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  echo "Network created"
+
+  cd monitoring || exit
+  echo "Starting monitoring images ..."
+  docker-compose up -d
+  echo "monitoring images started"
+
+  echo "Monitoring containers successfully built. URLs:"
+  echo "Grafana: http://localhost:3000/"
+
+}
+
+# @cmd Destroy all the containers
+# @flag  --delete_local_codebase   Delete all local codebase
+destroy_complete() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR || exit
+
+  cd .. || exit
+  chmod -R +w images
+
+  echo "Starting destroying containers ..."
+
+  if [ ! -z "$argc_delete_local_codebase" ]; then
+    cd images || exit
+    echo "Removing the Tessellation codebase at Global L0..."
+    rm -r global-l0/tessellation
+    echo "Removed!"
+
+    echo "Removing the Tessellation codebase at Currency L0..."
+    rm -r currency-l0/tessellation
+    echo "Removed!"
+
+    echo "Removing the Tessellation codebase at Currency L1 - initial validator ..."
+    rm -r currency-l1/initial-validator/tessellation
+    echo "Removed!"
+
+    echo "Removing the Tessellation codebase at Currency L1 - validators..."
+    rm -r currency-l1/validators/tessellation
+    echo "Removed!"
+    cd ../
+  fi
+
+  echo "Destroying Global L0 container"
+  cd composes/global-l0 || exit
+  docker-compose down --remove-orphans
+  cd ../../
+  echo "Global L0 container destroyed"
+
+  echo "Destroying Currency L0 container"
+  cd composes/currency-l0 || exit
+  docker-compose down --remove-orphans
+  cd ../../
+  echo "Currency L0 container destroyed"
+
+  echo "Destroying Currency L1 containers"
+  cd composes/currency-l1 || exit
+  docker-compose down --remove-orphans
+  cd ../../
+  echo "Currency L1 containers destroyed"
+
+  echo "Destroying monitoring container"
+  cd composes/monitoring || exit
+  docker-compose down --remove-orphans
+  cd ../../
+  echo "Monitoring containers destroyed"
+
+  echo "All containers were destroyed successfully!"
+}
+
+# @cmd Destroy global L0 container
+# @flag  --delete_local_codebase   Delete Global L0 local codebase
+destroy_global_l0() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ..
+  chmod -R +w images
+  if [ ! -z "$argc_delete_local_codebase" ]; then
+    echo "Removing the Tessellation codebase at Global L0..."
+    cd images || exit
+    rm -r global-l0/tessellation
+    cd ../
+    echo "Removed!"
+  fi
+
+  echo "Destroying Global L0 container"
+  cd composes/global-l0 || exit
+  docker-compose down --remove-orphans
+  echo "Global L0 container destroyed"
+}
+
+# @cmd Destroy currency L0 container
+# @flag  --delete_local_codebase   Delete Currency L0 local codebase
+destroy_currency_l0() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ..
+  chmod -R +w images
+  if [ ! -z "$argc_delete_local_codebase" ]; then
+    echo "Removing the Tessellation codebase at Currency L0..."
+    cd images || exit
+    rm -r currency-l0/tessellation
+    cd ../
+    echo "Removed!"
+  fi
+
+  echo "Destroying Currency L0 container"
+  cd composes/currency-l0 || exit
+  docker-compose down --remove-orphans
+  echo "Currency L0 container destroyed"
+}
+
+# @cmd Destroy currency L1 container
+# @flag  --delete_local_codebase   Delete Currency L1 local codebase
+destroy_currency_l1() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  chmod -R +w images
+
+  if [ ! -z "$argc_delete_local_codebase" ]; then
+    echo "Removing the Tessellation codebase at Currency L1..."
+    cd images || exit
+    rm -r currency-l1/initial-validator/tessellation
+    rm -r currency-l1/validators/tessellation
+    cd ../
+    echo "Removed!"
+  fi
+
+  echo "Destroying Currency L1 containers"
+  cd composes/currency-l1 || exit
+  docker-compose down --remove-orphans
+  echo "Currency L1 containers destroyed"
+}
+
+# @cmd Destroy monitoring container
+destroy_monitoring() {
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+  cd ..
+
+  echo "Destroying monitoring containers"
+  cd composes/monitoring || exit
+  docker-compose down --remove-orphans
+  echo "monitoring containers destroyed"
+}
+
+eval "$(argc "$0" "$@")"
