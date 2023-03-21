@@ -1,0 +1,15 @@
+#!/bin/bash
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+cd ..
+chmod -R +w images
+
+cd images ||  exit
+
+rm -r currency-l0/tessellation
+cd ../
+
+cd composes/currency-l0 || exit
+docker-compose  down --remove-orphans
+cd ../../

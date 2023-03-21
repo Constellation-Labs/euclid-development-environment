@@ -1,0 +1,15 @@
+#!/bin/bash
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+cd ..
+chmod -R +w images
+
+cd images ||  exit
+
+rm -r global-l0/tessellation
+cd ../
+
+cd composes/global-l0 || exit
+docker-compose  down --remove-orphans
+cd ../../

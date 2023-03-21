@@ -1,40 +1,30 @@
 #!/bin/bash
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
 
-if [ -z "$1" ]
+echo "Please provide your GITHUB_TOKEN:"
+read github_token
+
+if [ -z "$github_token" ]
 then
   echo "You should provide the GITHUB_PERSONAL_TOKEN"
 else
+  cd ..
+  chmod -R +w images
   export DOCKER_BUILDKIT=0
-
   docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   git clone https://github.com/Constellation-Labs/tessellation.git
-  cp -r tessellation images/global-l0
-  cp -r tessellation images/currency-l0
   cp -r tessellation images/currency-l1/initial-validator
   mv tessellation/ images/currency-l1/validators/
 
   cd composes/shared || exit
-  docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$1
-  docker-compose up -d
-  cd ../../
-
-  cd composes/global-l0 || exit
-  docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$1
-  docker-compose up -d
-  cd ../../
-
-  cd composes/currency-l0 || exit
-  docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$1
+  docker-compose build
   docker-compose up -d
   cd ../../
 
   cd composes/currency-l1 || exit
-  docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$1
-  docker-compose up -d
-  cd ../../
+  docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
 
-  cd composes/monitoring || exit
-  docker-compose build
   docker-compose up -d
   cd ../../
 
