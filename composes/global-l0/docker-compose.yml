@@ -1,0 +1,37 @@
+# docker-compose.yml
+# We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
+version: '3'
+services:
+  l0-global:
+    container_name: l0-global
+    build: ../../images/global-l0
+    image: global-l0
+    environment:
+      - CL_KEYSTORE=token-key.p12
+      - CL_KEYALIAS=token-key
+      - CL_PASSWORD=password
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_ENV=dev
+    volumes:
+      - ../../shared/common_keys:/code/keys/
+      - ../../shared/jars:/code/jars/
+      - ../../images/global-l0/tessellation:/code/codebase/tessellation
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.2
+    command: >
+      sh -c "cp keys/token-key.p12 token-key.p12 && \
+             cp global-l0.jar jars/ && \
+             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+networks:
+  custom-network:
+    external: true

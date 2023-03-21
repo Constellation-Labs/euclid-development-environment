@@ -1,0 +1,42 @@
+# docker-compose.yml
+# We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
+version: '3'
+services:
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    command:
+      - --storage.tsdb.path=monitoring/prometheus/data
+      - --storage.tsdb.retention.time=200h
+    volumes:
+      - ../../images/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../../images/monitoring/prometheus:/prometheus
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.7
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss:latest
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../images/monitoring/grafana/config:/etc/grafana/provisioning
+      - ../../images/monitoring/grafana/storage:/var/lib/grafana
+      - ../../images/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ../../images/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE="Admin"
+      - GF_AUTH_ANONYMOUS_ORG_ROLE="Viewer"
+      - GF_AUTH_ANONYMOUS_ORG_NAME="Constellation"
+      - GF_INSTALL_PLUGINS=natel-discrete-panel
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.8
+networks:
+  custom-network:
+    external: true
