@@ -1,4 +1,8 @@
 #!/bin/bash
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+cd ..
 chmod -R +w images
 
 cd images ||  exit

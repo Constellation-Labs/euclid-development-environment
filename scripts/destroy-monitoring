@@ -1,0 +1,10 @@
+#!/bin/bash
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+cd ..
+chmod -R +w images
+
+cd composes/monitoring || exit
+docker-compose  down --remove-orphans
+cd ../../

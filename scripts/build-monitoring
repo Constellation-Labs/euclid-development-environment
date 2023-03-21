@@ -1,0 +1,13 @@
+#!/bin/bash
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+cd ..
+chmod -R +w images
+export DOCKER_BUILDKIT=0
+docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+
+cd composes/monitoring || exit
+docker-compose build
+docker-compose up -d
+cd ../../
