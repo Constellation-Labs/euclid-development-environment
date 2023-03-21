@@ -1,0 +1,133 @@
+# docker-compose.yml
+# We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
+version: '3'
+services:
+  l1-currency-1:
+    container_name: l1-currency-1
+    build: ../../images/currency-l1/initial-validator
+    image: currency-l1-initial-validator
+    environment:
+      - CL_KEYSTORE=token-key.p12
+      - CL_KEYALIAS=token-key
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-currency
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ../../shared/common_keys:/code/keys/
+      - ../../shared/jars:/code/jars/
+      - ../../images/currency-l1/initial-validator/tessellation:/code/codebase/tessellation
+    ports:
+      - '9200:9000'
+      - '9201:9001'
+      - '9202:9002'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.4
+    command: >
+      sh -c "cp keys/token-key.p12 token-key.p12 && \
+             cp currency-l1.jar jars/currency-l1.jar && \
+             java -jar currency-l1.jar run-initial-validator --ip 172.50.0.4"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-currency-1:9000/cluster/info" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-currency-2:
+    build: ../../images/currency-l1
+    container_name: l1-currency-2
+    image: currency-l1-validator
+    depends_on:
+      l1-currency-1:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key-1.p12
+      - CL_KEYALIAS=token-key-1
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-currency
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ../../shared/common_keys:/code/keys/
+      - ../../shared/jars:/code/jars/
+      - ../../images/currency-l1/validators/tessellation:/code/codebase/tessellation
+    ports:
+      - '9300:9000'
+      - '9301:9001'
+      - '9302:9002'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.5
+    command: >
+      sh -c "cp keys/token-key-1.p12 token-key-1.p12 && \
+             cp jars/currency-l1.jar currency-l1.jar && \
+             java -jar currency-l1.jar run-validator --ip 172.50.0.5"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-currency-2:9000/metrics" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-currency-3:
+    build: ../../images/currency-l1
+    container_name: l1-currency-3
+    image: currency-l1-validator
+    depends_on:
+      l1-currency-1:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key-2.p12
+      - CL_KEYALIAS=token-key-2
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-currency
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ../../shared/common_keys:/code/keys/
+      - ../../shared/jars:/code/jars/
+      - ../../images/currency-l1/validators/tessellation:/code/codebase/tessellation
+    ports:
+      - '9400:9000'
+      - '9401:9001'
+      - '9402:9002'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.6
+    command: >
+      sh -c "cp keys/token-key-2.p12 token-key-2.p12 && \
+             cp jars/currency-l1.jar currency-l1.jar && \
+             java -jar currency-l1.jar run-validator --ip 172.50.0.6"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-currency-3:9000/metrics" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+networks:
+  custom-network:
+    external: true
