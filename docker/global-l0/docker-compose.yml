@@ -28,6 +28,8 @@ services:
     command: >
       sh -c "cp keys/token-key.p12 token-key.p12 && \
              cp global-l0.jar jars/ && \
+             cp cl-keytool.jar jars/ && \
+             cp cl-wallet.jar jars/ && \
              java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]

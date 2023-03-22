@@ -15,6 +15,6 @@ COPY currency-l1/tessellation codebase/tessellation
 RUN cd codebase/tessellation  && \
     git pull && \
     git checkout develop && \
-    sbt clean currencyL1/assembly
+    sbt currencyL1/assembly
 
 RUN mv codebase/tessellation/modules/currency-l1/target/scala-2.13/tessellation-currency-l1-assembly-* currency-l1.jar

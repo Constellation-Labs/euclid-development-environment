@@ -16,7 +16,7 @@ build() {
     export DOCKER_BUILDKIT=0
 
     echo "Creating docker custom-network..."
-    if ! docker network ls | grep custom-network &>/dev/null; then
+    if ! docker network inspect custom-network &>/dev/null; then
       docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
     fi
     echo "Network created"
@@ -24,15 +24,15 @@ build() {
     echo "Cloning tessellation repository to local codebase..."
     git clone https://github.com/Constellation-Labs/tessellation.git
 
-    echo "Copying tessellation to images/global-l0..."
+    echo "Copying tessellation to source/global-l0..."
     cp -r tessellation global-l0
     echo "Copied"
 
-    echo "Copying tessellation to images/currency-l0..."
+    echo "Copying tessellation to source/currency-l0..."
     cp -r tessellation currency-l0
     echo "Copied"
 
-    echo "Copying tessellation to images/currency-l1..."
+    echo "Copying tessellation to source/currency-l1..."
     mv tessellation currency-l1
     echo "Copied"
 
@@ -181,7 +181,9 @@ build_global_l0() {
     cd global-l0/
 
     export DOCKER_BUILDKIT=0
-    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    if ! docker network inspect custom-network &>/dev/null; then
+      docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    fi
     git clone https://github.com/Constellation-Labs/tessellation.git
 
     cd ../../docker/ubuntu-with-java-and-sbt || exit
@@ -233,7 +235,9 @@ build_currency_l0() {
 
     export DOCKER_BUILDKIT=0
 
-    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    if ! docker network inspect custom-network &>/dev/null; then
+      docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    fi
     git clone https://github.com/Constellation-Labs/tessellation.git
 
     cd ../../docker/ubuntu-with-java-and-sbt || exit
@@ -284,7 +288,9 @@ build_currency_l1() {
     cd currency-l1/
 
     export DOCKER_BUILDKIT=0
-    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    if ! docker network inspect custom-network &>/dev/null; then
+      docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+    fi
     git clone https://github.com/Constellation-Labs/tessellation.git
 
     cd ../../docker/ubuntu-with-java-and-sbt || exit
@@ -335,7 +341,9 @@ build_monitoring() {
 
   export DOCKER_BUILDKIT=0
 
-  docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  if ! docker network inspect custom-network &>/dev/null; then
+    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  fi
 
   cd monitoring/ || exit
   if [ ! -z "$argc_no_cache" ]; then
@@ -379,7 +387,7 @@ start() {
   export DOCKER_BUILDKIT=0
 
   echo "Creating docker custom-network..."
-  if ! docker network ls | grep custom-network &>/dev/null; then
+  if ! docker network inspect custom-network &>/dev/null; then
     docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   fi
   echo "Network created"
@@ -461,7 +469,7 @@ start_global_l0() {
   export DOCKER_BUILDKIT=0
 
   echo "Creating docker custom-network..."
-  if ! docker network ls | grep custom-network &>/dev/null; then
+  if ! docker network inspect custom-network &>/dev/null; then
     docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   fi
   echo "Network created"
@@ -498,7 +506,7 @@ start_currency_l0() {
   done
 
   echo "Creating docker custom-network..."
-  if ! docker network ls | grep custom-network &>/dev/null; then
+  if ! docker network inspect custom-network &>/dev/null; then
     docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   fi
   echo "Network created"
@@ -535,7 +543,7 @@ start_currency_l1() {
   done
 
   echo "Creating docker custom-network..."
-  if ! docker network ls | grep custom-network &>/dev/null; then
+  if ! docker network inspect custom-network &>/dev/null; then
     docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   fi
   echo "Network created"
@@ -574,7 +582,7 @@ start_monitoring() {
   export DOCKER_BUILDKIT=0
 
   echo "Creating docker custom-network..."
-  if ! docker network ls | grep custom-network &>/dev/null; then
+  if ! docker network inspect custom-network &>/dev/null; then
     docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   fi
   echo "Network created"
@@ -637,6 +645,8 @@ destroy() {
   docker-compose down --remove-orphans
   cd ../../
   echo "Monitoring containers destroyed"
+
+  docker network rm custom-network
 
   echo "All containers were destroyed successfully!"
 }
