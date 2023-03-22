@@ -18,4 +18,6 @@ RUN cd codebase/tessellation  && \
     sbt core/assembly keytool/assembly wallet/assembly
 
 RUN mv codebase/tessellation/modules/core/target/scala-2.13/tessellation-core-assembly-* global-l0.jar && \
+    mv codebase/tessellation/modules/keytool/target/scala-2.13/tessellation-keytool-assembly-* cl-keytool.jar && \
+    mv codebase/tessellation/modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* cl-wallet.jar && \
     touch genesis.csv
