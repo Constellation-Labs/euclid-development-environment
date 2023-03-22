@@ -4,7 +4,9 @@ version: '3'
 services:
   l1-currency-1:
     container_name: l1-currency-1
-    build: ../../images/currency-l1/initial-validator
+    build:
+      context: ../../source
+      dockerfile: ../docker/currency-l1/initial-validator/Dockerfile
     image: currency-l1-initial-validator
     environment:
       - CL_KEYSTORE=token-key.p12
@@ -23,9 +25,9 @@ services:
       - CL_COLLATERAL=0
       - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
     volumes:
-      - ../../shared/common_keys:/code/keys/
-      - ../../shared/jars:/code/jars/
-      - ../../images/currency-l1/initial-validator/tessellation:/code/codebase/tessellation
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9200:9000'
       - '9201:9001'
@@ -44,7 +46,9 @@ services:
       retries: 10
   l1-currency-2:
     container_name: l1-currency-2
-    build: ../../images/currency-l1/validators
+    build:
+      context: ../../source
+      dockerfile: ../docker/currency-l1/validators/Dockerfile
     image: currency-l1-validator
     depends_on:
       l1-currency-1:
@@ -66,9 +70,9 @@ services:
       - CL_COLLATERAL=0
       - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
     volumes:
-      - ../../shared/common_keys:/code/keys/
-      - ../../shared/jars:/code/jars/
-      - ../../images/currency-l1/validators/tessellation:/code/codebase/tessellation
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9300:9000'
       - '9301:9001'
@@ -87,7 +91,9 @@ services:
       retries: 10
   l1-currency-3:
     container_name: l1-currency-3
-    build: ../../images/currency-l1/validators
+    build:
+      context: ../../source
+      dockerfile: ../docker/currency-l1/validators/Dockerfile
     image: currency-l1-validator
     depends_on:
       l1-currency-1:
@@ -109,9 +115,9 @@ services:
       - CL_COLLATERAL=0
       - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
     volumes:
-      - ../../shared/common_keys:/code/keys/
-      - ../../shared/jars:/code/jars/
-      - ../../images/currency-l1/validators/tessellation:/code/codebase/tessellation
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9400:9000'
       - '9401:9001'

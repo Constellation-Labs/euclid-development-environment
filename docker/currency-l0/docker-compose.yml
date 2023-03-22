@@ -4,7 +4,9 @@ version: '3'
 services:
   l0-currency:
     container_name: l0-currency
-    build: ../../images/currency-l0
+    build:
+      context: ../../source
+      dockerfile: ../docker/currency-l0/Dockerfile
     image: currency-l0
     environment:
       - CL_KEYSTORE=token-key.p12
@@ -20,10 +22,10 @@ services:
       - CL_COLLATERAL=0
       - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
     volumes:
-      - ../../shared/common_keys:/code/keys/
-      - ../../shared/jars:/code/jars/
-      - ../../images/currency-l0/tessellation:/code/codebase/tessellation
-      - ../../images/currency-l0/genesis:/code/genesis/
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/currency-l0/tessellation:/code/codebase/tessellation
+      - ./genesis:/code/genesis/
     ports:
       - '9100:9000'
       - '9101:9001'
