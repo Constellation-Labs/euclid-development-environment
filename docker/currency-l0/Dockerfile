@@ -10,7 +10,7 @@ ENV GITHUB_TOKEN=${GIT_PERSONAL_ACCESS_TOKEN}
 
 RUN mkdir codebase
 
-COPY ./tessellation codebase/tessellation
+COPY currency-l0/tessellation codebase/tessellation
 
 RUN cd codebase/tessellation  && \
     git pull && \

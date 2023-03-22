@@ -10,12 +10,11 @@ ENV GITHUB_TOKEN=${GIT_PERSONAL_ACCESS_TOKEN}
 
 RUN mkdir codebase
 
-COPY ./tessellation codebase/tessellation
+COPY currency-l1/tessellation codebase/tessellation
 
 RUN cd codebase/tessellation  && \
     git pull && \
     git checkout develop && \
-    sbt clean core/assembly
+    sbt clean currencyL1/assembly
 
-RUN mv codebase/tessellation/modules/core/target/scala-2.13/tessellation-core-assembly-* global-l0.jar && \
-    touch genesis.csv
+RUN mv codebase/tessellation/modules/currency-l1/target/scala-2.13/tessellation-currency-l1-assembly-* currency-l1.jar

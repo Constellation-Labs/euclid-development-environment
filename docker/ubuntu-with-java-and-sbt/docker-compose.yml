@@ -3,5 +3,5 @@
 version: '3'
 services:
   ubuntu:
-    build: ../../images/ubuntu-with-java-and-sbt
+    build: .
     image: ubuntu-with-java-and-sbt

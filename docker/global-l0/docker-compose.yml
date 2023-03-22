@@ -4,7 +4,9 @@ version: '3'
 services:
   l0-global:
     container_name: l0-global
-    build: ../../images/global-l0
+    build:
+      context: ../../source
+      dockerfile: ../docker/global-l0/Dockerfile
     image: global-l0
     environment:
       - CL_KEYSTORE=token-key.p12
@@ -14,9 +16,9 @@ services:
       - CL_COLLATERAL=0
       - CL_ENV=dev
     volumes:
-      - ../../shared/common_keys:/code/keys/
-      - ../../shared/jars:/code/jars/
-      - ../../images/global-l0/tessellation:/code/codebase/tessellation
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/global-l0/tessellation:/code/codebase/tessellation
     ports:
       - '9000:9000'
       - '9001:9001'
