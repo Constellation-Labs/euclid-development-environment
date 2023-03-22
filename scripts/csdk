@@ -687,6 +687,12 @@ destroy() {
   cd ../../
   echo "Monitoring containers destroyed"
 
+  echo "Destroying ubuntu-with-java-and-sbt container"
+  cd docker/ubuntu-with-java-and-sbt || exit
+  docker-compose down --remove-orphans
+  cd ../../
+  echo "ubuntu-with-java-and-sbt container destroyed"
+
   docker network rm custom-network
 
   echo "All containers were destroyed successfully!"
