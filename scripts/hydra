@@ -252,6 +252,8 @@ build() {
     echo "Cleaning up docker images"
     docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
 
+    chmod -R +w ../source
+    chmod -R +w ../source/tessellation
     rm -r ../source/tessellation
   fi
 }
@@ -560,6 +562,10 @@ destroy() {
 
   docker network rm custom-network
   docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
+
+  chmod -R +w source
+  chmod -R +w source/tessellation
+  rm -r source/tessellation
 }
 
 eval "$(argc "$0" "$@")"
