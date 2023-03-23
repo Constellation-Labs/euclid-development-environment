@@ -3,3 +3,4 @@ docker/monitoring/grafana/config/
 docker/monitoring/prometheus/data/
 docker/monitoring/prometheus/monitoring/
 .idea
+docker/shared/jars

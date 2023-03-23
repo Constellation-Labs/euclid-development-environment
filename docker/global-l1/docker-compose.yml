@@ -1,0 +1,130 @@
+# docker-compose.yml
+# We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
+version: '3'
+services:
+  l1-global-1:
+    container_name: l1-global-1
+    build:
+      context: ../../source
+      dockerfile: ../docker/global-l1/initial-validator/Dockerfile
+    image: global-l1-initial-validator
+    environment:
+      - CL_KEYSTORE=token-key.p12
+      - CL_KEYALIAS=token-key
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-global
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/global-l1/tessellation:/code/codebase/tessellation
+    ports:
+      - '9500:9000'
+      - '9501:9001'
+      - '9502:9002'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.7
+    command: >
+      sh -c "cp keys/token-key.p12 token-key.p12 && \
+             cp global-l1.jar jars/global-l1.jar && \
+             java -jar global-l1.jar run-initial-validator --ip 172.50.0.7"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-global-1:9000/cluster/info" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-global-2:
+    container_name: l1-global-2
+    build:
+      context: ../../source
+      dockerfile: ../docker/global-l1/validators/Dockerfile
+    image: global-l1-validator
+    depends_on:
+      l1-global-1:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key-1.p12
+      - CL_KEYALIAS=token-key-1
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-global
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/global-l1/tessellation:/code/codebase/tessellation
+    ports:
+      - '9600:9000'
+      - '9601:9001'
+      - '9602:9002'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.8
+    command: >
+      sh -c "cp keys/token-key-1.p12 token-key-1.p12 && \
+             cp jars/global-l1.jar global-l1.jar && \
+             java -jar global-l1.jar run-validator --ip 172.50.0.8"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-global-2:9000/metrics" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+  l1-global-3:
+    container_name: l1-global-3
+    build:
+      context: ../../source
+      dockerfile: ../docker/global-l1/validators/Dockerfile
+    image: global-l1-validator
+    depends_on:
+      l1-global-1:
+        condition: service_healthy
+    environment:
+      - CL_KEYSTORE=token-key-2.p12
+      - CL_KEYALIAS=token-key-2
+      - CL_PASSWORD=password
+      - CL_PUBLIC_HTTP_PORT=9000
+      - CL_P2P_HTTP_PORT=9001
+      - CL_CLI_HTTP_PORT=9002
+      - CL_L0_PEER_HTTP_HOST=l0-global
+      - CL_L0_PEER_HTTP_PORT=9000
+      - CL_L0_PEER_ID=b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66
+      - CL_APP_ENV=dev
+      - CL_COLLATERAL=0
+      - CL_L0_TOKEN_IDENTIFIER=DAG2Y1t8fbM9tN2GS2Vu8wh4vGGCjpRu796iNzcm
+    volumes:
+      - ../shared/common_keys:/code/keys/
+      - ../shared/jars:/code/jars/
+      - ../../source/global-l1/tessellation:/code/codebase/tessellation
+    ports:
+      - '9700:9000'
+      - '9701:9001'
+      - '9702:9002'
+    networks:
+      custom-network:
+        ipv4_address: 172.50.0.9
+    command: >
+      sh -c "cp keys/token-key-2.p12 token-key-2.p12 && \
+             cp jars/global-l1.jar global-l1.jar && \
+             java -jar global-l1.jar run-validator --ip 172.50.0.9"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://l1-global-3:9000/metrics" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+networks:
+  custom-network:
+    external: true
