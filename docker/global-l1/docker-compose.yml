@@ -25,13 +25,13 @@ services:
       - '9502:9002'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.7
+        ipv4_address: 172.50.0.9
     command: >
       sh -c "export CL_L0_PEER_ID=$(java -jar cl-wallet.jar show-id) && \
-             export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address)
+             export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
              cp global-l1.jar jars/global-l1.jar && \
              cp cl-wallet.jar jars/cl-wallet.jar && \
-             java -jar global-l1.jar run-initial-validator --ip 172.50.0.7"
+             java -jar global-l1.jar run-initial-validator --ip 172.50.0.9"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l1-global-1:9000/cluster/info" ]
       interval: 10s
@@ -63,7 +63,7 @@ services:
       - '9602:9002'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.8
+        ipv4_address: 172.50.0.10
     command: >
       sh -c "cp jars/cl-wallet.jar genesis/cl-wallet.jar && \
       
@@ -83,7 +83,7 @@ services:
              export CL_PASSWORD=$${CL_PASSWORD_NODE_2} && \
       
              cp jars/global-l1.jar global-l1.jar && \
-             java -jar global-l1.jar run-validator --ip 172.50.0.5"
+             java -jar global-l1.jar run-validator --ip 172.50.0.10"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l1-global-2:9000/metrics" ]
       interval: 10s
@@ -115,7 +115,7 @@ services:
       - '9702:9002'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.9
+        ipv4_address: 172.50.0.11
     command: >
       sh -c "cp jars/cl-wallet.jar genesis/cl-wallet.jar && \
 
@@ -135,7 +135,7 @@ services:
              export CL_PASSWORD=$${CL_PASSWORD_NODE_3} && \
 
              cp jars/global-l1.jar global-l1.jar && \
-             java -jar global-l1.jar run-validator --ip 172.50.0.9"
+             java -jar global-l1.jar run-validator --ip 172.50.0.11"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l1-global-3:9000/metrics" ]
       interval: 10s
