@@ -9,14 +9,10 @@ services:
       dockerfile: ../docker/global-l0/Dockerfile
     image: global-l0
     environment:
-      - CL_KEYSTORE=token-key.p12
-      - CL_KEYALIAS=token-key
-      - CL_PASSWORD=password
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
       - CL_ENV=dev
     volumes:
-      - ../shared/common_keys:/code/keys/
       - ../shared/jars:/code/jars/
       - ../../source/global-l0/tessellation:/code/codebase/tessellation
       - ./genesis:/code/genesis/
@@ -28,7 +24,6 @@ services:
         ipv4_address: 172.50.0.2
     command: >
       sh -c "cp genesis/genesis.csv genesis.csv && \
-             cp keys/token-key.p12 token-key.p12 && \
              cp global-l0.jar jars/ && \
              cp cl-keytool.jar jars/ && \
              cp cl-wallet.jar jars/ && \
