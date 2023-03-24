@@ -18,8 +18,8 @@ run_container() {
           echo "Could not find the $1 instance, make sure to run the $1 container"
           exit
         fi
-        echo "$1 still booting... waiting 10s ($i/10)"
-        sleep 10
+        echo "$1 still booting... waiting 30s ($i/10)"
+        sleep 30
       fi
     done
   fi
@@ -149,7 +149,7 @@ build() {
     if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
       echo "\nP12 files should be inserted on source/p12_files directory"
 
-      echo "\n\nGenesis P12 File:"
+      echo "\nGenesis P12 File:"
       read -p "File NAME without p12 extension [token-key]: " p12_genesis_file_name
       p12_genesis_file_name="${p12_genesis_file_name:-token-key}.p12"
       if [ ! -f "../source/p12_files/$p12_genesis_file_name" ]; then
@@ -162,7 +162,7 @@ build() {
       p12_genesis_file_password=${p12_genesis_file_password:-password}
 
       if [[ -z "$argc_only" || "$argc_only" == "global-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_global_l1" ]]; then
-        echo "\n\nNode 2 P12 File:"
+        echo "\nNode 2 P12 File:"
         read -p "File NAME without p12 extension [token-key-1]: " p12_node_2_file_name
         p12_node_2_file_name="${p12_node_2_file_name:-token-key-1}.p12"
         if [ ! -f "../source/p12_files/$p12_node_2_file_name" ]; then
@@ -174,7 +174,7 @@ build() {
         read -p "File PASSWORD [password]: " p12_node_2_file_password
         p12_node_2_file_password=${p12_node_2_file_password:-password}
 
-        echo "\n\nNode 3 P12 File:"
+        echo "\nNode 3 P12 File:"
         read -p "File NAME without p12 extension [token-key-2]: " p12_node_3_file_name
         p12_node_3_file_name="${p12_node_3_file_name:-token-key-2}.p12"
         if [ ! -f "../source/p12_files/$p12_node_3_file_name" ]; then
