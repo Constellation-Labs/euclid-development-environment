@@ -21,7 +21,6 @@ COPY p12_files/${P12_FILE_NAME_GENESIS} ${P12_FILE_NAME_GENESIS}
 
 RUN cd codebase/tessellation  && \
     git pull && \
-    git checkout develop && \
     sbt dagL1/assembly wallet/assembly
 
 RUN mv codebase/tessellation/modules/dag-l1/target/scala-2.13/tessellation-dag-l1-assembly-* global-l1.jar && \
