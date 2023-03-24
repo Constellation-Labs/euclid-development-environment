@@ -1,3 +1,126 @@
+join_l1_currency_nodes() {
+  echo "Joining currency l1 containers to build the cluster ..."
+  for ((i = 1; i <= 11; i++)); do
+    if curl -v http://localhost:9200/cluster/info &>/dev/null && curl -v http://localhost:9300/metrics &>/dev/null && curl -v http://localhost:9400/metrics &>/dev/null; then
+      echo "Joining node 2 ..."
+      docker exec -it l1-currency-2 bash -c "cd genesis/ && \
+                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
+                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
+                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
+                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.4\", \"p2pPort\": 9001 }' &> /dev/null"
+      echo "Joined"
+      echo "Joining node 3 ..."
+      docker exec -it l1-currency-3 bash -c "cd genesis/ && \
+                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
+                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
+                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
+                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.4\", \"p2pPort\": 9001 }' &> /dev/null"
+
+      echo "Joined"
+
+      echo "Currency L1 cluster built successfully"
+      break
+    else
+      echo "Currency L1 validators still booting... waiting 30s ($i/10)"
+      sleep 30
+    fi
+  done
+}
+
+join_l1_global_nodes() {
+  echo "Joining global l1 containers to build the cluster ..."
+  for ((i = 1; i <= 11; i++)); do
+    if curl -v http://localhost:9500/cluster/info &>/dev/null && curl -v http://localhost:9600/metrics &>/dev/null && curl -v http://localhost:9700/metrics &>/dev/null; then
+      echo "Joining node 2 ..."
+      docker exec -it l1-global-2 bash -c "cd genesis/ && \
+                                                            export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
+                                                            export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
+                                                            export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
+                                                            export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
+                                                            curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.9\", \"p2pPort\": 9001 }' &> /dev/null"
+      echo "Joined"
+
+      echo "Joining node 3 ..."
+      docker exec -it l1-global-3 bash -c "cd genesis/ && \
+                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
+                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
+                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
+                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.9\", \"p2pPort\": 9001 }' &> /dev/null"
+
+      echo "Joined"
+      echo "Global L1 cluster built successfully"
+      break
+    else
+      echo "Global L1 validators still booting... waiting 30s ($i/10)"
+      sleep 30
+    fi
+  done
+}
+
+run_container() {
+  cd $1 || exit
+  echo "Starting $1 image ..."
+  docker-compose up -d
+  echo "$1 image started"
+
+  if [[ ! -z "$2" ]]; then
+    for ((i = 1; i <= 11; i++)); do
+      if ! curl $2 &>/dev/null; then
+        if [ $i -eq 10 ]; then
+          echo "Could not find the $1 instance, make sure to run the $1 container"
+          exit
+        fi
+        echo "$1 still booting... waiting 10s ($i/10)"
+        sleep 10
+      fi
+    done
+  fi
+}
+
+copy_codebase_to_source() {
+  if [ -d "$1/tessellation" ]; then
+    echo "Directory '$1/tessellation 'already exists, skipping..."
+  else
+    echo "Copying tessellation to source/$1..."
+    chmod -R +w ../source/tessellation
+    chmod -R +w ../source/$1
+    cp -r ../source/tessellation ../source/$1
+    echo "Copied"
+  fi
+}
+
+create_docker_custom_network() {
+  echo "\nCreating docker custom-network..."
+  if ! docker network inspect custom-network &>/dev/null; then
+    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
+  fi
+  echo "Network created"
+}
+
+destroy_container() {
+  if [ ! -z "$2" ]; then
+    echo "Removing the Tessellation codebase at $1..."
+    rm -r source/$1/tessellation
+    echo "Removed!"
+  fi
+  echo "Destroying $1 container"
+  cd docker/$1 || exit
+  docker-compose down --remove-orphans
+  cd ../../
+  echo "$1 container destroyed"
+}
+
+stop_container() {
+  echo "Stopping $1 container"
+  cd docker/$1 || exit
+  docker-compose stop
+  cd ../../
+  echo "$1 container stopped"
+}
+
 # @cmd Build all the containers
 # @flag   --no_cache                 Build docker containers with no cache
 # @flag   --run                      Run containers after build
@@ -8,13 +131,54 @@ build() {
   VALID_ONLY_OPTIONS="global-l0 global-l1 currency-l0 currency-l1 monitoring"
   cd $BASEDIR
 
-  echo "Please provide your GITHUB_TOKEN:"
-  read github_token
+  read -p "Please provide your GITHUB_TOKEN: " github_token
 
   if [ -z "$github_token" ]; then
     echo "You should provide the GITHUB_PERSONAL_TOKEN"
     exit
   else
+    if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
+      echo "\nP12 files should be inserted on source/p12_files directory"
+
+      echo "\n\nGenesis P12 File:"
+      read -p "File NAME without p12 extension [token-key]: " p12_genesis_file_name
+      p12_genesis_file_name="${p12_genesis_file_name:-token-key}.p12"
+      if [ ! -f "../source/p12_files/$p12_genesis_file_name" ]; then
+        echo "File does not exists"
+        exit
+      fi
+      read -p "File KEY_ALIAS [token-key]: " p12_genesis_file_key_alias
+      p12_genesis_file_key_alias=${p12_genesis_file_key_alias:-token-key}
+      read -p "File PASSWORD [password]: " p12_genesis_file_password
+      p12_genesis_file_password=${p12_genesis_file_password:-password}
+
+      if [[ -z "$argc_only" || "$argc_only" == "global-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_global_l1" ]]; then
+        echo "\n\nNode 2 P12 File:"
+        read -p "File NAME without p12 extension [token-key-1]: " p12_node_2_file_name
+        p12_node_2_file_name="${p12_node_2_file_name:-token-key-1}.p12"
+        if [ ! -f "../source/p12_files/$p12_node_2_file_name" ]; then
+          echo "File does not exists"
+          exit
+        fi
+        read -p "File KEY_ALIAS [token-key-1]: " p12_node_2_file_key_alias
+        p12_node_2_file_key_alias=${p12_node_2_file_key_alias:-token-key-1}
+        read -p "File PASSWORD [password]: " p12_node_2_file_password
+        p12_node_2_file_password=${p12_node_2_file_password:-password}
+
+        echo "\n\nNode 3 P12 File:"
+        read -p "File NAME without p12 extension [token-key-2]: " p12_node_3_file_name
+        p12_node_3_file_name="${p12_node_3_file_name:-token-key-2}.p12"
+        if [ ! -f "../source/p12_files/$p12_node_3_file_name" ]; then
+          echo "File does not exists"
+          exit
+        fi
+        read -p "File KEY_ALIAS [token-key-2]: " p12_node_3_file_key_alias
+        p12_node_3_file_key_alias=${p12_node_3_file_key_alias:-token-key-2}
+        read -p "File PASSWORD [password]: " p12_node_3_file_password
+        p12_node_3_file_password=${p12_node_3_file_password:-password}
+      fi
+    fi
+
     global_l0_url=""
     global_l1_1_url=""
     global_l1_2_url=""
@@ -31,14 +195,11 @@ build() {
         exit
       fi
     fi
+
+    create_docker_custom_network
+
     cd ../source
     export DOCKER_BUILDKIT=0
-
-    echo "Creating docker custom-network..."
-    if ! docker network inspect custom-network &>/dev/null; then
-      docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
-    fi
-    echo "Network created"
 
     echo "Cloning tessellation repository to local codebase..."
     git clone https://github.com/Constellation-Labs/tessellation.git
@@ -53,166 +214,95 @@ build() {
     echo "Ubuntu image built"
 
     if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-      if [ -d "global-l0/tessellation" ]; then
-        echo "Directory 'global-l0/tessellation 'already exists, skipping..."
-      else
-        echo "Copying tessellation to source/global-l0..."
-        cp -r ../source/tessellation ../source/global-l0
-        echo "Copied"
-      fi
+      copy_codebase_to_source global-l0
 
       cd global-l0 || exit
       if [ ! -z "$argc_no_cache" ]; then
         echo "Building Global L0 image... (NO CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
       else
         echo "Building Global L0 image... (USING CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
       fi
       echo "Global L0 image built"
 
       if [ ! -z "$argc_run" ]; then
-        echo "Starting Global L0 image ..."
-        docker-compose up -d
-        echo "Global L0 image started"
-
-        for ((i = 1; i <= 11; i++)); do
-          if ! curl http://localhost:9000/metrics &>/dev/null; then
-            if [ $i -eq 10 ]; then
-              echo "Could not find the Global L0 instance, make sure to run the Global L0 container"
-              exit
-            fi
-            echo "Global L0 still booting... waiting 10s ($i/10)"
-            sleep 10
-          fi
-        done
+        cd ../
+        run_container global-l0 http://localhost:9000/metrics
+        global_l0_url="Global L0: http://localhost:9000/cluster/info"
       fi
-      global_l0_url="Global L0: http://localhost:9000/cluster/info"
       cd ../
     fi
 
     if [[ ! -z "$argc_include_global_l1" || "$argc_only" == "global-l1" ]]; then
-      if [ -d "global-l1/tessellation" ]; then
-        echo "Directory 'global-l1/tessellation 'already exists, skipping..."
-      else
-        echo "Copying tessellation to source/global-l1..."
-        cp -r ../source/tessellation ../source/global-l1
-        echo "Copied"
-      fi
+      copy_codebase_to_source global-l1
 
       cd global-l1 || exit
       if [ ! -z "$argc_no_cache" ]; then
         echo "Building Global L1 image... (NO CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password --no-cache
       else
         echo "Building Global L1 image... (USING CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password
       fi
       echo "Global L1 image built"
 
       if [ ! -z "$argc_run" ]; then
-        echo "Starting Global L1 images ..."
-        docker-compose up -d
-        echo "Global L1 images started"
+        cd ../
+        run_container global-l1
 
-        echo "Joining Global l1 containers to build the cluster ..."
-        for ((i = 1; i <= 11; i++)); do
-          if curl -v http://localhost:9600/metrics &>/dev/null && curl -v http://localhost:9700/metrics &>/dev/null; then
-            docker exec -it l1-global-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.7", "p2pPort": 9001 }' &>/dev/null
-            docker exec -it l1-global-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.7", "p2pPort": 9001 }' &>/dev/null
-            echo "Global L1 cluster built successfully"
-            break
-          else
-            echo "Global L1 validators still booting... waiting 30s ($i/10)"
-            sleep 30
-          fi
-        done
+        join_l1_global_nodes
+        global_l1_1_url="Global L1 - 1: http://localhost:9500/cluster/info"
+        global_l1_2_url="Global L1 - 2: http://localhost:9600/cluster/info"
+        global_l1_3_url="Global L1 - 3: http://localhost:9700/cluster/info"
       fi
-      global_l1_1_url="Global L1 - 1: http://localhost:9500/cluster/info"
-      global_l1_2_url="Global L1 - 2: http://localhost:9600/cluster/info"
-      global_l1_3_url="Global L1 - 3: http://localhost:9700/cluster/info"
       cd ../
     fi
 
     if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-      if [ -d "currency-l0/tessellation" ]; then
-        echo "Directory 'currency-l0/tessellation 'already exists, skipping..."
-      else
-        echo "Copying tessellation to source/currency-l0..."
-        cp -r ../source/tessellation ../source/currency-l0
-        echo "Copied"
-      fi
+      copy_codebase_to_source currency-l0
 
       cd currency-l0 || exit
       if [ ! -z "$argc_no_cache" ]; then
         echo "Building Currency L0 image... (NO CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
       else
         echo "Building Currency L0 image... (USING CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
       fi
       echo "Currency L0 image built"
 
       if [ ! -z "$argc_run" ]; then
-        echo "Starting Currency L0 image ..."
-        docker-compose up -d
-        echo "Currency L0 image started"
+        cd ../
+        run_container currency-l0 http://localhost:9100/metrics
 
-        for ((i = 1; i <= 11; i++)); do
-          if ! curl http://localhost:9100/metrics &>/dev/null; then
-            if [ $i -eq 10 ]; then
-              echo "Could not find the Currency L0 instance, make sure to run the Currency L0 container"
-              exit
-            fi
-            echo "Currency L0 still booting... waiting 10s ($i/10)"
-            sleep 10
-          fi
-        done
+        currency_l0_url="Currency L0: http://localhost:9100/cluster/info"
       fi
-      currency_l0_url="Currency L0: http://localhost:9100/cluster/info"
       cd ../
     fi
 
     if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-      if [ -d "currency-l1/tessellation" ]; then
-        echo "Directory 'currency-l1/tessellation 'already exists, skipping..."
-      else
-        echo "Copying tessellation to source/currency-l1..."
-        cp -r ../source/tessellation ../source/currency-l1
-        echo "Copied"
-      fi
+      copy_codebase_to_source currency-l1
 
       cd currency-l1 || exit
       if [ ! -z "$argc_no_cache" ]; then
         echo "Building Currency L1 image... (NO CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --no-cache
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password --no-cache
       else
         echo "Building Currency L1 image... (USING CACHE)"
-        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token
+        docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password
       fi
       echo "Currency L1 image built"
 
       if [ ! -z "$argc_run" ]; then
-        echo "Starting Currency L1 images ..."
-        docker-compose up -d
-        echo "Currency L1 images started"
+        cd ../
+        run_container currency-l1
+        join_l1_currency_nodes
 
-        echo "Joining currency l1 containers to build the cluster ..."
-        for ((i = 1; i <= 11; i++)); do
-          if curl -v http://localhost:9300/metrics &>/dev/null && curl -v http://localhost:9400/metrics &>/dev/null; then
-            docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &>/dev/null
-            docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &>/dev/null
-            echo "Currency L1 cluster built successfully"
-            break
-          else
-            echo " Global L1 validators still booting... waiting 30s ($i/10)"
-            sleep 30
-          fi
-        done
+        currency_l1_1_url="Currency L1 - 1: http://localhost:9200/cluster/info"
+        currency_l1_2_url="Currency L1 - 2: http://localhost:9300/cluster/info"
+        currency_l1_3_url="Currency L1 - 3: http://localhost:9400/cluster/info"
       fi
-      currency_l1_1_url="Currency L1 - 1: http://localhost:9200/cluster/info"
-      currency_l1_2_url="Currency L1 - 2: http://localhost:9300/cluster/info"
-      currency_l1_3_url="Currency L1 - 3: http://localhost:9400/cluster/info"
       cd ../
     fi
 
@@ -228,12 +318,12 @@ build() {
       echo "monitoring image built"
 
       if [ ! -z "$argc_run" ]; then
-        echo "Starting monitoring image ..."
-        docker-compose up -d
-        echo "Monitoring image started"
+        cd ../
+        run_container monitoring
+
+        grafana_url="Grafana: http://localhost:3000/"
       fi
       cd ../
-      grafana_url="Grafana: http://localhost:3000/"
     fi
 
     if [ ! -z "$argc_run" ]; then
@@ -309,54 +399,19 @@ start() {
     fi
   fi
 
-  echo "Creating docker custom-network..."
-  if ! docker network inspect custom-network &>/dev/null; then
-    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
-  fi
+  create_docker_custom_network
 
   cd ../docker
   export DOCKER_BUILDKIT=0
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    cd global-l0 || exit
-
-    echo "Starting Global L0 image ..."
-    docker-compose up -d
-    echo "Global L0 image started"
-
-    for ((i = 1; i <= 11; i++)); do
-      if ! curl http://localhost:9000/metrics &>/dev/null; then
-        if [ $i -eq 10 ]; then
-          echo "Could not find the Global L0 instance, make sure to run the Global L0 container"
-          exit
-        fi
-        echo "Global L0 still booting... waiting 10s ($i/10)"
-        sleep 10
-      fi
-    done
-
+    run_container global-l0 http://localhost:9000/metrics
     global_l0_url="Global L0: http://localhost:9000/cluster/info"
     cd ../
   fi
 
   if [[ ! -z "$argc_include_global_l1" || "$argc_only" == "global-l1" ]]; then
-    cd global-l1 || exit
-
-    echo "Starting Global L1 images ..."
-    docker-compose up -d
-    echo "Global L1 images started"
-
-    echo "Joining Global l1 containers to build the cluster ..."
-    for ((i = 1; i <= 11; i++)); do
-      if curl -v http://localhost:9600/metrics &>/dev/null && curl -v http://localhost:9700/metrics &>/dev/null; then
-        docker exec -it l1-global-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.7", "p2pPort": 9001 }' &>/dev/null
-        docker exec -it l1-global-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.7", "p2pPort": 9001 }' &>/dev/null
-        echo "Global L1 cluster built successfully"
-        break
-      else
-        echo "Global L1 validators still booting... waiting 30s ($i/10)"
-        sleep 30
-      fi
-    done
+    run_container global-l1 http://localhost:9000/metrics
+    join_l1_global_nodes
 
     global_l1_1_url="Global L1 - 1: http://localhost:9500/cluster/info"
     global_l1_2_url="Global L1 - 2: http://localhost:9600/cluster/info"
@@ -365,44 +420,14 @@ start() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    cd currency-l0 || exit
-
-    echo "Starting Currency L0 image ..."
-    docker-compose up -d
-    echo "Currency L0 image started"
-
-    for ((i = 1; i <= 11; i++)); do
-      if ! curl http://localhost:9100/metrics &>/dev/null; then
-        if [ $i -eq 10 ]; then
-          echo "Could not find the Currency L0 instance, make sure to run the Currency L0 container"
-          exit
-        fi
-        echo "Currency L0 still booting... waiting 10s ($i/10)"
-        sleep 10
-      fi
-    done
+    run_container currency-l0 http://localhost:9100/metrics
     currency_l0_url="Currency L0: http://localhost:9100/cluster/info"
     cd ../
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    cd currency-l1 || exit
-    echo "Starting Currency L1 images ..."
-    docker-compose up -d
-    echo "Currency L1 images started"
-
-    echo "Joining currency l1 containers to build the cluster ..."
-    for ((i = 1; i <= 11; i++)); do
-      if curl -v http://localhost:9300/metrics &>/dev/null && curl -v http://localhost:9400/metrics &>/dev/null; then
-        docker exec -it l1-currency-2 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &>/dev/null
-        docker exec -it l1-currency-3 curl -v -X POST http://localhost:9002/cluster/join -H "Content-type: application/json" -d '{ "id":"b1cf4d017eedb3e187b4d17cef9bdbcfdb2e57b26e346e9186da3a7a2b9110d73481fedbc6de23db51fb932371c54b02fff3388712dcb1e902870da7fa472f66", "ip": "172.50.0.4", "p2pPort": 9001 }' &>/dev/null
-        echo "Currency L1 cluster built successfully"
-        break
-      else
-        echo " Global L1 validators still booting... waiting 30s ($i/10)"
-        sleep 30
-      fi
-    done
+    run_container currency-l1
+    join_l1_currency_nodes
 
     currency_l1_1_url="Currency L1 - 1: http://localhost:9200/cluster/info"
     currency_l1_2_url="Currency L1 - 2: http://localhost:9300/cluster/info"
@@ -411,11 +436,7 @@ start() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
-    cd monitoring || exit
-
-    echo "Starting monitoring image ..."
-    docker-compose up -d
-    echo "Monitoring image started"
+    run_container monitoring
 
     grafana_url="Grafana: http://localhost:3000/"
   fi
@@ -443,43 +464,23 @@ stop() {
   echo "Starting stopping containers ..."
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    echo "Stopping Currency L1 container"
-    cd docker/currency-l1 || exit
-    docker-compose stop
-    cd ../../
-    echo "Currency L1 container stopped"
+    stop_container currency-l1
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    echo "Stopping Currency L0 container"
-    cd docker/currency-l0 || exit
-    docker-compose stop
-    cd ../../
-    echo "Currency L0 container stopped"
+    stop_container currency-l0
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l1" ]]; then
-    echo "Stopping Global L1 container"
-    cd docker/global-l1 || exit
-    docker-compose stop
-    cd ../../
-    echo "Global L1 container stopped"
+    stop_container global-l1
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    echo "Stopping Global L0 container"
-    cd docker/global-l0 || exit
-    docker-compose stop
-    cd ../../
-    echo "Global L0 container stopped"
+    stop_container global-l0
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
-    echo "Stopping Global L0 container"
-    cd docker/monitoring || exit
-    docker-compose stop
-    cd ../../
-    echo "monitoring container stopped"
+    stop_container monitoring
   fi
 }
 
@@ -495,70 +496,26 @@ destroy() {
   echo "Starting destroying containers ..."
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    if [ ! -z "$argc_delete_local_codebase" ]; then
-      echo "Removing the Tessellation codebase at Currency L1..."
-      rm -r source/currency-l1/tessellation
-      echo "Removed!"
-    fi
-    echo "Destroying Currency L1 container"
-    cd docker/currency-l1 || exit
-    docker-compose down --remove-orphans
-    cd ../../
-    echo "Currency L1 container destroyed"
+    destroy_container currency-l1 $argc_delete_local_codebase
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    if [ ! -z "$argc_delete_local_codebase" ]; then
-      echo "Removing the Tessellation codebase at Currency L0..."
-      rm -r source/currency-l0/tessellation
-      echo "Removed!"
-    fi
-    echo "Destroying Currency L0 container"
-    cd docker/currency-l0 || exit
-    docker-compose down --remove-orphans
-    cd ../../
-    echo "Currency L0 container destroyed"
+    destroy_container currency-l0 $argc_delete_local_codebase
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l1" ]]; then
-    if [ ! -z "$argc_delete_local_codebase" ]; then
-      echo "Removing the Tessellation codebase at Global L1..."
-      rm -r source/global-l1/tessellation
-      echo "Removed!"
-    fi
-    echo "Destroying Global L1 container"
-    cd docker/global-l1 || exit
-    docker-compose down --remove-orphans
-    cd ../../
-    echo "Global L1 container destroyed"
+    destroy_container global-l1 $argc_delete_local_codebase
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    if [ ! -z "$argc_delete_local_codebase" ]; then
-      echo "Removing the Tessellation codebase at Global L0..."
-      rm -r source/global-l0/tessellation
-      echo "Removed!"
-    fi
-    echo "Destroying Global L0 container"
-    cd docker/global-l0 || exit
-    docker-compose down --remove-orphans
-    cd ../../
-    echo "Global L0 container destroyed"
+    destroy_container global-l0 $argc_delete_local_codebase
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
-    echo "Destroying Global L0 container"
-    cd docker/monitoring || exit
-    docker-compose down --remove-orphans
-    cd ../../
-    echo "monitoring container destroyed"
+    destroy_container monitoring
   fi
 
-  echo "Destroying ubuntu-with-java-and-sbt container"
-  cd docker/ubuntu-with-java-and-sbt || exit
-  docker-compose down --remove-orphans
-  cd ../../
-  echo "ubuntu-with-java-and-sbt container destroyed"
+  destroy_container ubuntu-with-java-and-sbt
 
   docker network rm custom-network
   docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
