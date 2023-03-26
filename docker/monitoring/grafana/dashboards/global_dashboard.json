@@ -142,7 +142,7 @@
           "refId": "A"
         }
       ],
-      "title": "Global L1 - Cluster size",
+      "title": "DAG L1 - Cluster size",
       "type": "stat"
     },
     {
@@ -279,7 +279,7 @@
           "refId": "A"
         }
       ],
-      "title": "Global L1 - uptime",
+      "title": "DAG L1 - uptime",
       "type": "stat"
     },
     {
