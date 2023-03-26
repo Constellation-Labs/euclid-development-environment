@@ -140,57 +140,30 @@ build() {
   VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
 
   cd $BASEDIR
-  github_token=$GITHUB_TOKEN
+  source ../.env
 
-  if [[ -z "$github_token" && "$argc_only" != "monitoring" ]]; then
-    echo "GITHUB_TOKEN env variable not found! TIP: You can export GITHUB_TOKEN as an env variable to not enter the value each time when you run."
-    read -p "Please provide your GITHUB_TOKEN: " github_token
-  fi
-
-  if [[ -z "$github_token" && "$argc_only" != "monitoring" ]]; then
-    echo "You should provide the GITHUB_PERSONAL_TOKEN"
+  if [[ -z "$GITHUB_TOKEN" && "$argc_only" != "monitoring" ]]; then
+    echo "You should provide the GITHUB_TOKEN on .env file"
     exit
   fi
 
   if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
     echo "\nP12 files should be inserted on source/p12_files directory"
-
-    echo "\nGenesis P12 File:"
-    read -p "File NAME without p12 extension [token-key]: " p12_genesis_file_name
-    p12_genesis_file_name="${p12_genesis_file_name:-token-key}.p12"
-    if [ ! -f "../source/p12_files/$p12_genesis_file_name" ]; then
+    if [ ! -f "../source/p12_files/$P12_GENESIS_FILE_NAME" ]; then
       echo "File does not exists"
       exit
     fi
-    read -p "File KEY_ALIAS [token-key]: " p12_genesis_file_key_alias
-    p12_genesis_file_key_alias=${p12_genesis_file_key_alias:-token-key}
-    read -p "File PASSWORD [password]: " p12_genesis_file_password
-    p12_genesis_file_password=${p12_genesis_file_password:-password}
 
     if [[ -z "$argc_only" || "$argc_only" == "dag-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_dag_l1" ]]; then
-      echo "\nNode 2 P12 File:"
-      read -p "File NAME without p12 extension [token-key-1]: " p12_node_2_file_name
-      p12_node_2_file_name="${p12_node_2_file_name:-token-key-1}.p12"
-      if [ ! -f "../source/p12_files/$p12_node_2_file_name" ]; then
+      if [ ! -f "../source/p12_files/$P12_NODE_2_FILE_NAME" ]; then
         echo "File does not exists"
         exit
       fi
-      read -p "File KEY_ALIAS [token-key-1]: " p12_node_2_file_key_alias
-      p12_node_2_file_key_alias=${p12_node_2_file_key_alias:-token-key-1}
-      read -p "File PASSWORD [password]: " p12_node_2_file_password
-      p12_node_2_file_password=${p12_node_2_file_password:-password}
 
-      echo "\nNode 3 P12 File:"
-      read -p "File NAME without p12 extension [token-key-2]: " p12_node_3_file_name
-      p12_node_3_file_name="${p12_node_3_file_name:-token-key-2}.p12"
-      if [ ! -f "../source/p12_files/$p12_node_3_file_name" ]; then
+      if [ ! -f "../source/p12_files/$P12_NODE_3_FILE_NAME" ]; then
         echo "File does not exists"
         exit
       fi
-      read -p "File KEY_ALIAS [token-key-2]: " p12_node_3_file_key_alias
-      p12_node_3_file_key_alias=${p12_node_3_file_key_alias:-token-key-2}
-      read -p "File PASSWORD [password]: " p12_node_3_file_password
-      p12_node_3_file_password=${p12_node_3_file_password:-password}
     fi
   fi
 
@@ -234,10 +207,10 @@ build() {
     cd global-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Global L0 image... (NO CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     else
       echo "Building Global L0 image... (USING CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     fi
     echo "Global L0 image built"
 
@@ -255,10 +228,10 @@ build() {
     cd dag-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building DAG L1 image... (NO CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password --no-cache
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo "Building DAG L1 image... (USING CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "DAG L1 image built"
 
@@ -280,10 +253,10 @@ build() {
     cd currency-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L0 image... (NO CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     else
       echo "Building Currency L0 image... (USING CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME=$p12_genesis_file_name --build-arg P12_FILE_KEY_ALIAS=$p12_genesis_file_key_alias --build-arg P12_FILE_PASSWORD=$p12_genesis_file_password --no-cache
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     fi
     echo "Currency L0 image built"
 
@@ -302,10 +275,10 @@ build() {
     cd currency-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L1 image... (NO CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password --no-cache
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo "Building Currency L1 image... (USING CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$github_token --build-arg P12_FILE_NAME_GENESIS=$p12_genesis_file_name --build-arg P12_FILE_NAME_NODE_2=$p12_node_2_file_name --build-arg P12_FILE_NAME_NODE_3=$p12_node_3_file_name --build-arg P12_FILE_KEY_ALIAS_GENESIS=$p12_genesis_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_2=$p12_node_2_file_key_alias --build-arg P12_FILE_KEY_ALIAS_NODE_3=$p12_node_3_file_key_alias --build-arg P12_FILE_PASSWORD_GENESIS=$p12_genesis_file_password --build-arg P12_FILE_PASSWORD_NODE_2=$p12_node_2_file_password --build-arg P12_FILE_PASSWORD_NODE_3=$p12_node_3_file_password
+      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "Currency L1 image built"
 
