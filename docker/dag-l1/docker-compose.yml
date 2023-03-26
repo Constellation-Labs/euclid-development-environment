@@ -74,7 +74,7 @@ services:
              export CL_PASSWORD=$${CL_PASSWORD_GENESIS} && \
       
              export CL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
-             export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
+             export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
       
              cd ../ && \
       
@@ -126,7 +126,7 @@ services:
              export CL_PASSWORD=$${CL_PASSWORD_GENESIS} && \
 
              export CL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
-             export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
+             export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
 
              cd ../ && \
 
