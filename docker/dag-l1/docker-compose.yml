@@ -27,8 +27,8 @@ services:
       custom-network:
         ipv4_address: 172.50.0.9
     command: >
-      sh -c "export CL_L0_PEER_ID=$(java -jar cl-wallet.jar show-id) && \
-             export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
+      sh -c "export CL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
+             export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
              cp dag-l1.jar jars/dag-l1.jar && \
              cp cl-wallet.jar jars/cl-wallet.jar && \
              java -jar dag-l1.jar run-initial-validator --ip 172.50.0.9"
@@ -73,7 +73,7 @@ services:
              export CL_KEYALIAS=$${CL_KEYALIAS_GENESIS} && \
              export CL_PASSWORD=$${CL_PASSWORD_GENESIS} && \
       
-             export CL_L0_PEER_ID=$(java -jar cl-wallet.jar show-id) && \
+             export CL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
              export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
       
              cd ../ && \
@@ -125,7 +125,7 @@ services:
              export CL_KEYALIAS=$${CL_KEYALIAS_GENESIS} && \
              export CL_PASSWORD=$${CL_PASSWORD_GENESIS} && \
 
-             export CL_L0_PEER_ID=$(java -jar cl-wallet.jar show-id) && \
+             export CL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
              export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
 
              cd ../ && \
