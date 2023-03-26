@@ -128,12 +128,34 @@ join_l1_global_nodes() {
   done
 }
 
+checkout_tessellation_version() {
+  chmod -R +w ../source/tessellation
+  cd tessellation/
+
+  if [ ! -z "$2" ]; then
+    echo "Checking if DEFAULT branch/tag $1 on .env file is valid..."
+  else
+    echo "Checking if provided branch/tag $1 is valid..."
+  fi
+
+  if [ ! -z "$(git ls-remote origin $1)" ]; then
+    git checkout $1 &>/dev/null
+    git pull &>/dev/null
+    echo "Valid branch/tag"
+    cd ../
+  else
+    echo "Invalid Tessellation branch"
+    rm -r ../tessellation
+    exit
+  fi
+}
+
 # @cmd Build all the containers
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
 # @flag   --include_dag_l1                Includes the dag l1 layer to build/run
 # @option --only                          Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-# @option --tessellation_custom_branch    Tessellation repo branch to build the JARS. Default main
+# @option --tessellation_version    Tessellation repo branch to build the JARS. Default main
 build() {
   check_if_docker_is_running
 
@@ -193,24 +215,10 @@ build() {
   echo "Cloning tessellation repository to local codebase..."
   git clone https://github.com/Constellation-Labs/tessellation.git
 
-  chmod -R +w ../source/tessellation
+  checkout_tessellation_version $DEFAULT_TESSELLATION_PROJECT_VERSION true
 
-  if [ ! -z "$argc_tessellation_custom_branch" ]; then
-    cd tessellation/
-    git checkout develop &> /dev/null
-    git pull &> /dev/null
-
-    echo "Checking if provided branch/tag is valid..."
-
-    if [ ! -z "$(git ls-remote origin $argc_tessellation_custom_branch)" ]; then
-      git checkout $argc_tessellation_custom_branch
-      cd ../
-    else
-      echo "Invalid Tessellation branch"
-      rm -r ../tessellation
-      exit
-    fi
-
+  if [ ! -z "$argc_tessellation_version" ]; then
+    checkout_tessellation_version $argc_tessellation_version
   fi
 
   cd ../docker
