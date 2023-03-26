@@ -197,7 +197,6 @@ build() {
   echo "Building ubuntu shared image..."
   cd ubuntu-with-java-and-sbt || exit
   docker-compose build
-  docker-compose up -d
   cd ../
   echo "Ubuntu image built"
 
@@ -515,4 +514,14 @@ destroy() {
   rm -r source/tessellation
 }
 
+# @cmd Check the status of the containers
+# @flag  --show_all    Show all containers, including the stopped
+status() {
+  check_if_docker_is_running
+  if [[ ! -z "$argc_show_all" ]]; then
+    docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+  else
+    docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+  fi
+}
 eval "$(argc "$0" "$@")"
