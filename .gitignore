@@ -2,9 +2,9 @@ docker/monitoring/grafana/storage/
 docker/monitoring/grafana/config/
 docker/monitoring/prometheus/data/
 docker/monitoring/prometheus/monitoring/
-source/currency-l0
-source/currency-l1
-source/global-l0
-source/global-l1
+source/currency-l0/tessellation
+source/currency-l1/tessellation
+source/global-l0/tessellation
+source/dag-l1/tessellation
 .idea
 docker/shared/jars

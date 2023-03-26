@@ -2,12 +2,12 @@
 # We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
 version: '3'
 services:
-  l1-global-1:
-    container_name: l1-global-1
+  l1-dag-1:
+    container_name: l1-dag-1
     build:
       context: ../../source
-      dockerfile: ../docker/global-l1/initial-validator/Dockerfile
-    image: global-l1-initial-validator
+      dockerfile: ../docker/dag-l1/initial-validator/Dockerfile
+    image: dag-l1-initial-validator
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
@@ -18,7 +18,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/global-l1/tessellation:/code/codebase/tessellation
+      - ../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9500:9000'
       - '9501:9001'
@@ -29,22 +29,22 @@ services:
     command: >
       sh -c "export CL_L0_PEER_ID=$(java -jar cl-wallet.jar show-id) && \
              export CL_L0_TOKEN_IDENTIFIER=$(java -jar cl-wallet.jar show-address) && \
-             cp global-l1.jar jars/global-l1.jar && \
+             cp dag-l1.jar jars/dag-l1.jar && \
              cp cl-wallet.jar jars/cl-wallet.jar && \
-             java -jar global-l1.jar run-initial-validator --ip 172.50.0.9"
+             java -jar dag-l1.jar run-initial-validator --ip 172.50.0.9"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://l1-global-1:9000/cluster/info" ]
+      test: [ "CMD", "curl", "-f", "http://l1-dag-1:9000/cluster/info" ]
       interval: 10s
       timeout: 10s
       retries: 10
-  l1-global-2:
-    container_name: l1-global-2
+  l1-dag-2:
+    container_name: l1-dag-2
     build:
       context: ../../source
-      dockerfile: ../docker/global-l1/node-2/Dockerfile
-    image: global-l1-validator-node-2
+      dockerfile: ../docker/dag-l1/node-2/Dockerfile
+    image: dag-l1-validator-node-2
     depends_on:
-      l1-global-1:
+      l1-dag-1:
         condition: service_healthy
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
@@ -56,7 +56,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/global-l1/tessellation:/code/codebase/tessellation
+      - ../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9600:9000'
       - '9601:9001'
@@ -82,21 +82,21 @@ services:
              export CL_KEYALIAS=$${CL_KEYALIAS_NODE_2} && \
              export CL_PASSWORD=$${CL_PASSWORD_NODE_2} && \
       
-             cp jars/global-l1.jar global-l1.jar && \
-             java -jar global-l1.jar run-validator --ip 172.50.0.10"
+             cp jars/dag-l1.jar dag-l1.jar && \
+             java -jar dag-l1.jar run-validator --ip 172.50.0.10"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://l1-global-2:9000/metrics" ]
+      test: [ "CMD", "curl", "-f", "http://l1-dag-2:9000/metrics" ]
       interval: 10s
       timeout: 10s
       retries: 10
-  l1-global-3:
-    container_name: l1-global-3
+  l1-dag-3:
+    container_name: l1-dag-3
     build:
       context: ../../source
-      dockerfile: ../docker/global-l1/node-3/Dockerfile
-    image: global-l1-validator-node-3
+      dockerfile: ../docker/dag-l1/node-3/Dockerfile
+    image: dag-l1-validator-node-3
     depends_on:
-      l1-global-1:
+      l1-dag-1:
         condition: service_healthy
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
@@ -108,7 +108,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/global-l1/tessellation:/code/codebase/tessellation
+      - ../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9700:9000'
       - '9701:9001'
@@ -134,10 +134,10 @@ services:
              export CL_KEYALIAS=$${CL_KEYALIAS_NODE_3} && \
              export CL_PASSWORD=$${CL_PASSWORD_NODE_3} && \
 
-             cp jars/global-l1.jar global-l1.jar && \
-             java -jar global-l1.jar run-validator --ip 172.50.0.11"
+             cp jars/dag-l1.jar dag-l1.jar && \
+             java -jar dag-l1.jar run-validator --ip 172.50.0.11"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://l1-global-3:9000/metrics" ]
+      test: [ "CMD", "curl", "-f", "http://l1-dag-3:9000/metrics" ]
       interval: 10s
       timeout: 10s
       retries: 10
