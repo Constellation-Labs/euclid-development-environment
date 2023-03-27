@@ -230,6 +230,8 @@ build() {
   echo "Ubuntu image built"
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
+
     copy_codebase_to_source global-l0
 
     cd global-l0 || exit
@@ -276,6 +278,8 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
+
     copy_codebase_to_source currency-l0
 
     cd currency-l0 || exit
