@@ -20,7 +20,6 @@ COPY global-l0/tessellation codebase/tessellation
 COPY p12_files/${P12_FILE_NAME} ${P12_FILE_NAME}
 
 RUN cd codebase/tessellation  && \
-    git pull && \
     sbt core/assembly keytool/assembly wallet/assembly
 
 RUN mv codebase/tessellation/modules/core/target/scala-2.13/tessellation-core-assembly-* global-l0.jar && \
