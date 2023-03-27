@@ -363,6 +363,7 @@ build() {
 
 # @cmd Start all the containers
 # @flag   --include_dag_l1           Includes the dag l1 layer to build/run
+# @flag   --reset_genesis_file       Reset the L0 nodes from the beginning
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 start() {
   check_if_docker_is_running
@@ -418,6 +419,11 @@ start() {
   cd ../docker
   export DOCKER_BUILDKIT=0
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
+    if [[ ! -z "$argc_reset_genesis_file" ]]; then
+      export SHOULD_RESET_GENESIS_FILE=true
+    fi
+
     run_container global-l0 http://localhost:9000/metrics
     global_l0_url="Global L0: http://localhost:9000/cluster/info"
     cd ../
@@ -434,6 +440,11 @@ start() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
+    if [[ ! -z "$argc_reset_genesis_file" ]]; then
+      export SHOULD_RESET_GENESIS_FILE=true
+    fi
+
     run_container currency-l0 http://localhost:9100/metrics
     currency_l0_url="Currency L0: http://localhost:9100/cluster/info"
     cd ../
@@ -483,6 +494,7 @@ stop() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
     stop_container currency-l0
   fi
 
@@ -491,6 +503,7 @@ stop() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
     stop_container global-l0
   fi
 
@@ -516,6 +529,7 @@ destroy() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
     destroy_container currency-l0 $argc_delete_local_codebase
   fi
 
@@ -524,6 +538,7 @@ destroy() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=
     destroy_container global-l0 $argc_delete_local_codebase
   fi
 

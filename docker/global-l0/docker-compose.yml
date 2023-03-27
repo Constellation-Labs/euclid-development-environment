@@ -12,6 +12,7 @@ services:
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
       - CL_ENV=dev
+      - SHOULD_RESET_GENESIS_FILE=${SHOULD_RESET_GENESIS_FILE}
     volumes:
       - ../shared/jars:/code/jars/
       - ../../source/global-l0/tessellation:/code/codebase/tessellation
@@ -23,11 +24,12 @@ services:
       custom-network:
         ipv4_address: 172.50.0.2
     command: >
-      sh -c "cp genesis/genesis.csv genesis.csv && \
+      sh -c '[ ! -z "$SHOULD_RESET_GENESIS_FILE" ] && [ -d data/ ] && rm -r data || \
+             cp genesis/genesis.csv genesis.csv && \
              cp global-l0.jar jars/ && \
              cp cl-keytool.jar jars/ && \
              cp cl-wallet.jar jars/ && \
-             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2"
+             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]
       interval: 10s
