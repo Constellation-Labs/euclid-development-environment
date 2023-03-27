@@ -20,7 +20,6 @@ COPY currency-l0/tessellation codebase/tessellation
 COPY p12_files/${P12_FILE_NAME} ${P12_FILE_NAME}
 
 RUN cd codebase/tessellation  && \
-    git pull && \
     sbt currencyL0/assembly wallet/assembly
 
 RUN mv codebase/tessellation/modules/currency-l0/target/scala-2.13/tessellation-currency-l0-assembly-* currency-l0.jar && \
