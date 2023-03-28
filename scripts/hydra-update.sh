@@ -1,0 +1,68 @@
+check_if_container_is_running() {
+  if docker ps --format '{{.Names}}' | grep "$1"; then
+    echo You should stop the container $1 before update
+    exit
+  fi
+}
+
+checkout_version() {
+  if [ ! -z "$(git ls-remote origin $1)" ]; then
+    git pull &>/dev/null
+    git checkout $1 &>/dev/null
+    echo "Valid version"
+  else
+    echo "Invalid version"
+    exit
+  fi
+}
+
+# @cmd Update hydra
+# @option --version!          Version
+update() {
+  echo "You should stop all containers before update"
+
+  echo "Checking if any container is running ..."
+  check_if_container_is_running l0-global
+  check_if_container_is_running l1-global-1
+  check_if_container_is_running l1-global-2
+  check_if_container_is_running l1-global-3
+  check_if_container_is_running l0-currency
+  check_if_container_is_running l1-currency-1
+  check_if_container_is_running l1-currency-2
+  check_if_container_is_running l1-currency-3
+  check_if_container_is_running grafana
+  check_if_container_is_running prometheus
+
+  echo "Starting update ..."
+
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+
+  cd ../infra
+
+  echo "Getting updated version"
+  git clone --quiet https://github.com/Constellation-Labs/euclid-development-environment.git > /dev/null
+  checkout_version $argc_version
+
+  echo "Updating docker folder ..."
+  chmod +x docker
+  rm -r docker
+
+  cp -r euclid-development-environment/infra/docker .
+  echo "Updated"
+
+  echo "Updating hydra script ..."
+  cd ../scripts
+
+  chmod +x hydra
+  rm hydra
+
+  cp -r ../infra/euclid-development-environment/scripts/hydra .
+  echo "Updated"
+
+  chmod -R +w ../infra/euclid-development-environment
+  rm -r ../infra/euclid-development-environment
+  echo "Updating process finished!"
+}
+
+eval "$(argc "$0" "$@")"
