@@ -7,4 +7,4 @@ source/currency-l1/tessellation
 source/global-l0/tessellation
 source/dag-l1/tessellation
 .idea
-docker/shared/jars
+infra/docker/shared/jars
