@@ -5,8 +5,8 @@ services:
   l1-currency-1:
     container_name: l1-currency-1
     build:
-      context: ../../source
-      dockerfile: ../docker/currency-l1/initial-validator/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/currency-l1/initial-validator/Dockerfile
     image: currency-l1-initial-validator
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
@@ -20,7 +20,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/currency-l1/tessellation:/code/codebase/tessellation
+      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9200:9000'
       - '9201:9001'
@@ -43,8 +43,8 @@ services:
   l1-currency-2:
     container_name: l1-currency-2
     build:
-      context: ../../source
-      dockerfile: ../docker/currency-l1/node-2/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/currency-l1/node-2/Dockerfile
     image: currency-l1-validator-node-2
     depends_on:
       l1-currency-1:
@@ -61,7 +61,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/currency-l1/tessellation:/code/codebase/tessellation
+      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9300:9000'
       - '9301:9001'
@@ -98,8 +98,8 @@ services:
   l1-currency-3:
     container_name: l1-currency-3
     build:
-      context: ../../source
-      dockerfile: ../docker/currency-l1/node-3/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/currency-l1/node-3/Dockerfile
     image: currency-l1-validator-node-3
     depends_on:
       l1-currency-1:
@@ -116,7 +116,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/currency-l1/tessellation:/code/codebase/tessellation
+      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9400:9000'
       - '9401:9001'

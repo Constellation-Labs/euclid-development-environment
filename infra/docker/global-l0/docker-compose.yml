@@ -5,8 +5,8 @@ services:
   l0-global:
     container_name: l0-global
     build:
-      context: ../../source
-      dockerfile: ../docker/global-l0/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/global-l0/Dockerfile
     image: global-l0
     environment:
       - CL_APP_ENV=dev
@@ -15,8 +15,8 @@ services:
       - SHOULD_RESET_GENESIS_FILE=${SHOULD_RESET_GENESIS_FILE}
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/global-l0/tessellation:/code/codebase/tessellation
-      - ./genesis:/code/genesis/
+      - ../../../source/global-l0/tessellation:/code/codebase/tessellation
+      - ../../../source/global-l0/genesis:/code/genesis/
     ports:
       - '9000:9000'
       - '9001:9001'
