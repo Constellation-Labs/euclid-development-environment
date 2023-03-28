@@ -5,8 +5,8 @@ services:
   l1-dag-1:
     container_name: l1-dag-1
     build:
-      context: ../../source
-      dockerfile: ../docker/dag-l1/initial-validator/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/dag-l1/initial-validator/Dockerfile
     image: dag-l1-initial-validator
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
@@ -18,7 +18,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/dag-l1/tessellation:/code/codebase/tessellation
+      - ../../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9500:9000'
       - '9501:9001'
@@ -40,8 +40,8 @@ services:
   l1-dag-2:
     container_name: l1-dag-2
     build:
-      context: ../../source
-      dockerfile: ../docker/dag-l1/node-2/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/dag-l1/node-2/Dockerfile
     image: dag-l1-validator-node-2
     depends_on:
       l1-dag-1:
@@ -56,7 +56,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/dag-l1/tessellation:/code/codebase/tessellation
+      - ../../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9600:9000'
       - '9601:9001'
@@ -92,8 +92,8 @@ services:
   l1-dag-3:
     container_name: l1-dag-3
     build:
-      context: ../../source
-      dockerfile: ../docker/dag-l1/node-3/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/dag-l1/node-3/Dockerfile
     image: dag-l1-validator-node-3
     depends_on:
       l1-dag-1:
@@ -108,7 +108,7 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/dag-l1/tessellation:/code/codebase/tessellation
+      - ../../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9700:9000'
       - '9701:9001'
