@@ -234,7 +234,7 @@ build() {
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    clone_and_check_repo_version global-l1 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
+    clone_and_check_repo_version dag-l1 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
 
     cd dag-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
