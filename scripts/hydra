@@ -176,19 +176,19 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
-    echo "\nP12 files should be inserted on source/p12_files directory"
-    if [ ! -f "../source/p12_files/$P12_GENESIS_FILE_NAME" ]; then
+    echo "\nP12 files should be inserted on source/p12-files directory"
+    if [ ! -f "../source/p12-files/$P12_GENESIS_FILE_NAME" ]; then
       echo "File does not exists"
       exit
     fi
 
     if [[ -z "$argc_only" || "$argc_only" == "dag-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_dag_l1" ]]; then
-      if [ ! -f "../source/p12_files/$P12_NODE_2_FILE_NAME" ]; then
+      if [ ! -f "../source/p12-files/$P12_NODE_2_FILE_NAME" ]; then
         echo "File does not exists"
         exit
       fi
 
-      if [ ! -f "../source/p12_files/$P12_NODE_3_FILE_NAME" ]; then
+      if [ ! -f "../source/p12-files/$P12_NODE_3_FILE_NAME" ]; then
         echo "File does not exists"
         exit
       fi
