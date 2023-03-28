@@ -17,7 +17,7 @@ ENV CL_PASSWORD=${P12_FILE_PASSWORD_GENESIS}
 RUN mkdir codebase
 
 COPY currency-l1/tessellation codebase/tessellation
-COPY p12_files/${P12_FILE_NAME_GENESIS} ${P12_FILE_NAME_GENESIS}
+COPY p12-files/${P12_FILE_NAME_GENESIS} ${P12_FILE_NAME_GENESIS}
 
 RUN cd codebase/tessellation  && \
     sbt currencyL1/assembly wallet/assembly
