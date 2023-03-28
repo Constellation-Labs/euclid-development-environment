@@ -143,6 +143,18 @@ join_l1_global_nodes() {
   done
 }
 
+# @cmd Removes the remote git
+install() {
+    BASEDIR=$(dirname "$0")
+    cd $BASEDIR
+    cd ../
+
+    echo "Installing hydra ..."
+    chmod -R +w .git
+    rm -r .git
+    echo "Installed"
+}
+
 # @cmd Build all the containers
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
