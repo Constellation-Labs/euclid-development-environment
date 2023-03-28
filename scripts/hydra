@@ -5,6 +5,13 @@ check_if_docker_is_running() {
   fi
 }
 
+check_if_github_token_is_valid() {
+  if curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -q "Bad credentials"; then
+    echo "Invalid GITHUB_TOKEN"
+    exit
+  fi
+}
+
 run_container() {
   cd $1 || exit
   echo "Starting $1 image ..."
@@ -145,14 +152,14 @@ join_l1_global_nodes() {
 
 # @cmd Removes the remote git
 install() {
-    BASEDIR=$(dirname "$0")
-    cd $BASEDIR
-    cd ../
+  BASEDIR=$(dirname "$0")
+  cd $BASEDIR
+  cd ../
 
-    echo "Installing hydra ..."
-    chmod -R +w .git
-    rm -r .git
-    echo "Installed"
+  echo "Installing hydra ..."
+  chmod -R +w .git
+  rm -r .git
+  echo "Installed"
 }
 
 # @cmd Build all the containers
@@ -169,6 +176,10 @@ build() {
 
   cd $BASEDIR
   source ../.env
+
+  if [[ "$argc_only" != "monitoring" ]]; then
+    check_if_github_token_is_valid
+  fi
 
   if [[ -z "$GITHUB_TOKEN" && "$argc_only" != "monitoring" ]]; then
     echo "You should provide the GITHUB_TOKEN on .env file"
@@ -351,7 +362,7 @@ build() {
     echo "$dag_l1_3_url"
   fi
 
-  echo "Cleaning up docker images"
+  echo "Cleaning up dangling docker images"
   docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
 }
 
