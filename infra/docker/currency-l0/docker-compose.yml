@@ -5,8 +5,8 @@ services:
   l0-currency:
     container_name: l0-currency
     build:
-      context: ../../source
-      dockerfile: ../docker/currency-l0/Dockerfile
+      context: ../../../source
+      dockerfile: ../infra/docker/currency-l0/Dockerfile
     image: currency-l0
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
@@ -19,8 +19,8 @@ services:
       - SHOULD_RESET_GENESIS_FILE=${SHOULD_RESET_GENESIS_FILE}
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../source/currency-l0/tessellation:/code/codebase/tessellation
-      - ./genesis:/code/genesis/
+      - ../../../source/currency-l0/tessellation:/code/codebase/tessellation
+      - ../../../source/currency-l0/genesis:/code/genesis/
     ports:
       - '9100:9000'
       - '9101:9001'

@@ -25,16 +25,31 @@ run_container() {
   fi
 }
 
-copy_codebase_to_source() {
-  if [ -d "$1/tessellation" ]; then
-    echo "Directory '$1/tessellation 'already exists, skipping..."
+checkout_tessellation_version() {
+  cd $2/
+  if [ ! -z "$(git ls-remote origin $1)" ]; then
+    git pull &>/dev/null
+    git checkout $1 &>/dev/null
+    echo "Valid branch/tag"
+    cd ../
   else
-    echo "Copying tessellation to source/$1..."
-    chmod -R +w ../source/tessellation
-    chmod -R +w ../source/$1
-    cp -r ../source/tessellation ../source/$1
-    echo "Copied"
+    echo "Invalid branch"
+    exit
   fi
+}
+
+clone_and_check_repo_version() {
+  cd ../../source/$1
+
+  echo "Cloning repository to local codebase $1 ..."
+  git clone $2
+  checkout_tessellation_version $DEFAULT_TESSELLATION_PROJECT_VERSION $3
+
+  if [ ! -z "$4" ]; then
+    checkout_tessellation_version $4 $3
+  fi
+
+  cd ../../infra/docker
 }
 
 create_docker_custom_network() {
@@ -52,17 +67,17 @@ destroy_container() {
     echo "Removed!"
   fi
   echo "Destroying $1 container"
-  cd docker/$1 || exit
+  cd infra/docker/$1 || exit
   docker-compose down --remove-orphans
-  cd ../../
+  cd ../../../
   echo "$1 container destroyed"
 }
 
 stop_container() {
   echo "Stopping $1 container"
-  cd docker/$1 || exit
+  cd infra/docker/$1 || exit
   docker-compose stop
-  cd ../../
+  cd ../../../
   echo "$1 container stopped"
 }
 
@@ -128,28 +143,6 @@ join_l1_global_nodes() {
   done
 }
 
-checkout_tessellation_version() {
-  chmod -R +w ../source/tessellation
-  cd tessellation/
-
-  if [ ! -z "$2" ]; then
-    echo "Checking if DEFAULT branch/tag $1 on .env file is valid..."
-  else
-    echo "Checking if provided branch/tag $1 is valid..."
-  fi
-
-  if [ ! -z "$(git ls-remote origin $1)" ]; then
-    git checkout $1 &>/dev/null
-    git pull &>/dev/null
-    echo "Valid branch/tag"
-    cd ../
-  else
-    echo "Invalid Tessellation branch"
-    rm -r ../tessellation
-    exit
-  fi
-}
-
 # @cmd Build all the containers
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
@@ -208,20 +201,9 @@ build() {
   fi
 
   create_docker_custom_network
-
-  cd ../source
   export DOCKER_BUILDKIT=0
 
-  echo "Cloning tessellation repository to local codebase..."
-  git clone https://github.com/Constellation-Labs/tessellation.git
-
-  checkout_tessellation_version $DEFAULT_TESSELLATION_PROJECT_VERSION true
-
-  if [ ! -z "$argc_tessellation_version" ]; then
-    checkout_tessellation_version $argc_tessellation_version
-  fi
-
-  cd ../docker
+  cd ../infra/docker
 
   echo "Building ubuntu shared image..."
   cd ubuntu-with-java-and-sbt || exit
@@ -230,9 +212,8 @@ build() {
   echo "Ubuntu image built"
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
-
-    copy_codebase_to_source global-l0
+    export SHOULD_RESET_GENESIS_FILE=true
+    clone_and_check_repo_version global-l0 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
 
     cd global-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -253,7 +234,7 @@ build() {
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    copy_codebase_to_source dag-l1
+    clone_and_check_repo_version global-l1 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
 
     cd dag-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -278,9 +259,8 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
-
-    copy_codebase_to_source currency-l0
+    export SHOULD_RESET_GENESIS_FILE=true
+    clone_and_check_repo_version currency-l0 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
 
     cd currency-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -302,7 +282,7 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    copy_codebase_to_source currency-l1
+    clone_and_check_repo_version currency-l1 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
 
     cd currency-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -361,15 +341,12 @@ build() {
 
   echo "Cleaning up docker images"
   docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
-
-  rm -r ../source/tessellation
 }
 
 # @cmd Start all the containers
 # @flag   --include_dag_l1           Includes the dag l1 layer to build/run
-# @flag   --reset_genesis_file       Reset the L0 nodes from the beginning
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-start() {
+start_genesis() {
   check_if_docker_is_running
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     if ! docker inspect --type=image global-l0 &>/dev/null; then
@@ -420,13 +397,10 @@ start() {
 
   create_docker_custom_network
 
-  cd ../docker
+  cd ../infra/docker
   export DOCKER_BUILDKIT=0
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
-    if [[ ! -z "$argc_reset_genesis_file" ]]; then
-      export SHOULD_RESET_GENESIS_FILE=true
-    fi
+    export SHOULD_RESET_GENESIS_FILE=true
 
     run_container global-l0 http://localhost:9000/metrics
     global_l0_url="Global L0: http://localhost:9000/cluster/info"
@@ -444,10 +418,7 @@ start() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
-    if [[ ! -z "$argc_reset_genesis_file" ]]; then
-      export SHOULD_RESET_GENESIS_FILE=true
-    fi
+    export SHOULD_RESET_GENESIS_FILE=true
 
     run_container currency-l0 http://localhost:9100/metrics
     currency_l0_url="Currency L0: http://localhost:9100/cluster/info"
@@ -498,7 +469,7 @@ stop() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
+    export SHOULD_RESET_GENESIS_FILE=true
     stop_container currency-l0
   fi
 
@@ -507,7 +478,7 @@ stop() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
+    export SHOULD_RESET_GENESIS_FILE=true
     stop_container global-l0
   fi
 
@@ -533,7 +504,7 @@ destroy() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
+    export SHOULD_RESET_GENESIS_FILE=true
     destroy_container currency-l0 $argc_delete_local_codebase
   fi
 
@@ -542,7 +513,7 @@ destroy() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=
+    export SHOULD_RESET_GENESIS_FILE=true
     destroy_container global-l0 $argc_delete_local_codebase
   fi
 
@@ -554,10 +525,6 @@ destroy() {
 
   docker network rm custom-network
   docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
-
-  chmod -R +w source
-  chmod -R +w source/tessellation
-  rm -r source/tessellation
 }
 
 # @cmd Check the status of the containers
