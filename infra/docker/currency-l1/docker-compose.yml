@@ -32,6 +32,7 @@ services:
       sh -c "export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
              export CL_L0_PEER_ID=$${CL_GLOBAL_L0_PEER_ID}
              export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
+             echo $${CL_GLOBAL_L0_PEER_ID} $${CL_L0_TOKEN_IDENTIFIER} $${CL_L0_PEER_ID} && \
              cp currency-l1.jar jars/currency-l1.jar && \
              cp cl-wallet.jar jars/cl-wallet.jar && \
              java -jar currency-l1.jar run-initial-validator --ip 172.50.0.4"

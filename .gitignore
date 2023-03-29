@@ -4,6 +4,8 @@ infra/docker/monitoring/prometheus/data/
 infra/docker/monitoring/prometheus/monitoring/
 source/currency-l0/tessellation
 source/currency-l1/tessellation
+source/currency-l0/l0-currency-template
+source/currency-l1/l1-currency-template
 source/global-l0/tessellation
 source/dag-l1/tessellation
 .idea
