@@ -34,13 +34,14 @@ run_container() {
 
 checkout_tessellation_version() {
   cd $2/
+  echo "Checking version $1"
   if [ ! -z "$(git ls-remote origin $1)" ]; then
     git pull &>/dev/null
     git checkout $1 &>/dev/null
-    echo "Valid branch/tag"
+    echo "Valid version"
     cd ../
   else
-    echo "Invalid branch"
+    echo "Invalid version"
     exit
   fi
 }
@@ -59,6 +60,23 @@ clone_and_check_repo_version() {
   cd ../../infra/docker
 }
 
+create_template() {
+  cd ../../source/$1
+  if [ -d "$2" ]; then
+    echo "Template already exists!"
+  else
+    echo "Generating template $1 ..."
+    if [ ! -z "$3" ]; then
+      echo "Tessellation version: $3"
+      g8 Constellation-Labs/currency --tag $3 --name="$2" --tessellation_version="$3"
+    else
+      echo "Tessellation version: $DEFAULT_TESSELLATION_PROJECT_VERSION"
+      g8 Constellation-Labs/currency --tag $DEFAULT_TESSELLATION_PROJECT_VERSION --name="$2" --tessellation_version="$DEFAULT_TESSELLATION_PROJECT_VERSION_TEMPLATE"
+    fi
+  fi
+  cd ../../infra/docker
+}
+
 create_docker_custom_network() {
   echo "\nCreating docker custom-network..."
   if ! docker network inspect custom-network &>/dev/null; then
@@ -72,6 +90,13 @@ destroy_container() {
     echo "Removing the Tessellation codebase at $1..."
     rm -r source/$1/tessellation
     echo "Removed!"
+
+    if [ ! -z "$3" ]; then
+      echo "Removing the template codebase at $1..."
+      rm -r source/$1/$3
+      echo "Removed!"
+    fi
+
   fi
   echo "Destroying $1 container"
   cd infra/docker/$1 || exit
@@ -167,7 +192,7 @@ install() {
 # @flag   --run                           Run containers after build
 # @flag   --include_dag_l1                Includes the dag l1 layer to build/run
 # @option --only                          Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-# @option --tessellation_version    Tessellation repo branch to build the JARS. Default main
+# @option --tessellation_version          Tessellation repo branch to build the JARS. Default main
 build() {
   check_if_docker_is_running
 
@@ -236,15 +261,20 @@ build() {
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
-    clone_and_check_repo_version global-l0 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
+    TESSELLATION_VERSION=
+    if [[ ! -z "$arc_tessellation_version" ]]; then
+      TESSELLATION_VERSION=$arc_tessellation_version
+    else
+      TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
+    fi
 
     cd global-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Global L0 image... (NO CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
+      docker-compose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     else
       echo "Building Global L0 image... (USING CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
+      docker-compose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     fi
     echo "Global L0 image built"
 
@@ -257,15 +287,20 @@ build() {
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    clone_and_check_repo_version dag-l1 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
+    TESSELLATION_VERSION=
+    if [[ ! -z "$arc_tessellation_version" ]]; then
+      TESSELLATION_VERSION=$arc_tessellation_version
+    else
+      TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
+    fi
 
     cd dag-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building DAG L1 image... (NO CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
+      docker-compose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo "Building DAG L1 image... (USING CACHE)"
-      docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
+      docker-compose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "DAG L1 image built"
 
@@ -284,6 +319,7 @@ build() {
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
     clone_and_check_repo_version currency-l0 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
+    create_template currency-l0 l0-currency-template $arc_tessellation_version
 
     cd currency-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -306,6 +342,7 @@ build() {
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
     clone_and_check_repo_version currency-l1 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
+    create_template currency-l1 l1-currency-template $arc_tessellation_version
 
     cd currency-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -476,7 +513,7 @@ start_genesis() {
   echo "$dag_l1_3_url"
 }
 
-# @cmd Destroy all the containers
+# @cmd Stop all the containers
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 stop() {
   check_if_docker_is_running
@@ -523,21 +560,21 @@ destroy() {
   echo "Starting destroying containers ..."
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    destroy_container currency-l1 $argc_delete_local_codebase
+    destroy_container currency-l1 $argc_delete_local_codebase l1-currency-template
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
-    destroy_container currency-l0 $argc_delete_local_codebase
+    destroy_container currency-l0 $argc_delete_local_codebase l0-currency-template
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "dag-l1" ]]; then
-    destroy_container dag-l1 $argc_delete_local_codebase
+    destroy_container dag-l1
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
-    destroy_container global-l0 $argc_delete_local_codebase
+    destroy_container global-l0
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
