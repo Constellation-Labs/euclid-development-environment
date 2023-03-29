@@ -20,7 +20,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9200:9000'
       - '9201:9001'
@@ -32,7 +31,6 @@ services:
       sh -c "export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
              export CL_L0_PEER_ID=$${CL_GLOBAL_L0_PEER_ID}
              export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
-             echo $${CL_GLOBAL_L0_PEER_ID} $${CL_L0_TOKEN_IDENTIFIER} $${CL_L0_PEER_ID} && \
              cp currency-l1.jar jars/currency-l1.jar && \
              cp cl-wallet.jar jars/cl-wallet.jar && \
              java -jar currency-l1.jar run-initial-validator --ip 172.50.0.4"
@@ -62,7 +60,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9300:9000'
       - '9301:9001'
@@ -117,7 +114,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9400:9000'
       - '9401:9001'
