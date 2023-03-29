@@ -261,7 +261,7 @@ build() {
     TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
   fi
 
-  if [[ -z "$(docker inspect --type=image ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
+  if [[ -z "$(docker images -q ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
     echo "Building ubuntu shared image..."
     cd ubuntu-with-java-and-sbt || exit
     docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION
