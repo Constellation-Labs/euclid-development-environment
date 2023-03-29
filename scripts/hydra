@@ -187,10 +187,11 @@ install() {
   echo "Installed"
 }
 
-# @cmd Build all the containers
+# @cmd Build containers
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
 # @flag   --include_dag_l1                Includes the dag l1 layer to build/run
+# @flag   --rebuild_tessellation          Rebuild the tessellation project
 # @option --only                          Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 # @option --tessellation_version          Tessellation repo branch to build the JARS. Default main
 build() {
@@ -253,20 +254,23 @@ build() {
 
   cd ../infra/docker
 
-  echo "Building ubuntu shared image..."
-  cd ubuntu-with-java-and-sbt || exit
-  docker-compose build
-  cd ../
-  echo "Ubuntu image built"
+  TESSELLATION_VERSION=
+  if [[ ! -z "$arc_tessellation_version" ]]; then
+    TESSELLATION_VERSION=$arc_tessellation_version
+  else
+    TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
+  fi
+
+  if [[ -z "$(docker inspect --type=image ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
+    echo "Building ubuntu shared image..."
+    cd ubuntu-with-java-and-sbt || exit
+    docker-compose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION
+    cd ../
+    echo "Ubuntu image built"
+  fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
-    TESSELLATION_VERSION=
-    if [[ ! -z "$arc_tessellation_version" ]]; then
-      TESSELLATION_VERSION=$arc_tessellation_version
-    else
-      TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
-    fi
 
     cd global-l0 || exit
     if [ ! -z "$argc_no_cache" ]; then
@@ -287,13 +291,6 @@ build() {
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    TESSELLATION_VERSION=
-    if [[ ! -z "$arc_tessellation_version" ]]; then
-      TESSELLATION_VERSION=$arc_tessellation_version
-    else
-      TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
-    fi
-
     cd dag-l1 || exit
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building DAG L1 image... (NO CACHE)"
@@ -318,7 +315,6 @@ build() {
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
-    clone_and_check_repo_version currency-l0 https://github.com/Constellation-Labs/tessellation.git tessellation $argc_tessellation_version
     create_template currency-l0 l0-currency-template $arc_tessellation_version
 
     cd currency-l0 || exit
@@ -403,7 +399,7 @@ build() {
   docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
 }
 
-# @cmd Start all the containers
+# @cmd Start containers
 # @flag   --include_dag_l1           Includes the dag l1 layer to build/run
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 start_genesis() {
@@ -513,7 +509,7 @@ start_genesis() {
   echo "$dag_l1_3_url"
 }
 
-# @cmd Stop all the containers
+# @cmd Stop containers
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 stop() {
   check_if_docker_is_running
@@ -547,7 +543,7 @@ stop() {
   fi
 }
 
-# @cmd Destroy all the containers
+# @cmd Destroy containers
 # @flag  --delete_local_codebase     Delete all local codebase
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 destroy() {

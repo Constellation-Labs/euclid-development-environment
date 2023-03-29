@@ -19,7 +19,6 @@ services:
       - SHOULD_RESET_GENESIS_FILE=${SHOULD_RESET_GENESIS_FILE}
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l0/tessellation:/code/codebase/tessellation
       - ../../../source/currency-l0/genesis:/code/genesis/
     ports:
       - '9100:9000'
