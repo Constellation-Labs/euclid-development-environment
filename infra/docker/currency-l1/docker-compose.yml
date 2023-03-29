@@ -20,7 +20,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9200:9000'
       - '9201:9001'
@@ -61,7 +60,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9300:9000'
       - '9301:9001'
@@ -116,7 +114,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/currency-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9400:9000'
       - '9401:9001'
