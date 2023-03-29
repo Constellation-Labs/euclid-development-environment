@@ -18,7 +18,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9500:9000'
       - '9501:9001'
@@ -56,7 +55,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9600:9000'
       - '9601:9001'
@@ -108,7 +106,6 @@ services:
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
-      - ../../../source/dag-l1/tessellation:/code/codebase/tessellation
     ports:
       - '9700:9000'
       - '9701:9001'
