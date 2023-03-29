@@ -4,6 +4,7 @@ ARG GIT_PERSONAL_ACCESS_TOKEN
 ARG P12_FILE_NAME
 ARG P12_FILE_KEY_ALIAS
 ARG P12_FILE_PASSWORD
+ARG TESSELLATION_VERSION
 
 ENV LC_ALL C.UTF-8
 ENV LANG en_US.UTF-8
@@ -16,12 +17,13 @@ ENV CL_PASSWORD=${P12_FILE_PASSWORD}
 
 RUN mkdir codebase
 
-COPY global-l0/tessellation codebase/tessellation
 COPY p12-files/${P12_FILE_NAME} ${P12_FILE_NAME}
 
-RUN cd codebase/tessellation  && \
-    sbt core/assembly keytool/assembly wallet/assembly
-
-RUN mv codebase/tessellation/modules/core/target/scala-2.13/tessellation-core-assembly-* global-l0.jar && \
-    mv codebase/tessellation/modules/keytool/target/scala-2.13/tessellation-keytool-assembly-* cl-keytool.jar && \
-    mv codebase/tessellation/modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* cl-wallet.jar
+RUN apt-get install wget -y && \
+    echo "Getting global-l0 jar ..." && \
+    wget -q https://github.com/Constellation-Labs/tessellation/releases/download/$TESSELLATION_VERSION/cl-node.jar  && \
+    mv cl-node.jar global-l0.jar && \
+    echo "Getting cl-keytool jar ..." && \
+    wget -q https://github.com/Constellation-Labs/tessellation/releases/download/$TESSELLATION_VERSION/cl-keytool.jar  && \
+    echo "Getting cl-wallet jar ..." && \
+    wget -q https://github.com/Constellation-Labs/tessellation/releases/download/$TESSELLATION_VERSION/cl-wallet.jar
