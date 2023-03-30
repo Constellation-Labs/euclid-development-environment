@@ -24,11 +24,11 @@ services:
       custom-network:
         ipv4_address: 172.50.0.2
     command: >
-      sh -c '[ ! -z "$SHOULD_RESET_GENESIS_FILE" ] && [ -d data/ ] && rm -r data || \
-             cp genesis/genesis.csv genesis.csv && \
+      sh -c 'cp genesis/genesis.csv genesis.csv && \
              cp global-l0.jar jars/ && \
              cp cl-keytool.jar jars/ && \
              cp cl-wallet.jar jars/ && \
+             [ -d data/ ] && rm -r data && java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2 || \
              java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]
