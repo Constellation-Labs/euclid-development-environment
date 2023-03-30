@@ -2,7 +2,6 @@ infra/docker/monitoring/grafana/storage/
 infra/docker/monitoring/grafana/config/
 infra/docker/monitoring/prometheus/data/
 infra/docker/monitoring/prometheus/monitoring/
-source/currency-l0/l0-currency-template
-source/currency-l1/l1-currency-template
+source/framework/*
 .idea
 infra/docker/shared/jars
