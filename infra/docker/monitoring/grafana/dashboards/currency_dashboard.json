@@ -86,7 +86,7 @@
       "targets": [
         {
           "datasource": "prometheus",
-          "expr": "count(process_uptime_seconds{application=\"Currency-l0\"})",
+          "expr": "count(process_uptime_seconds{application=\"$l0CurrencyFrameworkModule\"})",
           "refId": "A"
         }
       ],
@@ -138,7 +138,9 @@
       "targets": [
         {
           "datasource": "prometheus",
-          "expr": "count(process_uptime_seconds{application=\"Currency-l1\"})",
+          "editorMode": "code",
+          "expr": "count(process_uptime_seconds{application=\"$l1CurrencyFrameworkModule\"})",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -221,7 +223,7 @@
       "targets": [
         {
           "datasource": "prometheus",
-          "expr": "max(process_uptime_seconds{application=\"Currency-l0\"})",
+          "expr": "max(process_uptime_seconds{application=\"$l0CurrencyFrameworkModule\"})",
           "refId": "A"
         }
       ],
@@ -275,7 +277,7 @@
       "targets": [
         {
           "datasource": "prometheus",
-          "expr": "max(process_uptime_seconds{application=\"Currency-l1\"})",
+          "expr": "max(process_uptime_seconds{application=\"$l1CurrencyFrameworkModule\"})",
           "refId": "A"
         }
       ],
@@ -374,7 +376,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "max(dag_global_snapshot_transactions_total{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
+          "expr": "max(dag_global_snapshot_transactions_total{application=\"$l0CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"})",
           "legendFormat": "Max",
           "range": true,
           "refId": "A"
@@ -479,7 +481,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "rate(dag_consensus_duration_seconds_sum{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_duration_seconds_count{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
+          "expr": "rate(dag_consensus_duration_seconds_sum{application=\"$l0CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_duration_seconds_count{application=\"$l0CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
           "hide": false,
           "legendFormat": "{{peer_id_short}}",
           "range": true,
@@ -562,7 +564,7 @@
           "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(dag_consensus_proposal_affinity_sum{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_proposal_affinity_count{application=\"Currency-l0\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
+          "expr": "rate(dag_consensus_proposal_affinity_sum{application=\"$l0CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])/rate(dag_consensus_proposal_affinity_count{application=\"$l0CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[90s])",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -714,7 +716,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (content_type_short) (increase(dag_rumors_spread_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
+          "expr": "sum by (content_type_short) (increase(dag_rumors_spread_total{application=~\"$l0CurrencyFrameworkModule|$l1CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -775,7 +777,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (rumor_type) (increase(dag_rumors_spread_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
+          "expr": "sum by (rumor_type) (increase(dag_rumors_spread_total{application=~\"$l0CurrencyFrameworkModule|$l1CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[5m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -866,7 +868,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "increase(dag_gossip_round_succeeded_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m])",
+          "expr": "increase(dag_gossip_round_succeeded_total{application=~\"$l0CurrencyFrameworkModule|$l1CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m])",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -959,7 +961,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (peer_id_short) (increase(dag_rumors_spread_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
+          "expr": "sum by (peer_id_short) (increase(dag_rumors_spread_total{application=~\"$l0CurrencyFrameworkModule|$l1CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -1052,7 +1054,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "sum by (peer_id_short) (increase(dag_rumors_consumed_total{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
+          "expr": "sum by (peer_id_short) (increase(dag_rumors_consumed_total{application=~\"$l0CurrencyFrameworkModule|$l1CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\"}[1m]))",
           "legendFormat": "{{peer_id_short}}",
           "range": true,
           "refId": "A"
@@ -1144,7 +1146,7 @@
         {
           "datasource": "prometheus",
           "editorMode": "code",
-          "expr": "rate(dag_gossip_round_duration_seconds_sum{application=~\"Currency-l0|Currency-l1\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])/rate(dag_gossip_round_duration_seconds_count{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])",
+          "expr": "rate(dag_gossip_round_duration_seconds_sum{application=~\"$l0CurrencyFrameworkModule|$l1CurrencyFrameworkModule\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])/rate(dag_gossip_round_duration_seconds_count{application=~\"$application\", ip=~\"$ip\", peer_id=~\"$peer_id\", round_label=\"peer\"}[30s])",
           "legendFormat": "{{ip}}",
           "range": true,
           "refId": "A"
@@ -1182,10 +1184,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(application)",
         "hide": 0,
         "includeAll": true,
@@ -1210,10 +1209,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(process_uptime_seconds{application=~\"$application\"}, ip)",
         "hide": 0,
         "includeAll": true,
@@ -1238,10 +1234,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(process_uptime_seconds{application=~\"$application\", ip=~\"$ip\"}, peer_id)",
         "hide": 0,
         "includeAll": true,
@@ -1258,17 +1251,65 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "custom-framework-l0",
+          "value": "custom-framework-l0"
+        },
+        "datasource": "prometheus",
+        "definition": "label_values(application)",
+        "description": "",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "l0CurrencyFrameworkModule",
+        "options": [],
+        "query": {
+          "query": "label_values(application)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": ".*?[^dag]-l0$",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "custom-framework-l1",
+          "value": "custom-framework-l1"
+        },
+        "datasource": "prometheus",
+        "definition": "label_values(application)",
+        "description": "",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "l1CurrencyFrameworkModule",
+        "options": [],
+        "query": {
+          "query": "label_values(application)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": ".*?[^dag]-l1$",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "SDK - Currency Layer Dashboard",
   "uid": "lro46qC7g",
-  "version": 1,
+  "version": 7,
   "weekStart": ""
 }
