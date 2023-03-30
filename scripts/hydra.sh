@@ -179,6 +179,10 @@ install() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
+  if [ -d "scripts" ]; then
+    cd scripts/
+  fi
+
   source ../.env
 
   cd ../
@@ -208,6 +212,10 @@ build() {
   VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
 
   cd $BASEDIR
+  if [ -d "scripts" ]; then
+    cd scripts/
+  fi
+
   source ../.env
 
   if [[ "$argc_only" != "monitoring" ]]; then
@@ -438,6 +446,9 @@ start_genesis() {
   VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
+  if [ -d "scripts" ]; then
+    cd scripts/
+  fi
 
   global_l0_url=""
   dag_l1_1_url=""
@@ -520,6 +531,9 @@ stop() {
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
   cd $BASEDIR || exit
+  if [ -d "scripts" ]; then
+    cd scripts/
+  fi
   cd ..
   chmod -R +w source
 
@@ -555,6 +569,9 @@ destroy() {
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
   cd $BASEDIR || exit
+  if [ -d "scripts" ]; then
+    cd scripts/
+  fi
 
   source ../.env
   cd ..
