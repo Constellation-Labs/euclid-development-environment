@@ -2,6 +2,5 @@ infra/docker/monitoring/grafana/storage/
 infra/docker/monitoring/grafana/config/
 infra/docker/monitoring/prometheus/data/
 infra/docker/monitoring/prometheus/monitoring/
-source/framework/*
 .idea
 infra/docker/shared/jars
