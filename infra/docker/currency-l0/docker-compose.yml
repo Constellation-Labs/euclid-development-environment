@@ -27,11 +27,11 @@ services:
       custom-network:
         ipv4_address: 172.50.0.3
     command: >
-      sh -c '[ ! -z "$SHOULD_RESET_GENESIS_FILE" ] && [ -d data/ ] && rm -r data || \
-             export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
+      sh -c 'export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
              export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
              cp genesis/genesis.csv genesis.csv && \
              cp currency-l0.jar jars/currency-l0.jar && \
+             [ -d data/ ] && rm -r data && java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.3 || \
              java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.3'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-currency:9000/cluster/info" ]
