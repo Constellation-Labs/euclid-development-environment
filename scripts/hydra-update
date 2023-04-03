@@ -46,7 +46,9 @@ update() {
 
   echo "Getting updated version"
   git clone --quiet https://github.com/Constellation-Labs/euclid-development-environment.git > /dev/null
+  cd euclid-development-environment/
   checkout_version $argc_version
+  cd ..
 
   echo "Updating docker folder ..."
   chmod +x docker
