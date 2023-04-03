@@ -38,6 +38,10 @@ update() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
 
+  if [ -d "scripts" ]; then
+    cd scripts/
+  fi
+
   cd ../infra
 
   echo "Getting updated version"
