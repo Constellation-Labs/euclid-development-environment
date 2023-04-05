@@ -398,8 +398,11 @@ build() {
   fi
 
   if [ ! -z "$argc_run" ]; then
-    echo "\n\nContainers successfully built."
-    echo "Urls:\n"
+    echo
+    echo
+    echo "Containers successfully built."
+    echo "Urls:"
+    echo
     echo "$global_l0_url"
     echo "$currency_l0_url"
     echo "$currency_l1_1_url"
@@ -519,8 +522,11 @@ start_genesis() {
     grafana_url="$OUTPUT_YELLOW Grafana: $OUTPUT_WHITE http://localhost:3000/"
   fi
 
-  echo "\n\nContainers successfully built."
-  echo "Urls:\n"
+  echo
+  echo
+  echo "Containers successfully built."
+  echo "Urls:"
+  echo
   echo "$global_l0_url"
   echo "$currency_l0_url"
   echo "$currency_l1_1_url"
