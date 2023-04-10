@@ -174,13 +174,6 @@ check_if_project_directory_exists() {
   fi
   cd ..
 }
-
-give_folders_privileges() {
-    chmod -R a+rwx infra
-    chmod -R a+rwx source
-    chmod -R a+rwx scripts
-}
-
 # @cmd Installs a local framework and detaches project
 install() {
   BASEDIR=$(dirname "$0")
@@ -283,9 +276,7 @@ build() {
   create_docker_custom_network
   export DOCKER_BUILDKIT=0
 
-  cd ../
-  give_folders_privileges
-  cd infra/docker
+  cd ../infra/docker
 
   TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
 
@@ -557,6 +548,7 @@ stop() {
     cd scripts/
   fi
   cd ..
+  chmod -R +w source
 
   echo "Starting stopping containers ..."
 
@@ -596,6 +588,7 @@ destroy() {
 
   source ../.env
   cd ..
+  chmod -R +w source
 
   echo "Starting destroying containers ..."
 
