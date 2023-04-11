@@ -74,7 +74,8 @@ create_template() {
 }
 
 create_docker_custom_network() {
-  echo "\nCreating docker custom-network..."
+  echo
+  echo "Creating docker custom-network..."
   if ! docker network inspect custom-network &>/dev/null; then
     docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
   fi
@@ -230,7 +231,8 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
-    echo "\nP12 files should be inserted on source/p12-files directory"
+    echo
+    echo "P12 files should be inserted on source/p12-files directory"
     if [ ! -f "../source/p12-files/$P12_GENESIS_FILE_NAME" ]; then
       echo "File does not exists"
       exit
@@ -274,7 +276,6 @@ build() {
   fi
 
   create_docker_custom_network
-  export DOCKER_BUILDKIT=0
 
   cd ../infra/docker
 
@@ -479,7 +480,6 @@ start_genesis() {
   create_docker_custom_network
 
   cd ../infra/docker
-  export DOCKER_BUILDKIT=0
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
 
