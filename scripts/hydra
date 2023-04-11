@@ -196,6 +196,7 @@ install() {
 
   chmod -R +w .git
   rm -r .git
+  echo "Hydra requires write access to the infra directory. Run: 'chmod -R a+rwx infra' before continuing."
   echo "Installed"
 }
 
