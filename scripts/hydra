@@ -1,11 +1,11 @@
-if [ -x "$(command -v docker-compose)" ]; then
+if [ -x "$(command -v docker)" ] && [ "$(docker --version | awk '{print $3}' | cut -d'-' -f1 | cut -d'.' -f1)" -ge "20" ]; then
+   # Version 2 syntax
+  dockercompose="docker compose"
+  echo "Docker Compose v2 found. Using command: $dockercompose"
+elif [ -x "$(command -v docker-compose)" ]; then
   # Version 1 syntax
   dockercompose="docker-compose"
   echo "Docker Compose v1 found. Using command: $dockercompose"
-elif [ -x "$(command -v docker)" ] && [ "$(docker --version | awk '{print $3}' | cut -d'-' -f1 | cut -d'.' -f1)" -ge "20" ]; then
-  # Version 2 syntax
-  dockercompose="docker compose"
-  echo "Docker Compose v2 found. Using command: $dockercompose"
 else
   echo "Docker Compose not found"
   exit 1
