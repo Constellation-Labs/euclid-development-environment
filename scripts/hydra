@@ -193,7 +193,7 @@ install() {
   echo "Installing hydra ..."
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
-
+  chmod -R 777 infra/docker/monitoring
   chmod -R +w .git
   rm -r .git
   echo "Hydra requires write access to the infra directory. Run: 'chmod -R a+rwx infra' before continuing."
