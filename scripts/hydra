@@ -1,15 +1,24 @@
-if [ -x "$(command -v docker)" ] && [ "$(docker --version | awk '{print $3}' | cut -d'-' -f1 | cut -d'.' -f1)" -ge "20" ]; then
-   # Version 2 syntax
-  dockercompose="docker compose"
-  echo "Docker Compose v2 found. Using command: $dockercompose"
-elif [ -x "$(command -v docker-compose)" ]; then
-  # Version 1 syntax
-  dockercompose="docker-compose"
-  echo "Docker Compose v1 found. Using command: $dockercompose"
-else
-  echo "Docker Compose not found"
-  exit 1
-fi
+set_docker_compose() {
+  if [ -x "$(command -v docker)" ] && [ "$(docker --version | awk '{print $3}' | cut -d'-' -f1 | cut -d'.' -f1)" -ge "20" ]; then
+    # Version 2 syntax
+    dockercompose="docker compose"
+  elif [ -x "$(command -v docker-compose)" ]; then
+    # Version 1 syntax
+    dockercompose="docker-compose"
+    echo ""
+    echo "You only have the older docker compose installed. It should work fine for now."
+    echo "The older syntax will be used... $dockercompose"
+    echo ""
+    echo "It is recommended that you install the latest version of docker compose for better compatibility in future hydra builds:"
+    echo "  https://docs.docker.com/compose/install/linux/"
+    echo ""
+  else
+    echo "Docker Compose not found"
+    echo "To proceed, you need to make sure it is installed:"
+    echo "  https://docs.docker.com/compose/install/linux/"
+    exit 1
+  fi
+}
 
 check_if_docker_is_running() {
   if ! docker info &>/dev/null; then
@@ -221,6 +230,7 @@ install() {
 # @option --only                          Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 # @option --tessellation_version          Tessellation repo branch to build the JARS. Default main
 build() {
+  set_docker_compose
   OUTPUT_YELLOW=$(tput setaf 3)
   OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
@@ -555,6 +565,7 @@ start_genesis() {
 # @cmd Stop containers
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 stop() {
+  set_docker_compose
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
   cd $BASEDIR || exit
@@ -593,6 +604,7 @@ stop() {
 # @flag   --delete_project            Delete custom project
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 destroy() {
+  set_docker_compose
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
   cd $BASEDIR || exit
