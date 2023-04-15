@@ -244,25 +244,72 @@ build() {
     exit
   fi
 
+  echo ""
+  echo "Verifying P12 files are available"
   if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
-    echo
-    echo "P12 files should be inserted on source/p12-files directory"
     if [ ! -f "../source/p12-files/$P12_GENESIS_FILE_NAME" ]; then
-      echo "File does not exists"
-      exit
+      echo "  File missing: source/p12-files/$P12_GENESIS_FILE_NAME"
+      echo "    Attempting to create P12 file: $P12_GENESIS_FILE_NAME"
+      if [ ! -f "./cl-keytool.jar" ]; then
+        wget -q https://github.com/Constellation-Labs/tessellation/releases/download/v1.11.0/cl-keytool.jar
+      fi
+      export CL_KEYSTORE="$P12_GENESIS_FILE_NAME"
+      export CL_KEYALIAS="$P12_GENESIS_FILE_KEY_ALIAS"
+      export CL_PASSWORD="$P12_GENESIS_FILE_PASSWORD"
+      java -jar cl-keytool.jar generate
+      if [ ! -f "$P12_GENESIS_FILE_NAME" ]; then
+        echo "    Failed to create P12 file: $P12_GENESIS_FILE_NAME"
+        rm ./cl-keytool.jar
+        exit
+      fi
+      mv "$P12_GENESIS_FILE_NAME" "../source/p12-files/"
+      echo "    File created: source/p12-files/$P12_GENESIS_FILE_NAME"
+    else
+      echo "  File found: source/p12-files/$P12_GENESIS_FILE_NAME"
     fi
-
     if [[ -z "$argc_only" || "$argc_only" == "dag-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_dag_l1" ]]; then
       if [ ! -f "../source/p12-files/$P12_NODE_2_FILE_NAME" ]; then
-        echo "File does not exists"
-        exit
+        echo "  File missing: source/p12-files/$P12_NODE_2_FILE_NAME"
+        echo "    Attempting to create P12 file: $P12_NODE_2_FILE_NAME"
+        if [ ! -f "./cl-keytool.jar" ]; then
+          wget -q https://github.com/Constellation-Labs/tessellation/releases/download/v1.11.0/cl-keytool.jar
+        fi
+        export CL_KEYSTORE="$P12_NODE_2_FILE_NAME"
+        export CL_KEYALIAS="$P12_NODE_2_FILE_KEY_ALIAS"
+        export CL_PASSWORD="$P12_NODE_2_FILE_PASSWORD"
+        java -jar cl-keytool.jar generate
+        if [ ! -f "$P12_NODE_2_FILE_NAME" ]; then
+          echo "    Failed to create P12 file: $P12_NODE_2_FILE_NAME"
+          rm ./cl-keytool.jar
+          exit
+        fi
+        mv "$P12_NODE_2_FILE_NAME" "../source/p12-files/"
+        echo "    File created: source/p12-files/$P12_NODE_2_FILE_NAME"
+      else
+        echo "  File found: source/p12-files/$P12_NODE_2_FILE_NAME"
       fi
-
       if [ ! -f "../source/p12-files/$P12_NODE_3_FILE_NAME" ]; then
-        echo "File does not exists"
-        exit
+        echo "  File missing: source/p12-files/$P12_NODE_3_FILE_NAME"
+        echo "    Attempting to create P12 file: $P12_NODE_3_FILE_NAME"
+        if [ ! -f "./cl-keytool.jar" ]; then
+          wget -q https://github.com/Constellation-Labs/tessellation/releases/download/v1.11.0/cl-keytool.jar
+        fi
+        export CL_KEYSTORE="$P12_NODE_3_FILE_NAME"
+        export CL_KEYALIAS="$P12_NODE_3_FILE_KEY_ALIAS"
+        export CL_PASSWORD="$P12_NODE_3_FILE_PASSWORD"
+        java -jar cl-keytool.jar generate
+        if [ ! -f "$P12_NODE_3_FILE_NAME" ]; then
+          echo "    Failed to create P12 file: $P12_NODE_3_FILE_NAME"
+          rm ./cl-keytool.jar
+          exit
+        fi
+        mv "$P12_NODE_3_FILE_NAME" "../source/p12-files/"
+        echo "    File created: source/p12-files/$P12_NODE_3_FILE_NAME"
+      else
+        echo "  File found: source/p12-files/$P12_NODE_3_FILE_NAME"
       fi
     fi
+    rm ./cl-keytool.jar
   fi
 
   global_l0_url=""
