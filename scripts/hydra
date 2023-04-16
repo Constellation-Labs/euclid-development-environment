@@ -360,6 +360,8 @@ install() {
     fi
   fi
 
+  check_if_project_name_is_set
+  
   echo "Installing hydra ..."
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
