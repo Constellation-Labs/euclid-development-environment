@@ -21,7 +21,18 @@ check_if_docker_is_running() {
 check_if_github_token_is_valid() {
   if curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -q "Bad credentials"; then
     echo "Invalid GITHUB_TOKEN"
-    exit
+    echo ""
+    echo -e "\033[93mEnter a valid GitHub token.\033[0m"
+    read -r new_value
+    if [[ ! -z "$new_value" ]]; then
+      GITHUB_TOKEN="$new_value"
+      update_env_file "GITHUB_TOKEN" "$new_value"
+      echo ""
+      echo -e "Updated value for GITHUB_TOKEN is: \033[32m$GITHUB_TOKEN\033[0m"
+      check_if_github_token_is_valid
+    else
+      exit
+    fi
   fi
 }
 
@@ -201,7 +212,153 @@ install() {
 
   cd ../
 
+  check_if_github_token_is_valid
   check_if_project_name_is_set
+
+  if [[ "$PROJECT_NAME" == "custom-project" ]]; then
+    echo ""
+    echo -e "\033[93mThe project name is currently set to the default setting: [\033[32m$PROJECT_NAME\033[93m]\033[0m"
+    echo "If you would like to change the project name, enter a new value or just press Enter:"
+    while true; do
+      read -r new_value
+      if [[ "$new_value" == *' '* ]]; then
+        echo "Project name should not contain spaces. Please enter a new value or just press Enter:"
+      else
+        break
+      fi
+    done
+    if [[ ! -z "$new_value" ]]; then
+      PROJECT_NAME="$new_value"
+      update_env_file "PROJECT_NAME" "$new_value"
+      echo ""
+      echo -e "Updated value for PROJECT_NAME is: \033[32m$PROJECT_NAME\033[0m"
+    fi
+  fi
+
+  if [[ "$P12_GENESIS_FILE_NAME" == "token-key.p12" ]]; then
+    echo ""
+    echo -e "\033[93mYou are currently using the default SDK P12_GENESIS_FILE_NAME: [\033[32m$P12_GENESIS_FILE_NAME\033[93m]\033[0m"
+    echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
+    read -r new_value
+    if [[ ! -z "$new_value" ]]; then
+      if [[ "${new_value: -4}" != ".p12" ]]; then
+        new_value="${new_value}.p12"
+      fi
+      P12_GENESIS_FILE_NAME="$new_value"
+      update_env_file "P12_GENESIS_FILE_NAME" "$new_value"
+      echo ""
+      echo -e "Updated value for P12_GENESIS_FILE_NAME is: \033[32m$P12_GENESIS_FILE_NAME\033[0m"
+    fi
+    if [[ "$P12_GENESIS_FILE_NAME" != "token-key.p12" ]]; then
+      echo ""
+      echo -e "\033[93mCurrent value of the P12_GENESIS_FILE_KEY_ALIAS is: [\033[32m$P12_GENESIS_FILE_KEY_ALIAS\033[93m]\033[0m"
+      echo "What would you like to set as your new custom file key alias?"
+      echo "Enter a new value or just press Enter:"
+      read -r new_value
+
+      if [[ ! -z "$new_value" ]]; then
+        P12_GENESIS_FILE_KEY_ALIAS="$new_value"
+        update_env_file "P12_GENESIS_FILE_KEY_ALIAS" "$new_value"
+        echo ""
+        echo -e "Updated value for P12_GENESIS_FILE_KEY_ALIAS is: \033[32m$P12_GENESIS_FILE_KEY_ALIAS\033[0m"
+      fi
+      echo ""
+      echo -e "\033[93mCurrent value of the P12_GENESIS_FILE_PASSWORD is: [\033[32m$P12_GENESIS_FILE_PASSWORD\033[93m]\033[0m"
+      echo "What would you like to set as your new custom file password?"
+      echo "Enter a new value or just press Enter:"
+      read -r new_value
+
+      if [[ ! -z "$new_value" ]]; then
+        P12_GENESIS_FILE_PASSWORD="$new_value"
+        update_env_file "P12_GENESIS_FILE_PASSWORD" "$new_value"
+        echo ""
+        echo -e "Updated value for P12_GENESIS_FILE_PASSWORD set: \033[32m$P12_GENESIS_FILE_PASSWORD\033[0m"
+      fi
+    fi
+  fi
+
+  if [[ "$P12_NODE_2_FILE_NAME" == "token-key-1.p12" ]]; then
+    echo ""
+    echo -e "\033[93mYou are currently using the default SDK P12_NODE_2_FILE_NAME: [\033[32m$P12_NODE_2_FILE_NAME\033[93m]\033[0m"
+    echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
+    read -r new_value
+    if [[ ! -z "$new_value" ]]; then
+      if [[ "${new_value: -4}" != ".p12" ]]; then
+        new_value="${new_value}.p12"
+      fi
+      P12_NODE_2_FILE_NAME="$new_value"
+      update_env_file "P12_NODE_2_FILE_NAME" "$new_value"
+      echo ""
+      echo -e "Updated value for P12_NODE_2_FILE_NAME is: \033[32m$P12_NODE_2_FILE_NAME\033[0m"
+    fi
+    if [[ "$P12_NODE_2_FILE_NAME" != "token-key-1.p12" ]]; then
+      echo ""
+      echo -e "\033[93mCurrent value of the P12_NODE_2_FILE_KEY_ALIAS is: [\033[32m$P12_NODE_2_FILE_KEY_ALIAS\033[93m]\033[0m"
+      echo "What would you like to set as your new custom file key alias?"
+      echo "Enter a new value or just press Enter:"
+      read -r new_value
+
+      if [[ ! -z "$new_value" ]]; then
+        P12_NODE_2_FILE_KEY_ALIAS="$new_value"
+        update_env_file "P12_NODE_2_FILE_KEY_ALIAS" "$new_value"
+        echo ""
+        echo -e "Updated value for P12_NODE_2_FILE_KEY_ALIAS is: \033[32m$P12_NODE_2_FILE_KEY_ALIAS\033[0m"
+      fi
+      echo ""
+      echo -e "\033[93mCurrent value of the P12_NODE_2_FILE_PASSWORD is: [\033[32m$P12_NODE_2_FILE_PASSWORD\033[93m]\033[0m"
+      echo "What would you like to set as your new custom file password?"
+      echo "Enter a new value or just press Enter:"
+      read -r new_value
+
+      if [[ ! -z "$new_value" ]]; then
+        P12_NODE_2_FILE_PASSWORD="$new_value"
+        update_env_file "P12_NODE_2_FILE_PASSWORD" "$new_value"
+        echo ""
+        echo -e "Updated value for P12_NODE_2_FILE_PASSWORD is: \033[32m$P12_NODE_2_FILE_PASSWORD\033[0m"
+      fi
+    fi
+  fi
+
+  if [[ "$P12_NODE_3_FILE_NAME" == "token-key-2.p12" ]]; then
+    echo ""
+    echo -e "\033[93mYou are currently using the default SDK P12_NODE_3_FILE_NAME: [\033[32m$P12_NODE_3_FILE_NAME\033[93m]\033[0m"
+    echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
+    read -r new_value
+    if [[ ! -z "$new_value" ]]; then
+      if [[ "${new_value: -4}" != ".p12" ]]; then
+        new_value="${new_value}.p12"
+      fi
+      P12_NODE_3_FILE_NAME="$new_value"
+      update_env_file "P12_NODE_3_FILE_NAME" "$new_value"
+      echo ""
+      echo -e "Updated value for P12_NODE_3_FILE_NAME is: \033[32m$P12_NODE_3_FILE_NAME\033[0m"
+    fi
+    if [[ "$P12_NODE_3_FILE_NAME" != "token-key-2.p12" ]]; then
+      echo ""
+      echo -e "\033[93mCurrent value of the P12_NODE_3_FILE_KEY_ALIAS is: [\033[32m$P12_NODE_3_FILE_KEY_ALIAS\033[93m]\033[0m"
+      echo "What would you like to set as your new custom file key alias?"
+      echo "Enter a new value or just press Enter:"
+      read -r new_value
+
+      if [[ ! -z "$new_value" ]]; then
+        P12_NODE_3_FILE_KEY_ALIAS="$new_value"
+        update_env_file "P12_NODE_3_FILE_KEY_ALIAS" "$new_value"
+        echo -e "Updated value for P12_NODE_3_FILE_KEY_ALIAS is: \033[32m$P12_NODE_3_FILE_KEY_ALIAS\033[0m"
+      fi
+      echo ""
+      echo -e "\033[93mCurrent value of the P12_NODE_3_FILE_PASSWORD is: [\033[32m$P12_NODE_3_FILE_PASSWORD\033[93m]\033[0m"
+      echo "What would you like to set as your new custom file password?"
+      echo "Enter a new value or just press Enter:"
+      read -r new_value
+
+      if [[ ! -z "$new_value" ]]; then
+        P12_NODE_3_FILE_PASSWORD="$new_value"
+        update_env_file "P12_NODE_3_FILE_PASSWORD" "$new_value"
+        echo ""
+        echo -e "Updated value for P12_NODE_3_FILE_PASSWORD is: \033[32m$P12_NODE_3_FILE_PASSWORD\033[0m"
+      fi
+    fi
+  fi
 
   echo "Installing hydra ..."
   echo "Installing Framework..."
