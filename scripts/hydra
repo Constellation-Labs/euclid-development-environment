@@ -206,10 +206,11 @@ install() {
   echo "Installing hydra ..."
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
-  chmod -R a+rwx infra/docker/monitoring/grafana/storage
-  chmod -R +w .git
-  rm -r .git
-  echo "Hydra requires write access to the infra directory. Run: 'chmod -R a+rwx infra' before continuing."
+  chmod a+rwx infra/docker/monitoring/grafana/storage
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo "Installed"
 }
 
