@@ -221,6 +221,7 @@ install() {
     echo "If you would like to change the project name, enter a new value or just press Enter:"
     while true; do
       read -r new_value
+      new_value=$(echo "$new_value" | tr '[:upper:]' '[:lower:]')
       if [[ "$new_value" == *' '* ]]; then
         echo "Project name should not contain spaces. Please enter a new value or just press Enter:"
       else
@@ -239,7 +240,14 @@ install() {
     echo ""
     echo -e "\033[93mYou are currently using the default SDK P12_GENESIS_FILE_NAME: [\033[32m$P12_GENESIS_FILE_NAME\033[93m]\033[0m"
     echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
-    read -r new_value
+    while true; do
+      read -r new_value
+      if [[ "$new_value" == *' '* ]]; then
+        echo "The P12 filename should not contain spaces. Please enter a new value or just press Enter:"
+      else
+        break
+      fi
+    done
     if [[ ! -z "$new_value" ]]; then
       if [[ "${new_value: -4}" != ".p12" ]]; then
         new_value="${new_value}.p12"
@@ -254,7 +262,14 @@ install() {
       echo -e "\033[93mCurrent value of the P12_GENESIS_FILE_KEY_ALIAS is: [\033[32m$P12_GENESIS_FILE_KEY_ALIAS\033[93m]\033[0m"
       echo "What would you like to set as your new custom file key alias?"
       echo "Enter a new value or just press Enter:"
-      read -r new_value
+      while true; do
+        read -r new_value
+        if [[ "$new_value" == *' '* ]]; then
+          echo "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
+        else
+          break
+        fi
+      done
 
       if [[ ! -z "$new_value" ]]; then
         P12_GENESIS_FILE_KEY_ALIAS="$new_value"
@@ -266,7 +281,14 @@ install() {
       echo -e "\033[93mCurrent value of the P12_GENESIS_FILE_PASSWORD is: [\033[32m$P12_GENESIS_FILE_PASSWORD\033[93m]\033[0m"
       echo "What would you like to set as your new custom file password?"
       echo "Enter a new value or just press Enter:"
-      read -r new_value
+      while true; do
+        read -r new_value
+        if [[ "$new_value" == *' '* ]]; then
+          echo "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
+        else
+          break
+        fi
+      done
 
       if [[ ! -z "$new_value" ]]; then
         P12_GENESIS_FILE_PASSWORD="$new_value"
@@ -280,8 +302,15 @@ install() {
   if [[ "$P12_NODE_2_FILE_NAME" == "token-key-1.p12" ]]; then
     echo ""
     echo -e "\033[93mYou are currently using the default SDK P12_NODE_2_FILE_NAME: [\033[32m$P12_NODE_2_FILE_NAME\033[93m]\033[0m"
-    echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
-    read -r new_value
+    echo "If you would like to create a custom node #2 P12 filename, enter a new value or just press Enter:"
+    while true; do
+      read -r new_value
+      if [[ "$new_value" == *' '* ]]; then
+        echo "The P12 filename should not contain spaces. Please enter a new value or just press Enter:"
+      else
+        break
+      fi
+    done
     if [[ ! -z "$new_value" ]]; then
       if [[ "${new_value: -4}" != ".p12" ]]; then
         new_value="${new_value}.p12"
@@ -294,9 +323,16 @@ install() {
     if [[ "$P12_NODE_2_FILE_NAME" != "token-key-1.p12" ]]; then
       echo ""
       echo -e "\033[93mCurrent value of the P12_NODE_2_FILE_KEY_ALIAS is: [\033[32m$P12_NODE_2_FILE_KEY_ALIAS\033[93m]\033[0m"
-      echo "What would you like to set as your new custom file key alias?"
+      echo "What would you like to set as your new custom p12 alias?"
       echo "Enter a new value or just press Enter:"
-      read -r new_value
+      while true; do
+        read -r new_value
+        if [[ "$new_value" == *' '* ]]; then
+          echo "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
+        else
+          break
+        fi
+      done
 
       if [[ ! -z "$new_value" ]]; then
         P12_NODE_2_FILE_KEY_ALIAS="$new_value"
@@ -306,9 +342,16 @@ install() {
       fi
       echo ""
       echo -e "\033[93mCurrent value of the P12_NODE_2_FILE_PASSWORD is: [\033[32m$P12_NODE_2_FILE_PASSWORD\033[93m]\033[0m"
-      echo "What would you like to set as your new custom file password?"
+      echo "What would you like to set as your new custom p12 password?"
       echo "Enter a new value or just press Enter:"
-      read -r new_value
+      while true; do
+        read -r new_value
+        if [[ "$new_value" == *' '* ]]; then
+          echo "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
+        else
+          break
+        fi
+      done
 
       if [[ ! -z "$new_value" ]]; then
         P12_NODE_2_FILE_PASSWORD="$new_value"
@@ -322,8 +365,15 @@ install() {
   if [[ "$P12_NODE_3_FILE_NAME" == "token-key-2.p12" ]]; then
     echo ""
     echo -e "\033[93mYou are currently using the default SDK P12_NODE_3_FILE_NAME: [\033[32m$P12_NODE_3_FILE_NAME\033[93m]\033[0m"
-    echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
-    read -r new_value
+    echo "If you would like to create a custom #3 P12 filename, enter a new value or just press Enter:"
+    while true; do
+      read -r new_value
+      if [[ "$new_value" == *' '* ]]; then
+        echo "The P12 filename should not contain spaces. Please enter a new value or just press Enter:"
+      else
+        break
+      fi
+    done
     if [[ ! -z "$new_value" ]]; then
       if [[ "${new_value: -4}" != ".p12" ]]; then
         new_value="${new_value}.p12"
@@ -336,9 +386,16 @@ install() {
     if [[ "$P12_NODE_3_FILE_NAME" != "token-key-2.p12" ]]; then
       echo ""
       echo -e "\033[93mCurrent value of the P12_NODE_3_FILE_KEY_ALIAS is: [\033[32m$P12_NODE_3_FILE_KEY_ALIAS\033[93m]\033[0m"
-      echo "What would you like to set as your new custom file key alias?"
+      echo "What would you like to set as your new custom p12 alias?"
       echo "Enter a new value or just press Enter:"
-      read -r new_value
+      while true; do
+        read -r new_value
+        if [[ "$new_value" == *' '* ]]; then
+          echo "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
+        else
+          break
+        fi
+      done
 
       if [[ ! -z "$new_value" ]]; then
         P12_NODE_3_FILE_KEY_ALIAS="$new_value"
@@ -347,9 +404,16 @@ install() {
       fi
       echo ""
       echo -e "\033[93mCurrent value of the P12_NODE_3_FILE_PASSWORD is: [\033[32m$P12_NODE_3_FILE_PASSWORD\033[93m]\033[0m"
-      echo "What would you like to set as your new custom file password?"
+      echo "What would you like to set as your new custom p12 password?"
       echo "Enter a new value or just press Enter:"
-      read -r new_value
+      while true; do
+        read -r new_value
+        if [[ "$new_value" == *' '* ]]; then
+          echo "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
+        else
+          break
+        fi
+      done
 
       if [[ ! -z "$new_value" ]]; then
         P12_NODE_3_FILE_PASSWORD="$new_value"
