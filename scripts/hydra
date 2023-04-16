@@ -309,7 +309,9 @@ build() {
         echo "  File found: source/p12-files/$P12_NODE_3_FILE_NAME"
       fi
     fi
-    rm ./cl-keytool.jar
+    if [ -e "./cl-keytool.jar" ]; then
+      rm ./cl-keytool.jar > /dev/null 2>&1
+    fi
   fi
 
   global_l0_url=""
