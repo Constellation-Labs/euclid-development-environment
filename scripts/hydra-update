@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 check_if_container_is_running() {
   if docker ps --format '{{.Names}}' | grep "$1"; then
     echo You should stop the container $1 before update
