@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 if [ -x "$(command -v docker-compose)" ]; then
   # Version 1 syntax
   dockercompose="docker-compose"
