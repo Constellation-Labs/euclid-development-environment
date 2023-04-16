@@ -447,6 +447,7 @@ build() {
 # @flag   --include_dag_l1           Includes the dag l1 layer to build/run
 # @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 start_genesis() {
+  set_docker_compose
   OUTPUT_YELLOW=$(tput setaf 3)
   OUTPUT_WHITE=$(tput setaf 7)
 
@@ -655,6 +656,7 @@ destroy() {
 # @cmd Check the status of the containers
 # @flag  --show_all    Show all containers, including the stopped
 status() {
+  set_docker_compose
   check_if_docker_is_running
   if [[ ! -z "$argc_show_all" ]]; then
     docker ps -a --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
