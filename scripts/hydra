@@ -199,6 +199,21 @@ check_if_project_directory_exists() {
   fi
   cd ..
 }
+
+#Updates the .env file with new data
+update_env_file() {
+  # If the key exists in the .env file, update its value
+  if grep -q "^$key=" "$env_file"; then
+    # For GNU sed (Linux)
+    if sed --version &>/dev/null; then
+      sed -i "s/^$key=.*/$key=$value/" "$env_file"
+    # For BSD sed (macOS)
+    else
+      sed -i '' "s/^$key=.*/$key=$value/" "$env_file"
+    fi
+  fi
+}
+
 # @cmd Installs a local framework and detaches project
 install() {
   BASEDIR=$(dirname "$0")
