@@ -1,0 +1,41 @@
+on: push
+
+jobs:
+  hydra-script-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create env file
+        shell: bash
+        run: |
+          echo "export GITHUB_TOKEN=${{ secrets.TOKEN }}" >> .env
+      - name: Run steps
+        shell: bash
+        run: |
+          echo "Installing CARGO"
+          curl https://sh.rustup.rs -sSf | sh -s -- -y 
+          echo "Cargo Installed"
+
+          echo "Installing ARGC"
+          cargo install argc
+          echo "ARGC Installed"
+          
+          echo "Installing Scala"
+          curl -fL https://github.com/coursier/coursier/releases/download/v2.1.0/cs-x86_64-pc-linux.gz | gzip -d > cs && chmod +x cs && ./cs setup -y
+          echo "Scala Installed"
+          
+          source ~/.profile
+          
+          echo "Installing Giter"
+          cs install giter8
+          echo "Gitter Installed"
+          
+          scripts/hydra install
+          
+          scripts/hydra build
+          
+          scripts/hydra start_genesis
+          
+          scripts/hydra stop
+          
+          scripts/hydra destroy
