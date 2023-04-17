@@ -253,6 +253,8 @@ update_p12_info() {
     echo ""
     printf "Updated value for %s is: \033[32m%s\033[0m\n" "$env_var_name" "$new_value"
     echo ""
+  else
+    new_value=$current_value
   fi
 }
 
