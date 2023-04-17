@@ -18,24 +18,27 @@ check_if_docker_is_running() {
   fi
 }
 
+# Checks if the provided GitHub token is valid, prompts the user for a new token if it's invalid
 check_if_github_token_is_valid() {
   if curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -q "Bad credentials"; then
+    echo ""
     echo "Invalid GITHUB_TOKEN"
     echo ""
-    echo -e "\033[93mEnter a valid GitHub token.\033[0m"
-    read -r new_value
-    if [[ ! -z "$new_value" ]]; then
-      GITHUB_TOKEN="$new_value"
-      update_env_file "GITHUB_TOKEN" "$new_value"
+    printf "\033[93mEnter a valid GitHub token.\033[0m"
+    echo ""
+    read -r new_token
+    if [[ ! -z "$new_token" ]]; then
+      GITHUB_TOKEN="$new_token"
+      update_env_file "GITHUB_TOKEN" "$new_token"
       echo ""
-      echo -e "Updated value for GITHUB_TOKEN is: \033[32m$GITHUB_TOKEN\033[0m"
+      printf "Updated value for GITHUB_TOKEN is: \033[32m$GITHUB_TOKEN\033[0m"
+      echo ""
       check_if_github_token_is_valid
     else
       exit
     fi
   fi
 }
-
 run_container() {
   cd $1 || exit
   echo "Starting $1 image ..."
@@ -200,8 +203,10 @@ check_if_project_directory_exists() {
   cd ..
 }
 
-#Updates the .env file with new data
 update_env_file() {
+  local key=$1
+  local value=$2
+  local env_file=".env"
   # If the key exists in the .env file, update its value
   if grep -q "^$key=" "$env_file"; then
     # For GNU sed (Linux)
@@ -211,6 +216,43 @@ update_env_file() {
     else
       sed -i '' "s/^$key=.*/$key=$value/" "$env_file"
     fi
+  fi
+}
+
+update_p12_info() {
+  local env_var_name=$1
+  local current_value=$2
+  local prompt_message=$3
+  local error_message=$4
+  local p12_ext=${5:-""}
+  local low_case=${6:-""}
+
+  echo ""
+  printf "\033[93m%s [\033[32m%s\033[93m]\033[0m\n" "$prompt_message" "$current_value"
+  echo ""
+  echo "Please type in a new value (without any spaces) or just press the [ Enter ] key to continue:"
+  echo ""
+  while true; do
+    read -r new_value
+    if [[ "$new_value" == *' '* ]]; then
+      echo "$error_message"
+    else
+      break
+    fi
+  done
+  if [[ -n "$new_value" ]] && [[ "$p12_ext" == ".p12" ]]; then
+    if [[ "${new_value: -4}" != "$p12_ext" ]]; then
+      new_value="${new_value}.p12"
+    fi
+  fi
+  if [[ ! -z "$new_value" ]]; then
+    if [[ "$low_case" == "1" ]]; then
+      new_value=$(echo "$new_value" | tr '[:upper:]' '[:lower:]')
+    fi
+    update_env_file "$env_var_name" "$new_value"
+    echo ""
+    printf "Updated value for %s is: \033[32m%s\033[0m\n" "$env_var_name" "$new_value"
+    echo ""
   fi
 }
 
@@ -231,223 +273,54 @@ install() {
   check_if_project_name_is_set
 
   if [[ "$PROJECT_NAME" == "custom-project" ]]; then
-    echo ""
-    echo -e "\033[93mThe project name is currently set to the default setting: [\033[32m$PROJECT_NAME\033[93m]\033[0m"
-    echo "If you would like to change the project name, enter a new value or just press Enter:"
-    while true; do
-      read -r new_value
-      new_value=$(echo "$new_value" | tr '[:upper:]' '[:lower:]')
-      if [[ "$new_value" == *' '* ]]; then
-        echo "Project name should not contain spaces. Please enter a new value or just press Enter:"
-      else
-        break
-      fi
-    done
-    if [[ ! -z "$new_value" ]]; then
-      PROJECT_NAME="$new_value"
-      update_env_file "PROJECT_NAME" "$new_value"
-      echo ""
-      echo -e "Updated value for PROJECT_NAME is: \033[32m$PROJECT_NAME\033[0m"
-    fi
+    update_p12_info "PROJECT_NAME" "$PROJECT_NAME" "The project name is currently set to the default setting:" "Project name should not contain spaces. Please enter a new value or just press Enter:" "" "1"
+    PROJECT_NAME=$new_value
   fi
 
   if [[ "$P12_GENESIS_FILE_NAME" == "token-key.p12" ]]; then
-    echo ""
-    echo -e "\033[93mYou are currently using the default SDK P12_GENESIS_FILE_NAME: [\033[32m$P12_GENESIS_FILE_NAME\033[93m]\033[0m"
-    echo "If you would like to create a custom genesis P12 filename, enter a new value or just press Enter:"
-    while true; do
-      read -r new_value
-      if [[ "$new_value" == *' '* ]]; then
-        echo "The P12 filename should not contain spaces. Please enter a new value or just press Enter:"
-      else
-        break
-      fi
-    done
-    if [[ ! -z "$new_value" ]]; then
-      if [[ "${new_value: -4}" != ".p12" ]]; then
-        new_value="${new_value}.p12"
-      fi
-      P12_GENESIS_FILE_NAME="$new_value"
-      update_env_file "P12_GENESIS_FILE_NAME" "$new_value"
-      echo ""
-      echo -e "Updated value for P12_GENESIS_FILE_NAME is: \033[32m$P12_GENESIS_FILE_NAME\033[0m"
-    fi
-    if [[ "$P12_GENESIS_FILE_NAME" != "token-key.p12" ]]; then
-      echo ""
-      echo -e "\033[93mCurrent value of the P12_GENESIS_FILE_KEY_ALIAS is: [\033[32m$P12_GENESIS_FILE_KEY_ALIAS\033[93m]\033[0m"
-      echo "What would you like to set as your new custom file key alias?"
-      echo "Enter a new value or just press Enter:"
-      while true; do
-        read -r new_value
-        if [[ "$new_value" == *' '* ]]; then
-          echo "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
-        else
-          break
-        fi
-      done
-
-      if [[ ! -z "$new_value" ]]; then
-        P12_GENESIS_FILE_KEY_ALIAS="$new_value"
-        update_env_file "P12_GENESIS_FILE_KEY_ALIAS" "$new_value"
-        echo ""
-        echo -e "Updated value for P12_GENESIS_FILE_KEY_ALIAS is: \033[32m$P12_GENESIS_FILE_KEY_ALIAS\033[0m"
-      fi
-      echo ""
-      echo -e "\033[93mCurrent value of the P12_GENESIS_FILE_PASSWORD is: [\033[32m$P12_GENESIS_FILE_PASSWORD\033[93m]\033[0m"
-      echo "What would you like to set as your new custom file password?"
-      echo "Enter a new value or just press Enter:"
-      while true; do
-        read -r new_value
-        if [[ "$new_value" == *' '* ]]; then
-          echo "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
-        else
-          break
-        fi
-      done
-
-      if [[ ! -z "$new_value" ]]; then
-        P12_GENESIS_FILE_PASSWORD="$new_value"
-        update_env_file "P12_GENESIS_FILE_PASSWORD" "$new_value"
-        echo ""
-        echo -e "Updated value for P12_GENESIS_FILE_PASSWORD set: \033[32m$P12_GENESIS_FILE_PASSWORD\033[0m"
-      fi
-    fi
+    update_p12_info "P12_GENESIS_FILE_NAME" "$P12_GENESIS_FILE_NAME" "You are currently using the default SDK P12_GENESIS_FILE_NAME:" "The P12 filename should not contain spaces. Please enter a new value or just press Enter:" ".p12"
+  P12_GENESIS_FILE_NAME=$new_value
+  fi
+  
+  if [[ "$P12_GENESIS_FILE_NAME" != "token-key.p12" ]]; then
+    update_p12_info "P12_GENESIS_FILE_KEY_ALIAS" "$P12_GENESIS_FILE_KEY_ALIAS" "Current value of the P12_GENESIS_FILE_KEY_ALIAS is:" "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
+    P12_GENESIS_FILE_KEY_ALIAS=$new_value
+    update_p12_info "P12_GENESIS_FILE_PASSWORD" "$P12_GENESIS_FILE_PASSWORD" "Current value of the P12_GENESIS_FILE_PASSWORD is:" "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
+    P12_GENESIS_FILE_PASSWORD=$new_value
   fi
 
   if [[ "$P12_NODE_2_FILE_NAME" == "token-key-1.p12" ]]; then
-    echo ""
-    echo -e "\033[93mYou are currently using the default SDK P12_NODE_2_FILE_NAME: [\033[32m$P12_NODE_2_FILE_NAME\033[93m]\033[0m"
-    echo "If you would like to create a custom node #2 P12 filename, enter a new value or just press Enter:"
-    while true; do
-      read -r new_value
-      if [[ "$new_value" == *' '* ]]; then
-        echo "The P12 filename should not contain spaces. Please enter a new value or just press Enter:"
-      else
-        break
-      fi
-    done
-    if [[ ! -z "$new_value" ]]; then
-      if [[ "${new_value: -4}" != ".p12" ]]; then
-        new_value="${new_value}.p12"
-      fi
-      P12_NODE_2_FILE_NAME="$new_value"
-      update_env_file "P12_NODE_2_FILE_NAME" "$new_value"
-      echo ""
-      echo -e "Updated value for P12_NODE_2_FILE_NAME is: \033[32m$P12_NODE_2_FILE_NAME\033[0m"
-    fi
-    if [[ "$P12_NODE_2_FILE_NAME" != "token-key-1.p12" ]]; then
-      echo ""
-      echo -e "\033[93mCurrent value of the P12_NODE_2_FILE_KEY_ALIAS is: [\033[32m$P12_NODE_2_FILE_KEY_ALIAS\033[93m]\033[0m"
-      echo "What would you like to set as your new custom p12 alias?"
-      echo "Enter a new value or just press Enter:"
-      while true; do
-        read -r new_value
-        if [[ "$new_value" == *' '* ]]; then
-          echo "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
-        else
-          break
-        fi
-      done
+    update_p12_info "P12_NODE_2_FILE_NAME" "$P12_NODE_2_FILE_NAME" "You are currently using the default SDK P12_NODE_2_FILE_NAME:" "The P12 filename should not contain spaces. Please enter a new value or just press Enter:" ".p12"
+    P12_NODE_2_FILE_NAME=$new_value
+  fi
 
-      if [[ ! -z "$new_value" ]]; then
-        P12_NODE_2_FILE_KEY_ALIAS="$new_value"
-        update_env_file "P12_NODE_2_FILE_KEY_ALIAS" "$new_value"
-        echo ""
-        echo -e "Updated value for P12_NODE_2_FILE_KEY_ALIAS is: \033[32m$P12_NODE_2_FILE_KEY_ALIAS\033[0m"
-      fi
-      echo ""
-      echo -e "\033[93mCurrent value of the P12_NODE_2_FILE_PASSWORD is: [\033[32m$P12_NODE_2_FILE_PASSWORD\033[93m]\033[0m"
-      echo "What would you like to set as your new custom p12 password?"
-      echo "Enter a new value or just press Enter:"
-      while true; do
-        read -r new_value
-        if [[ "$new_value" == *' '* ]]; then
-          echo "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
-        else
-          break
-        fi
-      done
-
-      if [[ ! -z "$new_value" ]]; then
-        P12_NODE_2_FILE_PASSWORD="$new_value"
-        update_env_file "P12_NODE_2_FILE_PASSWORD" "$new_value"
-        echo ""
-        echo -e "Updated value for P12_NODE_2_FILE_PASSWORD is: \033[32m$P12_NODE_2_FILE_PASSWORD\033[0m"
-      fi
-    fi
+  if [[ "$P12_NODE_2_FILE_NAME" != "token-key-1.p12" ]]; then
+    update_p12_info "P12_NODE_2_FILE_KEY_ALIAS" "$P12_NODE_2_FILE_KEY_ALIAS" "Current value of the P12_NODE_2_FILE_KEY_ALIAS is:" "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
+    P12_NODE_2_FILE_KEY_ALIAS=$new_value
+    update_p12_info "P12_NODE_2_FILE_PASSWORD" "$P12_NODE_2_FILE_PASSWORD" "Current value of the P12_NODE_2_FILE_PASSWORD is:" "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
+    P12_NODE_2_FILE_PASSWORD=$new_value
   fi
 
   if [[ "$P12_NODE_3_FILE_NAME" == "token-key-2.p12" ]]; then
-    echo ""
-    echo -e "\033[93mYou are currently using the default SDK P12_NODE_3_FILE_NAME: [\033[32m$P12_NODE_3_FILE_NAME\033[93m]\033[0m"
-    echo "If you would like to create a custom #3 P12 filename, enter a new value or just press Enter:"
-    while true; do
-      read -r new_value
-      if [[ "$new_value" == *' '* ]]; then
-        echo "The P12 filename should not contain spaces. Please enter a new value or just press Enter:"
-      else
-        break
-      fi
-    done
-    if [[ ! -z "$new_value" ]]; then
-      if [[ "${new_value: -4}" != ".p12" ]]; then
-        new_value="${new_value}.p12"
-      fi
-      P12_NODE_3_FILE_NAME="$new_value"
-      update_env_file "P12_NODE_3_FILE_NAME" "$new_value"
-      echo ""
-      echo -e "Updated value for P12_NODE_3_FILE_NAME is: \033[32m$P12_NODE_3_FILE_NAME\033[0m"
-    fi
-    if [[ "$P12_NODE_3_FILE_NAME" != "token-key-2.p12" ]]; then
-      echo ""
-      echo -e "\033[93mCurrent value of the P12_NODE_3_FILE_KEY_ALIAS is: [\033[32m$P12_NODE_3_FILE_KEY_ALIAS\033[93m]\033[0m"
-      echo "What would you like to set as your new custom p12 alias?"
-      echo "Enter a new value or just press Enter:"
-      while true; do
-        read -r new_value
-        if [[ "$new_value" == *' '* ]]; then
-          echo "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
-        else
-          break
-        fi
-      done
-
-      if [[ ! -z "$new_value" ]]; then
-        P12_NODE_3_FILE_KEY_ALIAS="$new_value"
-        update_env_file "P12_NODE_3_FILE_KEY_ALIAS" "$new_value"
-        echo -e "Updated value for P12_NODE_3_FILE_KEY_ALIAS is: \033[32m$P12_NODE_3_FILE_KEY_ALIAS\033[0m"
-      fi
-      echo ""
-      echo -e "\033[93mCurrent value of the P12_NODE_3_FILE_PASSWORD is: [\033[32m$P12_NODE_3_FILE_PASSWORD\033[93m]\033[0m"
-      echo "What would you like to set as your new custom p12 password?"
-      echo "Enter a new value or just press Enter:"
-      while true; do
-        read -r new_value
-        if [[ "$new_value" == *' '* ]]; then
-          echo "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
-        else
-          break
-        fi
-      done
-
-      if [[ ! -z "$new_value" ]]; then
-        P12_NODE_3_FILE_PASSWORD="$new_value"
-        update_env_file "P12_NODE_3_FILE_PASSWORD" "$new_value"
-        echo ""
-        echo -e "Updated value for P12_NODE_3_FILE_PASSWORD is: \033[32m$P12_NODE_3_FILE_PASSWORD\033[0m"
-      fi
-    fi
+    update_p12_info "P12_NODE_3_FILE_NAME" "$P12_NODE_3_FILE_NAME" "You are currently using the default SDK P12_NODE_3_FILE_NAME:" "The P12 filename should not contain spaces. Please enter a new value or just press Enter:" ".p12"
+    P12_NODE_3_FILE_NAME=$new_value
   fi
 
-  check_if_project_name_is_set
-  
+  if [[ "$P12_NODE_3_FILE_NAME" != "token-key-2.p12" ]]; then
+    update_p12_info "P12_NODE_3_FILE_KEY_ALIAS" "$P12_NODE_3_FILE_KEY_ALIAS" "Current value of the P12_NODE_3_FILE_KEY_ALIAS is:" "The P12 alias should not contain spaces. Please enter a new value or just press Enter:"
+    P12_NODE_3_FILE_KEY_ALIAS=$new_value
+    update_p12_info "P12_NODE_3_FILE_PASSWORD" "$P12_NODE_3_FILE_PASSWORD" "Current value of the P12_NODE_3_FILE_PASSWORD is:" "The P12 password should not contain spaces. Please enter a new value or just press Enter:"
+    P12_NODE_3_FILE_PASSWORD=$new_value
+  fi
+
   echo "Installing hydra ..."
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
-  chmod -R a+rwx infra/docker/monitoring/grafana/storage
-  chmod -R +w .git
-  rm -r .git
-  echo "Hydra requires write access to the infra directory. Run: 'chmod -R a+rwx infra' before continuing."
+  chmod a+rwx infra/docker/monitoring/grafana/storage
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo "Installed"
 }
 
