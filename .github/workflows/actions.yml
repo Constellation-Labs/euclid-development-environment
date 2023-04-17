@@ -1,7 +1,7 @@
 on: push
 
 jobs:
-  ubuntu-tests:
+  hydra-script-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -38,50 +38,4 @@ jobs:
           
           scripts/hydra stop
           
-          scripts/hydra destroy
-  mac-os-tests:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Create env file
-        shell: bash
-        run: |
-          echo "export GITHUB_TOKEN=${{ secrets.TOKEN }}" >> .env
-      - name: setup-docker
-        uses: docker-practice/actions-setup-docker@1.0.11
-        env:
-          HOMEBREW_NO_INSTALL_CLEANUP: 1
-          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
-      - name: Run steps
-        env:
-          HOMEBREW_NO_INSTALL_CLEANUP: 1
-          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
-        shell: bash
-        run: |
-          echo "Installing CARGO"
-          curl https://sh.rustup.rs -sSf | sh -s -- -y 
-          echo "Cargo Installed"
-
-          echo "Installing ARGC"
-          cargo install argc
-          echo "ARGC Installed"
-
-          echo "Installing Scala"
-          brew install coursier/formulas/coursier -f && cs setup -y
-          echo "Scala Installed"
-
-          source ~/.profile
-
-          echo "Installing Giter"
-          cs install giter8
-          echo "Gitter Installed"
-
-          scripts/hydra install
-
-          scripts/hydra build
-
-          scripts/hydra start_genesis
-
-          scripts/hydra stop
-
           scripts/hydra destroy
