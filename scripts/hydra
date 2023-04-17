@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 set_docker_compose() {
   if [ -x "$(command -v docker)" ] && [ "$(docker --version | awk '{print $3}' | cut -d'-' -f1 | cut -d'.' -f1)" -ge "20" ]; then
     # Version 2 syntax
@@ -215,10 +217,11 @@ install() {
   echo "Installing hydra ..."
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
-  chmod -R a+rwx infra/docker/monitoring/grafana/storage
-  chmod -R +w .git
-  rm -r .git
-  echo "Hydra requires write access to the infra directory. Run: 'chmod -R a+rwx infra' before continuing."
+  chmod a+rwx infra/docker/monitoring/grafana/storage
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo "Installed"
 }
 

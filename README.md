@@ -66,7 +66,7 @@ COMMANDS:
   install        Removes the remote git
   build          Build all the containers
   start_genesis  Start all the containers
-  stop           Destroy all the containers
+  stop           Stop all the containers
   destroy        Destroy all the containers
   status         Check the status of the containers
 ```
