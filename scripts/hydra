@@ -32,12 +32,12 @@ check_if_docker_is_running() {
 check_if_github_token_is_valid() {
   if curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -q "Bad credentials"; then
     echo "Invalid GITHUB_TOKEN"
-    exit
+    exit 1
   fi
 }
 
 run_container() {
-  cd $1 || exit
+  cd $1
   echo "Starting $1 image ..."
   $dockercompose up -d
   echo "$1 image started"
@@ -47,7 +47,7 @@ run_container() {
       if ! curl $2 &>/dev/null; then
         if [ $i -eq 10 ]; then
           echo "Could not find the $1 instance, make sure to run the $1 container"
-          exit
+          exit 1
         fi
         echo "$1 still booting... waiting 30s ($i/10)"
         sleep 30
@@ -66,7 +66,7 @@ checkout_tessellation_version() {
     cd ../
   else
     echo "Invalid version"
-    exit
+    exit 1
   fi
 }
 
@@ -108,7 +108,7 @@ create_docker_custom_network() {
 
 destroy_container() {
   echo "Destroying $1 container"
-  cd infra/docker/$1 || exit
+  cd infra/docker/$1
   $dockercompose down --remove-orphans
   cd ../../../
   echo "$1 container destroyed"
@@ -116,7 +116,7 @@ destroy_container() {
 
 stop_container() {
   echo "Stopping $1 container"
-  cd infra/docker/$1 || exit
+  cd infra/docker/$1
   $dockercompose stop
   cd ../../../
   echo "$1 container stopped"
@@ -187,7 +187,7 @@ join_l1_global_nodes() {
 check_if_project_name_is_set() {
   if [[ -z "$PROJECT_NAME" ]]; then
     echo "You should provide the PROJECT_NAME on .env file"
-    exit
+    exit 1
   fi
 }
 
@@ -195,7 +195,7 @@ check_if_project_directory_exists() {
   cd source/
   if [ ! -d "project/$PROJECT_NAME" ]; then
     echo "You must install a framework before building. Run hydra install first"
-    exit
+    exit 1
   fi
   cd ..
 }
@@ -254,7 +254,7 @@ build() {
 
   if [[ -z "$GITHUB_TOKEN" && "$argc_only" != "monitoring" ]]; then
     echo "You should provide the GITHUB_TOKEN on .env file"
-    exit
+    exit 1
   fi
 
   if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
@@ -262,18 +262,18 @@ build() {
     echo "P12 files should be inserted on source/p12-files directory"
     if [ ! -f "../source/p12-files/$P12_GENESIS_FILE_NAME" ]; then
       echo "File does not exists"
-      exit
+      exit 1
     fi
 
     if [[ -z "$argc_only" || "$argc_only" == "dag-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_dag_l1" ]]; then
       if [ ! -f "../source/p12-files/$P12_NODE_2_FILE_NAME" ]; then
         echo "File does not exists"
-        exit
+        exit 1
       fi
 
       if [ ! -f "../source/p12-files/$P12_NODE_3_FILE_NAME" ]; then
         echo "File does not exists"
-        exit
+        exit 1
       fi
     fi
   fi
@@ -291,7 +291,7 @@ build() {
   if [ ! -z "$argc_only" ]; then
     if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$argc_only($|[[:space:]]) ]]; then
       echo "You should provide a valid only option"
-      exit
+      exit 1
     fi
   fi
 
@@ -310,7 +310,7 @@ build() {
 
   if [[ -z "$(docker images -q ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
     echo "Building ubuntu shared image..."
-    cd ubuntu-with-java-and-sbt || exit
+    cd ubuntu-with-java-and-sbt
     $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION
     cd ../
     echo "Ubuntu image built"
@@ -319,7 +319,7 @@ build() {
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
 
-    cd global-l0 || exit
+    cd global-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Global L0 image... (NO CACHE)"
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
@@ -338,7 +338,7 @@ build() {
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    cd dag-l1 || exit
+    cd dag-l1
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building DAG L1 image... (NO CACHE)"
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
@@ -363,7 +363,7 @@ build() {
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
 
-    cd currency-l0 || exit
+    cd currency-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L0 image... (NO CACHE)"
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
@@ -383,7 +383,7 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    cd currency-l1 || exit
+    cd currency-l1
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L1 image... (NO CACHE)"
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
@@ -406,7 +406,7 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
-    cd monitoring || exit
+    cd monitoring
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building monitoring image... (NO CACHE)"
       $dockercompose build --no-cache
@@ -443,7 +443,8 @@ build() {
   fi
 
   echo "Cleaning up dangling docker images"
-  docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
+  docker image prune -f
+  exit
 }
 
 # @cmd Start containers
@@ -458,26 +459,26 @@ start_genesis() {
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
     if ! docker inspect --type=image global-l0 &>/dev/null; then
       echo "You need to build the Global L0 first"
-      exit
+      exit 1
     fi
   fi
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
     if ! docker inspect --type=image currency-l0 &>/dev/null; then
       echo "You need to build the Currency L0 first"
-      exit
+      exit 1
     fi
   fi
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
     if ! docker inspect --type=image currency-l1-initial-validator &>/dev/null; then
       echo "You need to build the Currency L1 first"
-      exit
+      exit 1
     fi
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
     if ! docker inspect --type=image dag-l1-initial-validator &>/dev/null; then
       echo "You need to build the DAG L1 first"
-      exit
+      exit 1
     fi
   fi
 
@@ -501,7 +502,7 @@ start_genesis() {
   if [ ! -z "$argc_only" ]; then
     if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$argc_only($|[[:space:]]) ]]; then
       echo "You should provide a valid only option"
-      exit
+      exit 1
     fi
   fi
 
@@ -572,12 +573,11 @@ stop() {
   set_docker_compose
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
-  cd $BASEDIR || exit
+  cd $BASEDIR
   if [ -d "scripts" ]; then
     cd scripts/
   fi
   cd ..
-  chmod -R +w source
 
   echo "Starting stopping containers ..."
 
@@ -611,14 +611,13 @@ destroy() {
   set_docker_compose
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
-  cd $BASEDIR || exit
+  cd $BASEDIR
   if [ -d "scripts" ]; then
     cd scripts/
   fi
 
   source ../.env
   cd ..
-  chmod -R +w source
 
   echo "Starting destroying containers ..."
 
@@ -653,7 +652,7 @@ destroy() {
   destroy_container ubuntu-with-java-and-sbt
 
   docker network rm custom-network
-  docker rmi $(docker images -f "dangling=true" -q) &>/dev/null
+  docker image prune -f
 }
 
 # @cmd Check the status of the containers
