@@ -22,14 +22,14 @@ services:
       - '9001:9001'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.2
+        ipv4_address: 172.50.0.5
     command: >
       sh -c 'cp genesis/genesis.csv genesis.csv && \
              cp global-l0.jar jars/ && \
              cp cl-keytool.jar jars/ && \
              cp cl-wallet.jar jars/ && \
-             [ -d data/ ] && rm -r data && java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2 || \
-             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.2'
+             [ -d data/ ] && rm -r data && java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.5 || \
+             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.5'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]
       interval: 10s
