@@ -125,14 +125,14 @@ stop_container() {
 join_l1_currency_nodes() {
   echo "Joining currency l1 containers to build the cluster ..."
   for ((i = 1; i <= 11; i++)); do
-    if curl -v http://localhost:9200/cluster/info &>/dev/null && curl -v http://localhost:9300/metrics &>/dev/null && curl -v http://localhost:9400/metrics &>/dev/null; then
+    if curl -v http://localhost:9700/cluster/info &>/dev/null && curl -v http://localhost:9800/metrics &>/dev/null && curl -v http://localhost:9900/metrics &>/dev/null; then
       echo "Joining node 2 ..."
       docker exec -it l1-currency-2 bash -c "cd genesis/ && \
                                                  export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
                                                  export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
                                                  export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
                                                  export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.4\", \"p2pPort\": 9001 }' &> /dev/null"
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.30\", \"p2pPort\": 9001 }' &> /dev/null"
       echo "Joined"
       echo "Joining node 3 ..."
       docker exec -it l1-currency-3 bash -c "cd genesis/ && \
@@ -140,7 +140,7 @@ join_l1_currency_nodes() {
                                                  export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
                                                  export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
                                                  export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.4\", \"p2pPort\": 9001 }' &> /dev/null"
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.30\", \"p2pPort\": 9001 }' &> /dev/null"
 
       echo "Joined"
 
@@ -156,14 +156,14 @@ join_l1_currency_nodes() {
 join_l1_global_nodes() {
   echo "Joining DAG l1 containers to build the cluster ..."
   for ((i = 1; i <= 11; i++)); do
-    if curl -v http://localhost:9500/cluster/info &>/dev/null && curl -v http://localhost:9600/metrics &>/dev/null && curl -v http://localhost:9700/metrics &>/dev/null; then
+    if curl -v http://localhost:9100/cluster/info &>/dev/null && curl -v http://localhost:9200/metrics &>/dev/null && curl -v http://localhost:9300/metrics &>/dev/null; then
       echo "Joining node 2 ..."
       docker exec -it l1-dag-2 bash -c "cd genesis/ && \
                                                             export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
                                                             export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
                                                             export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
                                                             export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                            curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.9\", \"p2pPort\": 9001 }' &> /dev/null"
+                                                            curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.10\", \"p2pPort\": 9001 }' &> /dev/null"
       echo "Joined"
 
       echo "Joining node 3 ..."
@@ -172,13 +172,44 @@ join_l1_global_nodes() {
                                                  export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
                                                  export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
                                                  export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.9\", \"p2pPort\": 9001 }' &> /dev/null"
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.10\", \"p2pPort\": 9001 }' &> /dev/null"
 
       echo "Joined"
       echo "DAG L1 cluster built successfully"
       break
     else
       echo "DAG L1 validators still booting... waiting 30s ($i/10)"
+      sleep 30
+    fi
+  done
+}
+
+join_l0_currency_nodes() {
+  echo "Joining currency l0 containers to build the cluster ..."
+  for ((i = 1; i <= 11; i++)); do
+    if curl -v http://localhost:9400/cluster/info &>/dev/null && curl -v http://localhost:9500/metrics &>/dev/null && curl -v http://localhost:9600/metrics &>/dev/null; then
+      echo "Joining node 2 ..."
+      docker exec -it l0-currency-2 bash -c "cd genesis/ && \
+                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
+                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
+                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
+                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
+                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.20\", \"p2pPort\": 9001 }' &> /dev/null"
+      echo "Joined"
+
+      echo "Joining node 3 ..."
+      docker exec -it l0-currency-3 bash -c "cd genesis/ && \
+                                                       export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
+                                                       export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
+                                                       export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
+                                                       export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
+                                                       curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.20\", \"p2pPort\": 9001 }' &> /dev/null"
+      echo "Joined"
+
+      echo "Currency L0 cluster built successfully"
+      break
+    else
+      echo "Currency L0 validators still booting... waiting 30s ($i/10)"
       sleep 30
     fi
   done
@@ -218,10 +249,10 @@ install() {
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
   chmod a+rwx infra/docker/monitoring/grafana/storage
-  if [ -d ".git" ]; then
-    chmod -R +w .git
-    rm -r .git
-  fi
+  #  if [ -d ".git" ]; then
+  #    chmod -R +w .git
+  #    rm -r .git
+  #  fi
   echo "Installed"
 }
 
@@ -282,7 +313,9 @@ build() {
   dag_l1_1_url=""
   dag_l1_2_url=""
   dag_l1_3_url=""
-  currency_l0_url=""
+  currency_l0_1_url=""
+  currency_l0_2_url=""
+  currency_l0_3_url=""
   currency_l1_1_url=""
   currency_l1_2_url=""
   currency_l1_3_url=""
@@ -350,12 +383,12 @@ build() {
 
     if [ ! -z "$argc_run" ]; then
       cd ../
-      run_container dag-l1
+      run_container dag-l1 http://localhost:9100/metrics
 
       join_l1_global_nodes
-      dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9500/cluster/info"
-      dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9600/cluster/info"
-      dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9700/cluster/info"
+      dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9100/cluster/info"
+      dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9200/cluster/info"
+      dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9300/cluster/info"
     fi
     cd ../
   fi
@@ -366,18 +399,20 @@ build() {
     cd currency-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L0 image... (NO CACHE)"
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
+      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo "Building Currency L0 image... (USING CACHE)"
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
+      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "Currency L0 image built"
 
     if [ ! -z "$argc_run" ]; then
       cd ../
-      run_container currency-l0 http://localhost:9100/metrics
-
-      currency_l0_url="$OUTPUT_YELLOW Currency L0: $OUTPUT_WHITE http://localhost:9100/cluster/info"
+      run_container currency-l0 http://localhost:9400/metrics
+      join_l0_currency_nodes
+      currency_l0_1_url="$OUTPUT_YELLOW Currency L0 - 1: $OUTPUT_WHITE http://localhost:9400/cluster/info"
+      currency_l0_2_url="$OUTPUT_YELLOW Currency L0 - 2: $OUTPUT_WHITE http://localhost:9500/cluster/info"
+      currency_l0_3_url="$OUTPUT_YELLOW Currency L0 - 3: $OUTPUT_WHITE http://localhost:9600/cluster/info"
     fi
     cd ../
   fi
@@ -398,9 +433,9 @@ build() {
       run_container currency-l1
       join_l1_currency_nodes
 
-      currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9200/cluster/info"
-      currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9300/cluster/info"
-      currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9400/cluster/info"
+      currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9700/cluster/info"
+      currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9800/cluster/info"
+      currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9900/cluster/info"
     fi
     cd ../
   fi
@@ -431,15 +466,27 @@ build() {
     echo "Containers successfully built."
     echo "Urls:"
     echo
-    echo "$global_l0_url"
-    echo "$currency_l0_url"
-    echo "$currency_l1_1_url"
-    echo "$currency_l1_2_url"
-    echo "$currency_l1_3_url"
-    echo "$grafana_url"
-    echo "$dag_l1_1_url"
-    echo "$dag_l1_2_url"
-    echo "$dag_l1_3_url"
+    if [[ ! -z "$global_l0_url" ]]; then
+      echo "$global_l0_url"
+    fi
+    if [[ ! -z "$dag_l1_1_url" ]]; then
+      echo "$dag_l1_1_url"
+      echo "$dag_l1_2_url"
+      echo "$dag_l1_3_url"
+    fi
+    if [[ ! -z "$currency_l0_1_url" ]]; then
+      echo "$currency_l0_1_url"
+      echo "$currency_l0_2_url"
+      echo "$currency_l0_3_url"
+    fi
+    if [[ ! -z "$currency_l1_1_url" ]]; then
+      echo "$currency_l1_1_url"
+      echo "$currency_l1_2_url"
+      echo "$currency_l1_3_url"
+    fi
+    if [[ ! -z "$grafana_url" ]]; then
+      echo "$grafana_url"
+    fi
   fi
 
   echo "Cleaning up dangling docker images"
@@ -463,7 +510,7 @@ start_genesis() {
     fi
   fi
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    if ! docker inspect --type=image currency-l0 &>/dev/null; then
+    if ! docker inspect --type=image currency-l0-initial-validator &>/dev/null; then
       echo "You need to build the Currency L0 first"
       exit 1
     fi
@@ -493,7 +540,9 @@ start_genesis() {
   dag_l1_1_url=""
   dag_l1_2_url=""
   dag_l1_3_url=""
-  currency_l0_url=""
+  currency_l0_1_url=""
+  currency_l0_2_url=""
+  currency_l0_3_url=""
   currency_l1_1_url=""
   currency_l1_2_url=""
   currency_l1_3_url=""
@@ -518,20 +567,24 @@ start_genesis() {
   fi
 
   if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    run_container dag-l1 http://localhost:9000/metrics
+    run_container dag-l1 http://localhost:9100/metrics
     join_l1_global_nodes
 
-    dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9500/cluster/info"
-    dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9600/cluster/info"
-    dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9700/cluster/info"
+    dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9100/cluster/info"
+    dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9200/cluster/info"
+    dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9300/cluster/info"
     cd ../
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=true
 
-    run_container currency-l0 http://localhost:9100/metrics
-    currency_l0_url="$OUTPUT_YELLOW Currency L0: $OUTPUT_WHITE http://localhost:9100/cluster/info"
+    run_container currency-l0 http://localhost:9400/metrics
+    join_l0_currency_nodes
+
+    currency_l0_1_url="$OUTPUT_YELLOW Currency L0 - 1: $OUTPUT_WHITE http://localhost:9400/cluster/info"
+    currency_l0_2_url="$OUTPUT_YELLOW Currency L0 - 2: $OUTPUT_WHITE http://localhost:9500/cluster/info"
+    currency_l0_3_url="$OUTPUT_YELLOW Currency L0 - 3: $OUTPUT_WHITE http://localhost:9600/cluster/info"
     cd ../
   fi
 
@@ -539,9 +592,9 @@ start_genesis() {
     run_container currency-l1
     join_l1_currency_nodes
 
-    currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9200/cluster/info"
-    currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9300/cluster/info"
-    currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9400/cluster/info"
+    currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9700/cluster/info"
+    currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9800/cluster/info"
+    currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9900/cluster/info"
     cd ../
   fi
 
@@ -556,15 +609,27 @@ start_genesis() {
   echo "Containers successfully built."
   echo "Urls:"
   echo
-  echo "$global_l0_url"
-  echo "$currency_l0_url"
-  echo "$currency_l1_1_url"
-  echo "$currency_l1_2_url"
-  echo "$currency_l1_3_url"
-  echo "$grafana_url"
-  echo "$dag_l1_1_url"
-  echo "$dag_l1_2_url"
-  echo "$dag_l1_3_url"
+  if [[ ! -z "$global_l0_url" ]]; then
+    echo "$global_l0_url"
+  fi
+  if [[ ! -z "$dag_l1_1_url" ]]; then
+    echo "$dag_l1_1_url"
+    echo "$dag_l1_2_url"
+    echo "$dag_l1_3_url"
+  fi
+  if [[ ! -z "$currency_l0_1_url" ]]; then
+    echo "$currency_l0_1_url"
+    echo "$currency_l0_2_url"
+    echo "$currency_l0_3_url"
+  fi
+  if [[ ! -z "$currency_l1_1_url" ]]; then
+    echo "$currency_l1_1_url"
+    echo "$currency_l1_2_url"
+    echo "$currency_l1_3_url"
+  fi
+  if [[ ! -z "$grafana_url" ]]; then
+    echo "$grafana_url"
+  fi
 }
 
 # @cmd Stop containers
