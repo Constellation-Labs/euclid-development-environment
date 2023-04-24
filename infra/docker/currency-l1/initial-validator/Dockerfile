@@ -19,6 +19,6 @@ COPY project/$TEMPLATE_NAME codebase/$TEMPLATE_NAME
 COPY p12-files/${P12_FILE_NAME_GENESIS} ${P12_FILE_NAME_GENESIS}
 
 RUN cd codebase/$TEMPLATE_NAME && \
-    sbt currencyL1/assembly
+    sbt --error currencyL1/assembly
 
 RUN mv codebase/$TEMPLATE_NAME/modules/l1/target/scala-2.13/${TEMPLATE_NAME}-currency-l1-assembly-* currency-l1.jar
