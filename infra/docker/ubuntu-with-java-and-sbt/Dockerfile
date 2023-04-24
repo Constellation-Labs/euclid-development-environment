@@ -27,6 +27,6 @@ RUN cd codebase/ && \
     git clone https://github.com/Constellation-Labs/tessellation.git && \
     cd tessellation && \
     git checkout $TESSELLATION_VERSION && \
-    sbt wallet/assembly shared/publishM2 kernel/publishM2 keytool/publishM2 sdk/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2
+    sbt --error wallet/assembly shared/publishM2 kernel/publishM2 keytool/publishM2 sdk/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2
 
 RUN mv codebase/tessellation/modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* cl-wallet.jar
