@@ -39,7 +39,7 @@ check_if_github_token_is_valid() {
 run_container() {
   cd $1
   echo "Starting $1 image ..."
-  $dockercompose up -d
+  $dockercompose up -d --no-recreate
   echo "$1 image started"
 
   if [[ ! -z "$2" ]]; then
@@ -230,6 +230,138 @@ check_if_project_directory_exists() {
   fi
   cd ..
 }
+
+start_containers(){
+    set_docker_compose
+    OUTPUT_YELLOW=$(tput setaf 3)
+    OUTPUT_WHITE=$(tput setaf 7)
+
+    check_if_docker_is_running
+    if [[ -z "$1" || "$1" == "global-l0" ]]; then
+      if ! docker inspect --type=image global-l0 &>/dev/null; then
+        echo "You need to build the Global L0 first"
+        exit 1
+      fi
+    fi
+    if [[ -z "$1" || "$1" == "currency-l0" ]]; then
+      if ! docker inspect --type=image currency-l0-initial-validator &>/dev/null; then
+        echo "You need to build the Currency L0 first"
+        exit 1
+      fi
+    fi
+    if [[ -z "$1" || "$1" == "currency-l1" ]]; then
+      if ! docker inspect --type=image currency-l1-initial-validator &>/dev/null; then
+        echo "You need to build the Currency L1 first"
+        exit 1
+      fi
+    fi
+
+    if [[ ! -z "$2" || "$1" == "dag-l1" ]]; then
+      if ! docker inspect --type=image dag-l1-initial-validator &>/dev/null; then
+        echo "You need to build the DAG L1 first"
+        exit 1
+      fi
+    fi
+
+    VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
+    BASEDIR=$(dirname "$0")
+    cd $BASEDIR
+    if [ -d "scripts" ]; then
+      cd scripts/
+    fi
+
+    global_l0_url=""
+    dag_l1_1_url=""
+    dag_l1_2_url=""
+    dag_l1_3_url=""
+    currency_l0_1_url=""
+    currency_l0_2_url=""
+    currency_l0_3_url=""
+    currency_l1_1_url=""
+    currency_l1_2_url=""
+    currency_l1_3_url=""
+    grafana_url=""
+
+    if [ ! -z "$1" ]; then
+      if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$1($|[[:space:]]) ]]; then
+        echo "You should provide a valid only option"
+        exit 1
+      fi
+    fi
+
+    create_docker_custom_network
+
+    cd ../infra/docker
+    if [[ -z "$1" || "$1" == "global-l0" ]]; then
+      run_container global-l0 http://localhost:9000/metrics
+      global_l0_url="$OUTPUT_YELLOW Global L0: $OUTPUT_WHITE http://localhost:9000/cluster/info"
+      cd ../
+    fi
+
+    if [[ ! -z "$2" || "$1" == "dag-l1" ]]; then
+      run_container dag-l1 http://localhost:9100/metrics
+      join_l1_global_nodes
+
+      dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9100/cluster/info"
+      dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9200/cluster/info"
+      dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9300/cluster/info"
+      cd ../
+    fi
+
+    if [[ -z "$1" || "$1" == "currency-l0" ]]; then
+      run_container currency-l0 http://localhost:9400/metrics
+      join_l0_currency_nodes
+
+      currency_l0_1_url="$OUTPUT_YELLOW Currency L0 - 1: $OUTPUT_WHITE http://localhost:9400/cluster/info"
+      currency_l0_2_url="$OUTPUT_YELLOW Currency L0 - 2: $OUTPUT_WHITE http://localhost:9500/cluster/info"
+      currency_l0_3_url="$OUTPUT_YELLOW Currency L0 - 3: $OUTPUT_WHITE http://localhost:9600/cluster/info"
+      cd ../
+    fi
+
+    if [[ -z "$1" || "$1" == "currency-l1" ]]; then
+      run_container currency-l1
+      join_l1_currency_nodes
+
+      currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9700/cluster/info"
+      currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9800/cluster/info"
+      currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9900/cluster/info"
+      cd ../
+    fi
+
+    if [[ -z "$1" || "$1" == "monitoring" ]]; then
+      run_container monitoring
+
+      grafana_url="$OUTPUT_YELLOW Grafana: $OUTPUT_WHITE http://localhost:3000/"
+    fi
+
+    echo
+    echo
+    echo "Containers successfully built."
+    echo "Urls:"
+    echo
+    if [[ ! -z "$global_l0_url" ]]; then
+      echo "$global_l0_url"
+    fi
+    if [[ ! -z "$dag_l1_1_url" ]]; then
+      echo "$dag_l1_1_url"
+      echo "$dag_l1_2_url"
+      echo "$dag_l1_3_url"
+    fi
+    if [[ ! -z "$currency_l0_1_url" ]]; then
+      echo "$currency_l0_1_url"
+      echo "$currency_l0_2_url"
+      echo "$currency_l0_3_url"
+    fi
+    if [[ ! -z "$currency_l1_1_url" ]]; then
+      echo "$currency_l1_1_url"
+      echo "$currency_l1_2_url"
+      echo "$currency_l1_3_url"
+    fi
+    if [[ ! -z "$grafana_url" ]]; then
+      echo "$grafana_url"
+    fi
+}
+
 # @cmd Installs a local framework and detaches project
 install() {
   BASEDIR=$(dirname "$0")
@@ -350,8 +482,6 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
-
     cd global-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Global L0 image... (NO CACHE)"
@@ -363,6 +493,7 @@ build() {
     echo "Global L0 image built"
 
     if [ ! -z "$argc_run" ]; then
+      export SHOULD_RESET_GENESIS_FILE=true
       cd ../
       run_container global-l0 http://localhost:9000/metrics
       global_l0_url="$OUTPUT_YELLOW Global L0: $OUTPUT_WHITE http://localhost:9000/cluster/info"
@@ -394,8 +525,6 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
-
     cd currency-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L0 image... (NO CACHE)"
@@ -407,6 +536,7 @@ build() {
     echo "Currency L0 image built"
 
     if [ ! -z "$argc_run" ]; then
+      export SHOULD_RESET_GENESIS_FILE=true
       cd ../
       run_container currency-l0 http://localhost:9400/metrics
       join_l0_currency_nodes
@@ -494,147 +624,26 @@ build() {
   exit
 }
 
+# @cmd Start from genesis the containers
+# @flag   --include_dag_l1           Includes the dag l1 layer to build/run
+# @option --only                     Start specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
+start_genesis() {
+ export SHOULD_RESET_GENESIS_FILE=true
+ start_containers $argc_only $argc_include_dag_l1
+}
+
 # @cmd Start containers
 # @flag   --include_dag_l1           Includes the dag l1 layer to build/run
-# @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-start_genesis() {
-  set_docker_compose
-  OUTPUT_YELLOW=$(tput setaf 3)
-  OUTPUT_WHITE=$(tput setaf 7)
-
-  check_if_docker_is_running
-  if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    if ! docker inspect --type=image global-l0 &>/dev/null; then
-      echo "You need to build the Global L0 first"
-      exit 1
-    fi
-  fi
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    if ! docker inspect --type=image currency-l0-initial-validator &>/dev/null; then
-      echo "You need to build the Currency L0 first"
-      exit 1
-    fi
-  fi
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    if ! docker inspect --type=image currency-l1-initial-validator &>/dev/null; then
-      echo "You need to build the Currency L1 first"
-      exit 1
-    fi
-  fi
-
-  if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    if ! docker inspect --type=image dag-l1-initial-validator &>/dev/null; then
-      echo "You need to build the DAG L1 first"
-      exit 1
-    fi
-  fi
-
-  VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
-  BASEDIR=$(dirname "$0")
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
-
-  global_l0_url=""
-  dag_l1_1_url=""
-  dag_l1_2_url=""
-  dag_l1_3_url=""
-  currency_l0_1_url=""
-  currency_l0_2_url=""
-  currency_l0_3_url=""
-  currency_l1_1_url=""
-  currency_l1_2_url=""
-  currency_l1_3_url=""
-  grafana_url=""
-
-  if [ ! -z "$argc_only" ]; then
-    if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$argc_only($|[[:space:]]) ]]; then
-      echo "You should provide a valid only option"
-      exit 1
-    fi
-  fi
-
-  create_docker_custom_network
-
-  cd ../infra/docker
-  if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
-
-    run_container global-l0 http://localhost:9000/metrics
-    global_l0_url="$OUTPUT_YELLOW Global L0: $OUTPUT_WHITE http://localhost:9000/cluster/info"
-    cd ../
-  fi
-
-  if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
-    run_container dag-l1 http://localhost:9100/metrics
-    join_l1_global_nodes
-
-    dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9100/cluster/info"
-    dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9200/cluster/info"
-    dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9300/cluster/info"
-    cd ../
-  fi
-
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
-
-    run_container currency-l0 http://localhost:9400/metrics
-    join_l0_currency_nodes
-
-    currency_l0_1_url="$OUTPUT_YELLOW Currency L0 - 1: $OUTPUT_WHITE http://localhost:9400/cluster/info"
-    currency_l0_2_url="$OUTPUT_YELLOW Currency L0 - 2: $OUTPUT_WHITE http://localhost:9500/cluster/info"
-    currency_l0_3_url="$OUTPUT_YELLOW Currency L0 - 3: $OUTPUT_WHITE http://localhost:9600/cluster/info"
-    cd ../
-  fi
-
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    run_container currency-l1
-    join_l1_currency_nodes
-
-    currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9700/cluster/info"
-    currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9800/cluster/info"
-    currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9900/cluster/info"
-    cd ../
-  fi
-
-  if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
-    run_container monitoring
-
-    grafana_url="$OUTPUT_YELLOW Grafana: $OUTPUT_WHITE http://localhost:3000/"
-  fi
-
-  echo
-  echo
-  echo "Containers successfully built."
-  echo "Urls:"
-  echo
-  if [[ ! -z "$global_l0_url" ]]; then
-    echo "$global_l0_url"
-  fi
-  if [[ ! -z "$dag_l1_1_url" ]]; then
-    echo "$dag_l1_1_url"
-    echo "$dag_l1_2_url"
-    echo "$dag_l1_3_url"
-  fi
-  if [[ ! -z "$currency_l0_1_url" ]]; then
-    echo "$currency_l0_1_url"
-    echo "$currency_l0_2_url"
-    echo "$currency_l0_3_url"
-  fi
-  if [[ ! -z "$currency_l1_1_url" ]]; then
-    echo "$currency_l1_1_url"
-    echo "$currency_l1_2_url"
-    echo "$currency_l1_3_url"
-  fi
-  if [[ ! -z "$grafana_url" ]]; then
-    echo "$grafana_url"
-  fi
+# @option --only                     Start specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
+start() {
+  export SHOULD_RESET_GENESIS_FILE=""
+  start_containers $argc_only $argc_include_dag_l1
 }
 
 # @cmd Stop containers
-# @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
+# @option --only                     Stop specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 stop() {
+  export SHOULD_RESET_GENESIS_FILE=""
   set_docker_compose
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
@@ -644,14 +653,13 @@ stop() {
   fi
   cd ..
 
-  echo "Starting stopping containers ..."
+  echo "Stopping containers ..."
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
     stop_container currency-l1
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
     stop_container currency-l0
   fi
 
@@ -660,7 +668,6 @@ stop() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
     stop_container global-l0
   fi
 
@@ -671,8 +678,9 @@ stop() {
 
 # @cmd Destroy containers
 # @flag   --delete_project            Delete custom project
-# @option --only                     Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
+# @option --only                      Destroy specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
 destroy() {
+  export SHOULD_RESET_GENESIS_FILE=""
   set_docker_compose
   check_if_docker_is_running
   BASEDIR=$(dirname "$0")
@@ -697,7 +705,6 @@ destroy() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
     destroy_container currency-l0
   fi
 
@@ -706,7 +713,6 @@ destroy() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=true
     destroy_container global-l0
   fi
 

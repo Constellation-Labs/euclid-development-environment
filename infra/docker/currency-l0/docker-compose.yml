@@ -31,8 +31,10 @@ services:
              export CL_L0_TOKEN_IDENTIFIER=$$(java -jar cl-wallet.jar show-address) && \
              cp genesis/genesis.csv genesis.csv && \
              cp currency-l0.jar jars/currency-l0.jar && \
-             [ -d data/ ] && rm -r data && java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.20 || \
-             java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.20'
+             [ ! -z "$$SHOULD_RESET_GENESIS_FILE" ] && [ -d data/ ] && echo "Removing data directory" && rm -r data || \
+             [ ! -z "$$SHOULD_RESET_GENESIS_FILE" ] && echo "Running genesis" && java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.20 || \
+             [ -z "$$SHOULD_RESET_GENESIS_FILE" ] && [ ! -d data/ ] && echo "Not found data directory, running genesis" && java -jar currency-l0.jar run-genesis genesis.csv --ip 172.50.0.20 || \
+             java -jar currency-l0.jar run-rollback --ip 172.50.0.20'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-currency-1:9000/cluster/info" ]
       interval: 10s
