@@ -482,6 +482,7 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=""
     cd global-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Global L0 image... (NO CACHE)"
@@ -493,7 +494,6 @@ build() {
     echo "Global L0 image built"
 
     if [ ! -z "$argc_run" ]; then
-      export SHOULD_RESET_GENESIS_FILE=true
       cd ../
       run_container global-l0 http://localhost:9000/metrics
       global_l0_url="$OUTPUT_YELLOW Global L0: $OUTPUT_WHITE http://localhost:9000/cluster/info"
@@ -525,6 +525,7 @@ build() {
   fi
 
   if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
+    export SHOULD_RESET_GENESIS_FILE=""
     cd currency-l0
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L0 image... (NO CACHE)"
@@ -536,7 +537,6 @@ build() {
     echo "Currency L0 image built"
 
     if [ ! -z "$argc_run" ]; then
-      export SHOULD_RESET_GENESIS_FILE=true
       cd ../
       run_container currency-l0 http://localhost:9400/metrics
       join_l0_currency_nodes
