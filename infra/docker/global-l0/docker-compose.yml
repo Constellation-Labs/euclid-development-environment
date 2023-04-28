@@ -28,8 +28,14 @@ services:
              cp global-l0.jar jars/ && \
              cp cl-keytool.jar jars/ && \
              cp cl-wallet.jar jars/ && \
-             [ -d data/ ] && rm -r data && java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.5 || \
-             java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.5'
+             [ ! -z "$$SHOULD_RESET_GENESIS_FILE" ] && [ -d data/ ] && echo "Removing data directory" && rm -r data || \
+             [ ! -z "$$SHOULD_RESET_GENESIS_FILE" ] && echo "Running genesis" && java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.5 || \
+             [ -z "$$SHOULD_RESET_GENESIS_FILE" ] && [ ! -d data/ ] && echo "Not found data directory, running genesis" && java -jar global-l0.jar run-genesis genesis.csv --ip 172.50.0.5 || \
+             cd data/incremental_snapshot && \
+             export LAST_SNAPSHOT=$$( ls -hatr | grep "[_[:alnum:]]\{64\}" | tail -1 ) && \
+             echo "Last SNAPSHOT: $$LAST_SNAPSHOT" && \
+             cd ../.. && \
+             java -jar global-l0.jar run-rollback --ip 172.50.0.5 $$LAST_SNAPSHOT'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://l0-global:9000/cluster/info" ]
       interval: 10s
