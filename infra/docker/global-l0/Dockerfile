@@ -16,12 +16,3 @@ ENV CL_KEYALIAS=${P12_FILE_KEY_ALIAS}
 ENV CL_PASSWORD=${P12_FILE_PASSWORD}
 
 COPY p12-files/${P12_FILE_NAME} ${P12_FILE_NAME}
-
-RUN apt-get install wget -y && \
-    echo "Getting global-l0 jar ..." && \
-    wget -q https://github.com/Constellation-Labs/tessellation/releases/download/$TESSELLATION_VERSION/cl-node.jar  && \
-    mv cl-node.jar global-l0.jar && \
-    echo "Getting cl-keytool jar ..." && \
-    wget -q https://github.com/Constellation-Labs/tessellation/releases/download/$TESSELLATION_VERSION/cl-keytool.jar  && \
-    echo "Getting cl-wallet jar ..." && \
-    wget -q https://github.com/Constellation-Labs/tessellation/releases/download/$TESSELLATION_VERSION/cl-wallet.jar

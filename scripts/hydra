@@ -70,29 +70,15 @@ checkout_tessellation_version() {
   fi
 }
 
-clone_and_check_repo_version() {
-  cd ../../source/$1
-
-  echo "Cloning repository to local codebase $1 ..."
-  git clone $2
-  checkout_tessellation_version $DEFAULT_TESSELLATION_PROJECT_VERSION $3
-
-  if [ ! -z "$4" ]; then
-    checkout_tessellation_version $4 $3
-  fi
-
-  cd ../../infra/docker
-}
-
 create_template() {
   cd source/$1
   if [ -d "$2" ]; then
     echo "Template already exists!"
   else
     echo "Generating template $1 ..."
-    echo "Tessellation version: $DEFAULT_TESSELLATION_PROJECT_VERSION"
-    g8 Constellation-Labs/currency --tag $DEFAULT_TESSELLATION_PROJECT_VERSION --name="$2" --tessellation_version="$DEFAULT_TESSELLATION_PROJECT_VERSION_TEMPLATE"
-
+    echo "Tessellation version: $CUSTOM_BRANCH_OR_COMMIT, VERSION_NAME: $VERSION_NAME_TO_USE, TEMPLATE_TAG: $TESSELATION_LAST_RELEASED_TAG"
+    g8 Constellation-Labs/currency --tag $TESSELATION_LAST_RELEASED_TAG --name="$2" --tessellation_version="$TESSELATION_LAST_RELEASED_TAG_TEMPLATE"
+    sed -i -e "s/val tessellation = .*/val tessellation = \"$VERSION_NAME_TO_USE\"/g" $2/project/Dependencies.scala
   fi
   cd ../../
 }
@@ -381,10 +367,10 @@ install() {
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
   chmod a+rwx infra/docker/monitoring/grafana/storage
-  if [ -d ".git" ]; then
-    chmod -R +w .git
-    rm -r .git
-  fi
+#  if [ -d ".git" ]; then
+#    chmod -R +w .git
+#    rm -r .git
+#  fi
   echo "Installed"
 }
 
@@ -471,12 +457,13 @@ build() {
 
   cd ../infra/docker
 
-  TESSELLATION_VERSION=$DEFAULT_TESSELLATION_PROJECT_VERSION
+  TESSELLATION_VERSION=$CUSTOM_BRANCH_OR_COMMIT
+  VERSION_NAME_TO_USE=$VERSION_NAME_TO_USE
 
   if [[ -z "$(docker images -q ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
     echo "Building ubuntu shared image..."
     cd ubuntu-with-java-and-sbt
-    $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION
+    $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg VERSION_NAME_TO_USE=$VERSION_NAME_TO_USE
     cd ../
     echo "Ubuntu image built"
   fi
