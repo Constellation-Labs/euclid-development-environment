@@ -76,8 +76,8 @@ create_template() {
     echo "Template already exists!"
   else
     echo "Generating template $1 ..."
-    echo "Tessellation version: $CUSTOM_BRANCH_OR_COMMIT, VERSION_NAME: $VERSION_NAME_TO_USE"
-    g8 Constellation-Labs/currency --branch $CUSTOM_BRANCH_OR_COMMIT --name="$2" --tessellation_version="$VERSION_NAME_TO_USE"
+    echo "Template version: $CUSTOM_BRANCH_OR_TAG_TEMPLATE, VERSION_NAME: $VERSION_NAME_TO_USE"
+    g8 Constellation-Labs/currency --tag $CUSTOM_BRANCH_OR_TAG_TEMPLATE --name="$2" --tessellation_version="$VERSION_NAME_TO_USE"
   fi
   cd ../../
 }
@@ -381,10 +381,10 @@ install() {
   echo "Installing Framework..."
   create_template project $PROJECT_NAME
   chmod a+rwx infra/docker/monitoring/grafana/storage
-#  if [ -d ".git" ]; then
-#    chmod -R +w .git
-#    rm -r .git
-#  fi
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo "Installed"
 }
 
@@ -471,7 +471,7 @@ build() {
 
   cd ../infra/docker
 
-  TESSELLATION_VERSION=$CUSTOM_BRANCH_OR_COMMIT
+  TESSELLATION_VERSION=$CUSTOM_BRANCH_OR_TAG
   VERSION_NAME_TO_USE=$VERSION_NAME_TO_USE
 
   if [[ -z "$(docker images -q ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
