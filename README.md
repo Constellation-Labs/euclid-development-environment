@@ -65,6 +65,7 @@ USAGE: hydra <COMMAND>
 COMMANDS:
   install        Removes the remote git
   build          Build all the containers
+  start          Start from last snapshot
   start_genesis  Start all the containers
   stop           Stop all the containers
   destroy        Destroy all the containers
@@ -82,9 +83,10 @@ This script has some parameters such as `--no_cache` (run without previous cache
 If you provide the `--run` parameter you should see the available URLs at the end of script execution
 
 ### Starting
-We have the option `start_genesis` to start the containers. This option will fail case you didn't build the containers yet. You can call the option this way:
+We have the options `start_genesis` and `start` to start the containers. This option will fail case you didn't build the containers yet. You can call the option this way:
 ```
-./hydra start_genesis   
+./hydra start_genesis
+./hydra start   
 ```
 
 This script has some parameters such as `--only` (to start a specifical container), and `--include_dag_l1` (include the dag-l1 layer).
@@ -149,10 +151,12 @@ After the end of `start_genesis`, you should see something like this:
 ```
 Containers successfully built. URLs:
 Global L0: http://localhost:9000/cluster/info
-Currency L0: http://localhost:9100/cluster/info
-Currency L1 - 1: http://localhost:9200/cluster/info
-Currency L1 - 2: http://localhost:9300/cluster/info
-Currency L1 - 3: http://localhost:9400/cluster/info
+Currency L0 - 1: http://localhost:9400/cluster/info
+Currency L0 - 2: http://localhost:9500/cluster/info
+Currency L0 - 3: http://localhost:9600/cluster/info
+Currency L1 - 1: http://localhost:9700/cluster/info
+Currency L1 - 2: http://localhost:9800/cluster/info
+Currency L1 - 3: http://localhost:9900/cluster/info
 Grafana: http://localhost:3000/
 
 ```
