@@ -218,7 +218,7 @@ check_if_project_directory_exists() {
 
 get_metagraph_id_from_genesis_currency_l0() {
    for ((i = 1; i <= 11; i++)); do
-    METAGRAPH_ID=$(docker logs l0-currency-1 -n 1000 | grep "Address from genesis data is .*" | grep -o "DAG.*")
+    METAGRAPH_ID=$(docker logs l0-currency-1 -n 1000 2>&1 | grep -o "Address from genesis data is .*" | grep -o "DAG.*")
     if [[ -z "$METAGRAPH_ID" ]]; then
       if [ $i -eq 10 ]; then
         echo "Could not find the METAGRAPH_ID, check the currency L0 node 1 logs"
