@@ -8,7 +8,7 @@ jobs:
       - name: Create env file
         shell: bash
         run: |
-          echo "export GITHUB_TOKEN=${{ secrets.TOKEN }}" >> .env
+          echo "export GITHUB_TOKEN=${{ secrets.TOKEN }}" >> hydra.cfg
       - name: Run steps
         shell: bash
         run: |
