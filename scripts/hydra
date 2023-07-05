@@ -31,10 +31,10 @@ function install() {
     create_template project $PROJECT_NAME_DATA
   fi
   chmod a+rwx infra/docker/monitoring
-  # if [ -d ".git" ]; then
-  #   chmod -R +w .git
-  #   rm -r .git
-  # fi
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo "Installed"
 }
 
