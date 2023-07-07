@@ -1,0 +1,41 @@
+{
+  "github_token": "",
+  "metagraph_id": "",
+  "tessellation_version": "custom-data-l1",
+  "framework": {
+    "name": "currency",
+    "modules": [
+      "data"
+    ],
+    "version": "custom-data-l1",
+    "ref_type": "branch"
+  },
+  "p12_files": {
+    "genesis": {
+      "file_name": "token-key.p12",
+      "alias": "token-key",
+      "password": "password"
+    },
+    "validators": [
+      {
+        "file_name": "token-key-1.p12",
+        "alias": "token-key-1",
+        "password": "password"
+      },
+      {
+        "file_name": "token-key-2.p12",
+        "alias": "token-key-2",
+        "password": "password"
+      } 
+    ]
+  },
+  "docker": {
+    "default_containers": [
+      "global-l0",
+      "metagraph-l0", 
+      "metagraph-l1-currency", 
+      "metagraph-l1-data", 
+      "monitoring"
+    ]
+  }
+}
