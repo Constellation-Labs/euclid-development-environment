@@ -28,7 +28,7 @@ function create_template() {
 
 function check_if_project_name_is_set() {
     if [[ -z "$FRAMEWORK_NAME" ]]; then
-        echo "You should provide the FRAMEWORK_NAME on hydra.cfg file"
+        echo "You should provide the FRAMEWORK_NAME on hydra.cfg.json file"
         exit 1
     fi
 }
