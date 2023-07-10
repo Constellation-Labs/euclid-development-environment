@@ -1,7 +1,7 @@
 {
   "github_token": "",
   "metagraph_id": "",
-  "tessellation_version": "custom-data-l1",
+  "tessellation_version": "develop",
   "framework": {
     "name": "currency",
     "modules": [
