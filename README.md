@@ -18,17 +18,20 @@ With the euclid-development-environment cloned, you'll see the following structu
 - infra
   - docker
 - scripts
+  - custom-template.sh
+  - docker.sh
   - hydra
   - hydra-update
+  - join-cluster.sh
+  - utils.sh
 - source
   - metagraph-l0
     - genesis
-  - metagraph-l1-currency
-  - dag-l1
   - global-l0
     - genesis
   - p12-files
-- hydra.cfg
+  - project
+- hydra.cfg.json
 ```
 let's see what each of these directories represents:
 
@@ -123,7 +126,7 @@ We have the option `install` to remove the link with remote `git`. You can call 
 
 After understanding the folder structure, we can start build our containers.
 
-*NOTE: Make sure to fill your GITHUB_TOKEN on hydra.cfg file before start*
+*NOTE: Make sure to fill your GITHUB_TOKEN on hydra.cfg.json file before start*
 
 Move your terminal to directory `/scripts`, home of the `hydra` script.
 
@@ -157,6 +160,9 @@ Currency L0 - 3: http://localhost:9600/cluster/info
 Currency L1 - 1: http://localhost:9700/cluster/info
 Currency L1 - 2: http://localhost:9800/cluster/info
 Currency L1 - 3: http://localhost:9900/cluster/info
+Data L1 - 1: http://localhost:8000/cluster/info
+Data L1 - 2: http://localhost:8100/cluster/info
+Data L1 - 3: http://localhost:8200/cluster/info
 Grafana: http://localhost:3000/
 
 ```
