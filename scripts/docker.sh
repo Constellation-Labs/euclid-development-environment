@@ -148,7 +148,7 @@ function start_containers(){
     
     if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
         if [[ -z "$METAGRAPH_ID" ]]; then
-            echo "metagraph_id not found on hydra.cfg file, please fill this parameter or run metagraph-l0"
+            echo "metagraph_id not found on hydra.cfg.json file, please fill this parameter or run metagraph-l0"
             exit 1
         fi
         run_container metagraph-l1-currency
