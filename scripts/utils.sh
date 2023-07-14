@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
 function check_if_package_is_installed() {
-    if [ -n "$(dpkg -l | awk "/^ii  $1/")" ]; then
+    if [[ -z "$(which $1 | grep "/")" ]]; then
         echo "Could not find package $1, please install this package first"
-        return 1;
+        exit 1;
     fi
-    return 0;
 }
 
 function fill_env_variables_from_json_config_file() {
