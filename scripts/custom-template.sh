@@ -1,6 +1,6 @@
 function create_template() {
     AVAILABLE_FRAMEWORKS="currency"
-    if [[ ! " ${AVAILABLE_FRAMEWORKS2[*]} " =~ $FRAMEWORK_NAME ]]; then
+    if [[ ! " ${AVAILABLE_FRAMEWORKS[*]} " =~ $FRAMEWORK_NAME ]]; then
         echo "You should select a valid framework"
         exit 1
     fi
