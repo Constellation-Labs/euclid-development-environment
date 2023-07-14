@@ -1,10 +1,10 @@
 function create_template() {
-    AVAILABLE_FRAMEWORKS= "currency"
+    AVAILABLE_FRAMEWORKS="currency"
     if [[ ! " ${AVAILABLE_FRAMEWORKS2[*]} " =~ $FRAMEWORK_NAME ]]; then
         echo "You should select a valid framework"
         exit 1
     fi
-    
+
     cd source/$1
     if [ -d "$PROJECT_NAME" ]; then
         echo "Template already exists!"
