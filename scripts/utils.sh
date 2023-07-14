@@ -23,6 +23,7 @@ function fill_env_variables_from_json_config_file() {
   export TESSELLATION_VERSION=$(jq -r .tessellation_version euclid.json)
   export TEMPLATE_VERSION=$(jq -r .framework.version euclid.json)
   export TEMPLATE_VERSION_IS_TAG_OR_BRANCH=$(jq -r .framework.ref_type euclid.json)
+  export PROJECT_NAME=$(jq -r .project_name euclid.json)
   export FRAMEWORK_NAME=$(jq -r .framework.name euclid.json)
   export FRAMEWORK_MODULES=$(jq -r .framework.modules euclid.json)
   export P12_GENESIS_FILE_NAME=$(jq -r .p12_files.genesis.file_name euclid.json)
