@@ -18,7 +18,7 @@ ENV CL_PASSWORD=${P12_FILE_PASSWORD_GENESIS}
 COPY project/$TEMPLATE_NAME codebase/$TEMPLATE_NAME
 COPY p12-files/${P12_FILE_NAME_GENESIS} ${P12_FILE_NAME_GENESIS}
 
-RUN cd codebase/$TEMPLATE_NAME  && \
-    sbt --error currencyL0/assembly
+RUN cd codebase/$TEMPLATE_NAME && \
+    sbt --error dataL1/assembly
 
-RUN mv codebase/$TEMPLATE_NAME/modules/l0/target/scala-2.13/${TEMPLATE_NAME}-currency-l0-assembly-* currency-l0.jar
+RUN mv codebase/$TEMPLATE_NAME/modules/data_l1/target/scala-2.13/${TEMPLATE_NAME}-data_l1-assembly-* metagraph-l1-data.jar
