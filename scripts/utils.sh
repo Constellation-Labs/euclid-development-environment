@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 
 function fill_env_variables_from_json_config_file() {
-  export GITHUB_TOKEN=$(jq -r .github_token hydra.cfg.json)
-  export METAGRAPH_ID=$(jq -r .metagraph_id hydra.cfg.json)
-  export TESSELLATION_VERSION=$(jq -r .tessellation_version hydra.cfg.json)
-  export TEMPLATE_VERSION=$(jq -r .framework.version hydra.cfg.json)
-  export TEMPLATE_VERSION_IS_TAG_OR_BRANCH=$(jq -r .framework.ref_type hydra.cfg.json)
-  export FRAMEWORK_NAME=$(jq -r .framework.name hydra.cfg.json)
-  export FRAMEWORK_MODULES=$(jq -r .framework.modules hydra.cfg.json)
-  export P12_GENESIS_FILE_NAME=$(jq -r .p12_files.genesis.file_name hydra.cfg.json)
-  export P12_GENESIS_FILE_KEY_ALIAS=$(jq -r .p12_files.genesis.alias hydra.cfg.json)
-  export P12_GENESIS_FILE_PASSWORD=$(jq -r .p12_files.genesis.password hydra.cfg.json)
-  export P12_NODE_2_FILE_NAME=$(jq -r .p12_files.validators[0].file_name hydra.cfg.json)
-  export P12_NODE_2_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[0].alias hydra.cfg.json)
-  export P12_NODE_2_FILE_PASSWORD=$(jq -r .p12_files.validators[0].password hydra.cfg.json)
-  export P12_NODE_3_FILE_NAME=$(jq -r .p12_files.validators[1].file_name hydra.cfg.json)
-  export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias hydra.cfg.json)
-  export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password hydra.cfg.json)
+  export GITHUB_TOKEN=$(jq -r .github_token euclid.json)
+  export METAGRAPH_ID=$(jq -r .metagraph_id euclid.json)
+  export TESSELLATION_VERSION=$(jq -r .tessellation_version euclid.json)
+  export TEMPLATE_VERSION=$(jq -r .framework.version euclid.json)
+  export TEMPLATE_VERSION_IS_TAG_OR_BRANCH=$(jq -r .framework.ref_type euclid.json)
+  export FRAMEWORK_NAME=$(jq -r .framework.name euclid.json)
+  export FRAMEWORK_MODULES=$(jq -r .framework.modules euclid.json)
+  export P12_GENESIS_FILE_NAME=$(jq -r .p12_files.genesis.file_name euclid.json)
+  export P12_GENESIS_FILE_KEY_ALIAS=$(jq -r .p12_files.genesis.alias euclid.json)
+  export P12_GENESIS_FILE_PASSWORD=$(jq -r .p12_files.genesis.password euclid.json)
+  export P12_NODE_2_FILE_NAME=$(jq -r .p12_files.validators[0].file_name euclid.json)
+  export P12_NODE_2_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[0].alias euclid.json)
+  export P12_NODE_2_FILE_PASSWORD=$(jq -r .p12_files.validators[0].password euclid.json)
+  export P12_NODE_3_FILE_NAME=$(jq -r .p12_files.validators[1].file_name euclid.json)
+  export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
+  export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
   
-  containers_array=$(jq -r .docker.default_containers hydra.cfg.json)
+  containers_array=$(jq -r .docker.default_containers euclid.json)
   export DOCKER_CONTAINERS=( $(echo $containers_array | sed -e 's/\[//g' -e 's/\"//g' -e 's/\]//g' -e 's/\,/ /g') )
 }
 
@@ -56,9 +56,9 @@ function get_metagraph_id_from_genesis_currency_l0() {
         else
             cd ../../../
             echo "METAGRAPH_ID found: $METAGRAPH_ID"
-            echo "Filling the hydra.cfg.json file"
-            contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' hydra.cfg.json)" && \
-            echo -E "${contents}" > hydra.cfg.json
+            echo "Filling the euclid.json file"
+            contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' euclid.json)" && \
+            echo -E "${contents}" > euclid.json
             
             fill_env_variables_from_json_config_file
             
