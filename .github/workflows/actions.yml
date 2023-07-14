@@ -12,8 +12,8 @@ jobs:
       - name: Load config file
         shell: bash
         run: |
-          contents="$(jq --arg GITHUB_TOKEN "${{ secrets.TOKEN }}" '.github_token = $GITHUB_TOKEN' hydra.cfg.json)"
-          echo -E "${contents}" > hydra.cfg.json
+          contents="$(jq --arg GITHUB_TOKEN "${{ secrets.TOKEN }}" '.github_token = $GITHUB_TOKEN' euclid.json)"
+          echo -E "${contents}" > euclid.json
       - name: Run steps
         shell: bash
         run: |

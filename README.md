@@ -31,7 +31,7 @@ With the euclid-development-environment cloned, you'll see the following structu
     - genesis
   - p12-files
   - project
-- hydra.cfg.json
+- euclid.json
 ```
 let's see what each of these directories represents:
 
@@ -126,7 +126,7 @@ We have the option `install` to remove the link with remote `git`. You can call 
 
 After understanding the folder structure, we can start build our containers.
 
-*NOTE: Make sure to fill your GITHUB_TOKEN on hydra.cfg.json file before start*
+*NOTE: Make sure to fill your GITHUB_TOKEN on euclid.json file before start*
 
 Move your terminal to directory `/scripts`, home of the `hydra` script.
 
