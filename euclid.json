@@ -1,7 +1,7 @@
 {
   "github_token": "",
   "metagraph_id": "",
-  "tessellation_version": "v2.0.0-alpha.10",
+  "tessellation_version": "develop",
   "framework": {
     "name": "custom-project",
     "modules": [
