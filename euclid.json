@@ -1,13 +1,13 @@
 {
   "github_token": "",
   "metagraph_id": "",
-  "tessellation_version": "develop",
+  "tessellation_version": "v2.0.0-alpha.10-data-api",
   "framework": {
     "name": "custom-project",
     "modules": [
       "data"
     ],
-    "version": "develop",
+    "version": "v2.0.0-alpha.10-data-api",
     "ref_type": "branch"
   },
   "p12_files": {
