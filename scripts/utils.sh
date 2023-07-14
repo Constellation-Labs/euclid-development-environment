@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 
+function check_if_package_is_installed() {
+    if [ -n "$(dpkg -l | awk "/^ii  $1/")" ]; then
+        echo "Could not find package $1, please install this package first"
+        return 1;
+    fi
+    return 0;
+}
+
 function fill_env_variables_from_json_config_file() {
+  check_if_package_is_installed jq
+
   export GITHUB_TOKEN=$(jq -r .github_token euclid.json)
   export METAGRAPH_ID=$(jq -r .metagraph_id euclid.json)
   export TESSELLATION_VERSION=$(jq -r .tessellation_version euclid.json)
