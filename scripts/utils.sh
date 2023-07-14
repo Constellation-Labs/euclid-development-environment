@@ -7,9 +7,17 @@ function check_if_package_is_installed() {
     fi
 }
 
+function check_if_config_file_is_the_new_format() {
+    if [[ ! -f "euclid.json" ]]; then
+        echo "In version 0.4.0, Euclid environment variables were migrated to a JSON format in euclid.json. You will need to manually migrate your variables in .env to euclid.json"
+        exit 1
+    fi
+}
+
 function fill_env_variables_from_json_config_file() {
   check_if_package_is_installed jq
-
+  check_if_config_file_is_the_new_format
+  
   export GITHUB_TOKEN=$(jq -r .github_token euclid.json)
   export METAGRAPH_ID=$(jq -r .metagraph_id euclid.json)
   export TESSELLATION_VERSION=$(jq -r .tessellation_version euclid.json)
