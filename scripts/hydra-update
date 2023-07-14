@@ -68,18 +68,6 @@ update() {
   cp -r ../infra/euclid-development-environment/scripts/hydra .
   echo "Updated"
 
-  echo "Updating config file ..."
-  cd ../
-
-  chmod +x .env 2> /dev/null
-  rm -f .env 2> /dev/null
-
-  chmod +x euclid.json 2> /dev/null
-  rm -f euclid.json 2> /dev/null
-
-  cp -r infra/euclid-development-environment/euclid.json
-  echo "Updated"
-  
   chmod -R +w ../infra/euclid-development-environment
   rm -r ../infra/euclid-development-environment
   echo "Updating process finished!"
