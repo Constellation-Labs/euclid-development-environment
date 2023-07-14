@@ -45,9 +45,7 @@ function fill_env_variables_from_json_config_file() {
   export P12_NODE_3_FILE_NAME=$(jq -r .p12_files.validators[1].file_name euclid.json)
   export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
   export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
-  
-  containers_array=$(jq -r .docker.default_containers euclid.json)
-  export DOCKER_CONTAINERS=( $(echo $containers_array | sed -e 's/\[//g' -e 's/\"//g' -e 's/\]//g' -e 's/\,/ /g') )
+  export DOCKER_CONTAINERS=( $(jq -r .docker.default_containers euclid.json) )
 }
 
 function check_if_github_token_is_valid() {
