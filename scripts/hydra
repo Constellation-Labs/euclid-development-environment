@@ -42,7 +42,6 @@ function install() {
 # @flag   --rebuild_tessellation          Rebuild the tessellation project
 function build() {
   load_scripts
-
   set_docker_compose
   OUTPUT_YELLOW=$(tput setaf 3)
   OUTPUT_WHITE=$(tput setaf 7)
@@ -53,6 +52,8 @@ function build() {
     exit 1
   fi
 
+  check_if_tessellation_needs_to_be_rebuild
+  
   check_if_github_token_is_valid
   check_p12_files
   check_if_project_name_is_set
