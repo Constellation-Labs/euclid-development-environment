@@ -2,8 +2,9 @@
   "github_token": "",
   "metagraph_id": "",
   "tessellation_version": "v2.0.0-alpha.10-data-api",
+  "project_name": "custom-project",
   "framework": {
-    "name": "custom-project",
+    "name": "currency",
     "modules": [
       "data"
     ],
