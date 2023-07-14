@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+function check_if_tessellation_needs_to_be_rebuild() {
+    PROJECT_TESSELLATION_VERSION=$(grep -Po "(?<=val tessellation = \").*(?=\")" ../source/project/custom-project/project/Dependencies.scala)
+    echo "Project tessellation version: $PROJECT_TESSELLATION_VERSION"
+    echo "Tessellation version provided on euclid.json: $TESSELLATION_VERSION"
+    if [ $PROJECT_TESSELLATION_VERSION != $ESSELLATION_VERSION ]; then
+        echo "Your custom project contains a different version of tessellation than provided on euclid.json, please rebuild tessellation on build with the instruction hydra build --rebuild_tessellation"
+        exit 1
+    fi
+}
+
 function check_if_package_is_installed() {
     if [[ -z "$(which $1 | grep "/")" ]]; then
         echo "Could not find package $1, please install this package first"
