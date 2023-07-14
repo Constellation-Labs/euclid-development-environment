@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function check_if_tessellation_needs_to_be_rebuild() {
-    PROJECT_TESSELLATION_VERSION=$(grep -Po "(?<=val tessellation = \").*(?=\")" ../source/project/custom-project/project/Dependencies.scala)
+    PROJECT_TESSELLATION_VERSION=$(sed -n 's/.*val tessellation = "\(.*\)".*/\1/p' ../source/project/custom-project/project/Dependencies.scala)
     echo "Project tessellation version: $PROJECT_TESSELLATION_VERSION"
     echo "Tessellation version provided on euclid.json: $TESSELLATION_VERSION"
     if [[ "$PROJECT_TESSELLATION_VERSION" != "$TESSELLATION_VERSION" ]]; then
@@ -45,7 +45,7 @@ function fill_env_variables_from_json_config_file() {
   export P12_NODE_3_FILE_NAME=$(jq -r .p12_files.validators[1].file_name euclid.json)
   export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
   export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
-  export DOCKER_CONTAINERS=( $(jq -r .docker.default_containers euclid.json) )
+  export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
 }
 
 function check_if_github_token_is_valid() {
