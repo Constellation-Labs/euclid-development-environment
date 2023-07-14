@@ -4,7 +4,6 @@ WORKDIR "/code"
 
 ARG GIT_PERSONAL_ACCESS_TOKEN
 ARG TESSELLATION_VERSION
-ARG VERSION_NAME_TO_USE
 
 ENV LC_ALL C.UTF-8
 ENV LANG en_US.UTF-8
@@ -29,7 +28,7 @@ RUN cd codebase/ && \
     cd tessellation && \
     git checkout $TESSELLATION_VERSION && \
     rm -r version.sbt && \
-    echo "ThisBuild / version := \"$VERSION_NAME_TO_USE\"" > version.sbt  && \
+    echo "ThisBuild / version := \"$TESSELLATION_VERSION\"" > version.sbt  && \
     sbt --error wallet/assembly core/assembly keytool/assembly shared/publishM2 kernel/publishM2 keytool/publishM2 sdk/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2
 
 RUN mv codebase/tessellation/modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* cl-wallet.jar && \

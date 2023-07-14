@@ -1,377 +1,25 @@
 #!/usr/bin/env bash
 
-set_docker_compose() {
-  if [ -x "$(command -v docker)" ] && [ "$(docker --version | awk '{print $3}' | cut -d'-' -f1 | cut -d'.' -f1)" -ge "20" ]; then
-    # Version 2 syntax
-    dockercompose="docker compose"
-  elif [ -x "$(command -v docker-compose)" ]; then
-    # Version 1 syntax
-    dockercompose="docker-compose"
-    echo ""
-    echo "You only have the older docker compose installed. It should work fine for now."
-    echo "The older syntax will be used... $dockercompose"
-    echo ""
-    echo "It is recommended that you install the latest version of docker compose for better compatibility in future hydra builds:"
-    echo "  https://docs.docker.com/compose/install/linux/"
-    echo ""
-  else
-    echo "Docker Compose not found"
-    echo "To proceed, you need to make sure it is installed:"
-    echo "  https://docs.docker.com/compose/install/linux/"
-    exit 1
-  fi
-}
-
-check_if_docker_is_running() {
-  if ! docker info &>/dev/null; then
-    echo "You need to execute Docker service first to run the script."
-    exit
-  fi
-}
-
-check_if_github_token_is_valid() {
-  if curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -q "Bad credentials"; then
-    echo "Invalid GITHUB_TOKEN"
-    exit 1
-  fi
-}
-
-run_container() {
-  cd $1
-  echo "Starting $1 image ..."
-  $dockercompose up -d --no-recreate
-  echo "$1 image started"
-
-  if [[ ! -z "$2" ]]; then
-    for ((i = 1; i <= 11; i++)); do
-      if ! curl $2 &>/dev/null; then
-        if [ $i -eq 10 ]; then
-          echo "Could not find the $1 instance, make sure to run the $1 container"
-          exit 1
-        fi
-        echo "$1 still booting... waiting 30s ($i/10)"
-        sleep 30
-      fi
-    done
-  fi
-}
-
-checkout_tessellation_version() {
-  cd $2/
-  echo "Checking version $1"
-  if [ ! -z "$(git ls-remote origin $1)" ]; then
-    git pull &>/dev/null
-    git checkout $1 &>/dev/null
-    echo "Valid version"
-    cd ../
-  else
-    echo "Invalid version"
-    exit 1
-  fi
-}
-
-create_template() {
-  cd source/$1
-  if [ -d "$2" ]; then
-    echo "Template already exists!"
-  else
-    echo "Generating template $1 ..."
-    echo "Template version: $CUSTOM_BRANCH_OR_TAG_TEMPLATE, VERSION_NAME: $VERSION_NAME_TO_USE"
-    g8 Constellation-Labs/currency --tag $CUSTOM_BRANCH_OR_TAG_TEMPLATE --name="$2" --tessellation_version="$VERSION_NAME_TO_USE"
-  fi
-  cd ../../
-}
-
-create_docker_custom_network() {
-  echo
-  echo "Creating docker custom-network..."
-  if ! docker network inspect custom-network &>/dev/null; then
-    docker network create --driver=bridge --subnet=172.50.0.0/24 custom-network
-  fi
-  echo "Network created"
-}
-
-destroy_container() {
-  echo "Destroying $1 container"
-  cd infra/docker/$1
-  $dockercompose down --remove-orphans
-  cd ../../../
-  echo "$1 container destroyed"
-}
-
-stop_container() {
-  echo "Stopping $1 container"
-  cd infra/docker/$1
-  $dockercompose stop
-  cd ../../../
-  echo "$1 container stopped"
-}
-
-join_l1_currency_nodes() {
-  echo "Joining currency l1 containers to build the cluster ..."
-  for ((i = 1; i <= 11; i++)); do
-    if curl -v http://localhost:9700/cluster/info &>/dev/null && curl -v http://localhost:9800/metrics &>/dev/null && curl -v http://localhost:9900/metrics &>/dev/null; then
-      echo "Joining node 2 ..."
-      docker exec -it l1-currency-2 bash -c "cd genesis/ && \
-                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
-                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
-                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
-                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.30\", \"p2pPort\": 9001 }' &> /dev/null"
-      echo "Joined"
-      echo "Joining node 3 ..."
-      docker exec -it l1-currency-3 bash -c "cd genesis/ && \
-                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
-                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
-                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
-                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.30\", \"p2pPort\": 9001 }' &> /dev/null"
-
-      echo "Joined"
-
-      echo "Currency L1 cluster built successfully"
-      break
-    else
-      echo "Currency L1 validators still booting... waiting 30s ($i/10)"
-      sleep 30
-    fi
-  done
-}
-
-join_l1_global_nodes() {
-  echo "Joining DAG l1 containers to build the cluster ..."
-  for ((i = 1; i <= 11; i++)); do
-    if curl -v http://localhost:9100/cluster/info &>/dev/null && curl -v http://localhost:9200/metrics &>/dev/null && curl -v http://localhost:9300/metrics &>/dev/null; then
-      echo "Joining node 2 ..."
-      docker exec -it l1-dag-2 bash -c "cd genesis/ && \
-                                                            export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
-                                                            export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
-                                                            export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
-                                                            export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                            curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.10\", \"p2pPort\": 9001 }' &> /dev/null"
-      echo "Joined"
-
-      echo "Joining node 3 ..."
-      docker exec -it l1-dag-3 bash -c "cd genesis/ && \
-                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
-                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
-                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
-                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.10\", \"p2pPort\": 9001 }' &> /dev/null"
-
-      echo "Joined"
-      echo "DAG L1 cluster built successfully"
-      break
-    else
-      echo "DAG L1 validators still booting... waiting 30s ($i/10)"
-      sleep 30
-    fi
-  done
-}
-
-join_l0_currency_nodes() {
-  echo "Joining currency l0 containers to build the cluster ..."
-  for ((i = 1; i <= 11; i++)); do
-    if curl -v http://localhost:9400/cluster/info &>/dev/null && curl -v http://localhost:9500/metrics &>/dev/null && curl -v http://localhost:9600/metrics &>/dev/null; then
-      echo "Joining node 2 ..."
-      docker exec -it l0-currency-2 bash -c "cd genesis/ && \
-                                                 export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
-                                                 export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
-                                                 export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
-                                                 export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                 curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.20\", \"p2pPort\": 9001 }' &> /dev/null"
-      echo "Joined"
-
-      echo "Joining node 3 ..."
-      docker exec -it l0-currency-3 bash -c "cd genesis/ && \
-                                                       export CL_KEYSTORE=\${CL_KEYSTORE_GENESIS} && \
-                                                       export CL_KEYALIAS=\${CL_KEYALIAS_GENESIS} && \
-                                                       export CL_PASSWORD=\${CL_PASSWORD_GENESIS} && \
-                                                       export GENESIS_ID=\$(java -jar cl-wallet.jar show-id) && \
-                                                       curl -v -X POST http://localhost:9002/cluster/join -H \"Content-type: application/json\" -d '{ \"id\":\"'\${GENESIS_ID}'\", \"ip\": \"172.50.0.20\", \"p2pPort\": 9001 }' &> /dev/null"
-      echo "Joined"
-
-      echo "Currency L0 cluster built successfully"
-      break
-    else
-      echo "Currency L0 validators still booting... waiting 30s ($i/10)"
-      sleep 30
-    fi
-  done
-}
-
-check_if_project_name_is_set() {
-  if [[ -z "$PROJECT_NAME" ]]; then
-    echo "You should provide the PROJECT_NAME on .env file"
-    exit 1
-  fi
-}
-
-check_if_project_directory_exists() {
-  cd source/
-  if [ ! -d "project/$PROJECT_NAME" ]; then
-    echo "You must install a framework before building. Run hydra install first"
-    exit 1
-  fi
-  cd ..
-}
-
-get_metagraph_id_from_genesis_currency_l0() {
-   for ((i = 1; i <= 11; i++)); do
-    METAGRAPH_ID=$(docker logs l0-currency-1 -n 1000 2>&1 | grep -o "Address from genesis data is .*" | grep -o "DAG.*")
-    if [[ -z "$METAGRAPH_ID" ]]; then
-      if [ $i -eq 10 ]; then
-        echo "Could not find the METAGRAPH_ID, check the currency L0 node 1 logs"
-        exit 1
-      fi
-      echo "METAGRAPH_ID not found trying again in 30s"
-      sleep 30
-    else
-      cd ../../../
-      echo "METAGRAPH_ID found: $METAGRAPH_ID"
-      echo "Filling the .env file"
-      echo "$(sed '/METAGRAPH_ID=.*/d' .env)" > .env
-      echo "METAGRAPH_ID=$METAGRAPH_ID" >> .env
-
-      set -o allexport
-      source .env set
-
-      cd infra/docker/currency-l0-genesis
-      break
-    fi
-  done
-}
-
-start_containers(){
-    if [[ -z "$1" || "$1" == "global-l0" ]]; then
-      if ! docker inspect --type=image global-l0 &>/dev/null; then
-        echo "You need to build the Global L0 first"
-        exit 1
-      fi
-    fi
-    if [[ -z "$1" || "$1" == "currency-l0" ]]; then
-      if ! docker inspect --type=image currency-l0-initial-validator &>/dev/null; then
-        echo "You need to build the Currency L0 first"
-        exit 1
-      fi
-    fi
-    if [[ -z "$1" || "$1" == "currency-l1" ]]; then
-      if ! docker inspect --type=image currency-l1-initial-validator &>/dev/null; then
-        echo "You need to build the Currency L1 first"
-        exit 1
-      fi
-    fi
-
-    if [[ ! -z "$2" || "$1" == "dag-l1" ]]; then
-      if ! docker inspect --type=image dag-l1-initial-validator &>/dev/null; then
-        echo "You need to build the DAG L1 first"
-        exit 1
-      fi
-    fi
-
-    global_l0_url=""
-    dag_l1_1_url=""
-    dag_l1_2_url=""
-    dag_l1_3_url=""
-    currency_l0_1_url=""
-    currency_l0_2_url=""
-    currency_l0_3_url=""
-    currency_l1_1_url=""
-    currency_l1_2_url=""
-    currency_l1_3_url=""
-    grafana_url=""
-
-    create_docker_custom_network
-
-    cd ../infra/docker
-    if [[ -z "$1" || "$1" == "global-l0" ]]; then
-      run_container global-l0 http://localhost:9000/metrics
-      global_l0_url="$OUTPUT_YELLOW Global L0: $OUTPUT_WHITE http://localhost:9000/cluster/info"
-      cd ../
-    fi
-
-    if [[ ! -z "$2" || "$1" == "dag-l1" ]]; then
-      run_container dag-l1 http://localhost:9100/metrics
-      join_l1_global_nodes
-
-      dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9100/cluster/info"
-      dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9200/cluster/info"
-      dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9300/cluster/info"
-      cd ../
-    fi
-
-    if [[ -z "$1" || "$1" == "currency-l0" ]]; then
-      run_container currency-l0-genesis http://localhost:9400/metrics
-      get_metagraph_id_from_genesis_currency_l0
-      cd ../
-
-      run_container currency-l0 http://localhost:9500/metrics
-      join_l0_currency_nodes
-
-      currency_l0_1_url="$OUTPUT_YELLOW Currency L0 - 1: $OUTPUT_WHITE http://localhost:9400/cluster/info"
-      currency_l0_2_url="$OUTPUT_YELLOW Currency L0 - 2: $OUTPUT_WHITE http://localhost:9500/cluster/info"
-      currency_l0_3_url="$OUTPUT_YELLOW Currency L0 - 3: $OUTPUT_WHITE http://localhost:9600/cluster/info"
-      cd ../
-    fi
-
-    if [[ -z "$1" || "$1" == "currency-l1" ]]; then
-      if [[ -z "$METAGRAPH_ID" ]]; then
-        echo "METAGRAPH_ID not found on .env file, please fill this parameter or run currency-l0"
-        exit 1
-      fi
-      run_container currency-l1
-      join_l1_currency_nodes
-
-      currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9700/cluster/info"
-      currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9800/cluster/info"
-      currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9900/cluster/info"
-      cd ../
-    fi
-
-    if [[ -z "$1" || "$1" == "monitoring" ]]; then
-      run_container monitoring
-
-      grafana_url="$OUTPUT_YELLOW Grafana: $OUTPUT_WHITE http://localhost:3000/"
-    fi
-
-    echo
-    echo
-    echo "Containers successfully built."
-    echo "Urls:"
-    echo
-    if [[ ! -z "$global_l0_url" ]]; then
-      echo "$global_l0_url"
-    fi
-    if [[ ! -z "$dag_l1_1_url" ]]; then
-      echo "$dag_l1_1_url"
-      echo "$dag_l1_2_url"
-      echo "$dag_l1_3_url"
-    fi
-    if [[ ! -z "$currency_l0_1_url" ]]; then
-      echo "$currency_l0_1_url"
-      echo "$currency_l0_2_url"
-      echo "$currency_l0_3_url"
-    fi
-    if [[ ! -z "$currency_l1_1_url" ]]; then
-      echo "$currency_l1_1_url"
-      echo "$currency_l1_2_url"
-      echo "$currency_l1_3_url"
-    fi
-    if [[ ! -z "$grafana_url" ]]; then
-      echo "$grafana_url"
-    fi
-}
-
-# @cmd Installs a local framework and detaches project
-install() {
+function load_scripts () {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
-
   if [ -d "scripts" ]; then
     cd scripts/
   fi
 
-  source ../.env
+  source ./docker.sh
+  source ./join-cluster.sh
+  source ./custom-template.sh
+  source ./utils.sh
+  
+  cd ../
+  fill_env_variables_from_json_config_file
+  cd scripts/
+}
+
+# @cmd Installs a local framework and detaches project
+function install() {  
+  load_scripts
 
   cd ../
 
@@ -379,110 +27,56 @@ install() {
 
   echo "Installing hydra ..."
   echo "Installing Framework..."
-  create_template project $PROJECT_NAME
-  chmod a+rwx infra/docker/monitoring/grafana/storage
-  if [ -d ".git" ]; then
-    chmod -R +w .git
-    rm -r .git
-  fi
+  create_template project
+  chmod a+rwx infra/docker/monitoring
+  # if [ -d ".git" ]; then
+  #   chmod -R +w .git
+  #   rm -r .git
+  # fi
   echo "Installed"
 }
 
 # @cmd Build containers
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
-# @flag   --include_dag_l1                Includes the dag l1 layer to build/run
 # @flag   --rebuild_tessellation          Rebuild the tessellation project
-# @option --only                          Build specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-# @option --tessellation_version          Tessellation repo branch to build the JARS. Default main
-build() {
+function build() {
+  load_scripts
+
   set_docker_compose
   OUTPUT_YELLOW=$(tput setaf 3)
   OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
-  BASEDIR=$(dirname "$0")
-  VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
-
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
-
-  source ../.env
-
-  if [[ "$argc_only" != "monitoring" ]]; then
-    check_if_github_token_is_valid
-  fi
-
-  if [[ -z "$GITHUB_TOKEN" && "$argc_only" != "monitoring" ]]; then
-    echo "You should provide the GITHUB_TOKEN on .env file"
+  if [[ -z "$GITHUB_TOKEN" ]]; then
+    echo "You should provide the GITHUB_TOKEN on euclid.json file"
     exit 1
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" != "monitoring" ]]; then
-    echo
-    echo "P12 files should be inserted on source/p12-files directory"
-    if [ ! -f "../source/p12-files/$P12_GENESIS_FILE_NAME" ]; then
-      echo "File does not exists"
-      exit 1
-    fi
-
-    if [[ -z "$argc_only" || "$argc_only" == "dag-l1" || "$argc_only" == "currency-l1" || ! -z "$argc_include_dag_l1" ]]; then
-      if [ ! -f "../source/p12-files/$P12_NODE_2_FILE_NAME" ]; then
-        echo "File does not exists"
-        exit 1
-      fi
-
-      if [ ! -f "../source/p12-files/$P12_NODE_3_FILE_NAME" ]; then
-        echo "File does not exists"
-        exit 1
-      fi
-    fi
-  fi
-
-  global_l0_url=""
-  dag_l1_1_url=""
-  dag_l1_2_url=""
-  dag_l1_3_url=""
-  currency_l0_1_url=""
-  currency_l0_2_url=""
-  currency_l0_3_url=""
-  currency_l1_1_url=""
-  currency_l1_2_url=""
-  currency_l1_3_url=""
-  grafana_url=""
-
-  if [ ! -z "$argc_only" ]; then
-    if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$argc_only($|[[:space:]]) ]]; then
-      echo "You should provide a valid only option"
-      exit 1
-    fi
-  fi
-
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l0" || "$argc_only" == "currency-l1" ]]; then
-    check_if_project_name_is_set
-    cd ..
-    check_if_project_directory_exists
-    cd scripts
-  fi
-
+  check_if_github_token_is_valid
+  check_p12_files
+  check_if_project_name_is_set
+  check_if_project_directory_exists
   create_docker_custom_network
 
   cd ../infra/docker
 
-  TESSELLATION_VERSION=$CUSTOM_BRANCH_OR_TAG
-  VERSION_NAME_TO_USE=$VERSION_NAME_TO_USE
+  TESSELLATION_VERSION=$TESSELLATION_VERSION
+  DOCKER_CONTAINERS=$DOCKER_CONTAINERS
 
   if [[ -z "$(docker images -q ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
     echo "Building ubuntu shared image..."
     cd ubuntu-with-java-and-sbt
-    $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg VERSION_NAME_TO_USE=$VERSION_NAME_TO_USE
+    if [ ! -z "$argc_no_cache" ]; then
+      $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --no-cache
+    else
+      $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION
+    fi
     cd ../
     echo "Ubuntu image built"
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "global-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=""
     cd global-l0
     if [ ! -z "$argc_no_cache" ]; then
@@ -490,19 +84,13 @@ build() {
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     else
       echo "Building Global L0 image... (USING CACHE)"
-      $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
+      $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD
     fi
     echo "Global L0 image built"
-
-    if [ ! -z "$argc_run" ]; then
-      cd ../
-      run_container global-l0 http://localhost:9000/metrics
-      global_l0_url="$OUTPUT_YELLOW Global L0: $OUTPUT_WHITE http://localhost:9000/cluster/info"
-    fi
     cd ../
   fi
 
-  if [[ ! -z "$argc_include_dag_l1" || "$argc_only" == "dag-l1" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "dag-l1" ]]; then
     cd dag-l1
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building DAG L1 image... (NO CACHE)"
@@ -512,79 +100,55 @@ build() {
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "DAG L1 image built"
-
-    if [ ! -z "$argc_run" ]; then
-      cd ../
-      run_container dag-l1 http://localhost:9100/metrics
-
-      join_l1_global_nodes
-      dag_l1_1_url="$OUTPUT_YELLOW DAG L1 - 1: $OUTPUT_WHITE http://localhost:9100/cluster/info"
-      dag_l1_2_url="$OUTPUT_YELLOW DAG L1 - 2: $OUTPUT_WHITE http://localhost:9200/cluster/info"
-      dag_l1_3_url="$OUTPUT_YELLOW DAG L1 - 3: $OUTPUT_WHITE http://localhost:9300/cluster/info"
-    fi
     cd ../
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l0" ]]; then
     export SHOULD_RESET_GENESIS_FILE=""
     export METAGRAPH_ID=""
-    cd currency-l0-genesis
+    cd metagraph-l0-genesis
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L0 image... (NO CACHE)"
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
-      cd ../currency-l0
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
+      $dockercompose build --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
+      cd ../metagraph-l0
+      $dockercompose build --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo "Building Currency L0 image... (USING CACHE)"
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
-      cd ../currency-l0
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
+      $dockercompose build --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
+      cd ../metagraph-l0
+      $dockercompose build --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "Currency L0 image built"
-
-    if [ ! -z "$argc_run" ]; then
-      cd ../
-      run_container currency-l0-genesis http://localhost:9400/metrics
-      get_metagraph_id_from_genesis_currency_l0
-      cd ../
-
-      run_container currency-l0 http://localhost:9500/metrics
-      join_l0_currency_nodes
-      currency_l0_1_url="$OUTPUT_YELLOW Currency L0 - 1: $OUTPUT_WHITE http://localhost:9400/cluster/info"
-      currency_l0_2_url="$OUTPUT_YELLOW Currency L0 - 2: $OUTPUT_WHITE http://localhost:9500/cluster/info"
-      currency_l0_3_url="$OUTPUT_YELLOW Currency L0 - 3: $OUTPUT_WHITE http://localhost:9600/cluster/info"
-    fi
     cd ../
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    cd currency-l1
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
+    cd metagraph-l1-currency
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building Currency L1 image... (NO CACHE)"
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
+      $dockercompose build  --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo "Building Currency L1 image... (USING CACHE)"
-      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
+      $dockercompose build  --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo "Currency L1 image built"
-
-    if [ ! -z "$argc_run" ]; then
-      if [[ -z "$METAGRAPH_ID" ]]; then
-        echo "METAGRAPH_ID not found on .env file, please fill this parameter or run currency-l0"
-        exit 1
-      fi
-      cd ../
-      run_container currency-l1
-      join_l1_currency_nodes
-
-      currency_l1_1_url="$OUTPUT_YELLOW Currency L1 - 1: $OUTPUT_WHITE http://localhost:9700/cluster/info"
-      currency_l1_2_url="$OUTPUT_YELLOW Currency L1 - 2: $OUTPUT_WHITE http://localhost:9800/cluster/info"
-      currency_l1_3_url="$OUTPUT_YELLOW Currency L1 - 3: $OUTPUT_WHITE http://localhost:9900/cluster/info"
-    fi
     cd ../
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-data" ]]; then
+    cd metagraph-l1-data
+    if [ ! -z "$argc_no_cache" ]; then
+      echo "Building Data L1 image... (NO CACHE)"
+      $dockercompose build --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
+    else
+      echo "Building Data L1 image... (USING CACHE)"
+      $dockercompose build --build-arg TEMPLATE_NAME=$FRAMEWORK_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
+    fi
+    echo "Data L1 image built"
+    cd ../
+  fi
+
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "monitoring" ]]; then
     cd monitoring
     if [ ! -z "$argc_no_cache" ]; then
       echo "Building monitoring image... (NO CACHE)"
@@ -594,43 +158,12 @@ build() {
       $dockercompose build
     fi
     echo "monitoring image built"
-
-    if [ ! -z "$argc_run" ]; then
-      cd ../
-      run_container monitoring
-
-      grafana_url="$OUTPUT_YELLOW Grafana: $OUTPUT_WHITE http://localhost:3000/"
-    fi
     cd ../
   fi
 
   if [ ! -z "$argc_run" ]; then
-    echo
-    echo
-    echo "Containers successfully built."
-    echo "Urls:"
-    echo
-    if [[ ! -z "$global_l0_url" ]]; then
-      echo "$global_l0_url"
-    fi
-    if [[ ! -z "$dag_l1_1_url" ]]; then
-      echo "$dag_l1_1_url"
-      echo "$dag_l1_2_url"
-      echo "$dag_l1_3_url"
-    fi
-    if [[ ! -z "$currency_l0_1_url" ]]; then
-      echo "$currency_l0_1_url"
-      echo "$currency_l0_2_url"
-      echo "$currency_l0_3_url"
-    fi
-    if [[ ! -z "$currency_l1_1_url" ]]; then
-      echo "$currency_l1_1_url"
-      echo "$currency_l1_2_url"
-      echo "$currency_l1_3_url"
-    fi
-    if [[ ! -z "$grafana_url" ]]; then
-      echo "$grafana_url"
-    fi
+    cd ../
+    start_containers
   fi
 
   echo "Cleaning up dangling docker images"
@@ -639,148 +172,113 @@ build() {
 }
 
 # @cmd Start from genesis the containers
-# @flag   --include_dag_l1           Includes the dag l1 layer to build/run
-# @option --only                     Start specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-start_genesis() {
+function start_genesis() {
+  load_scripts
+
   set_docker_compose
   OUTPUT_YELLOW=$(tput setaf 3)
   OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
-  BASEDIR=$(dirname "$0")
-  VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
-
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
-
-  if [ ! -z "$argc_only" ]; then
-    if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$1($|[[:space:]]) ]]; then
-      echo "You should provide a valid only option"
-      exit 1
-    fi
-  fi
-
-  set -o allexport
-  source ../.env set
-
   export SHOULD_RESET_GENESIS_FILE=true
-  start_containers $argc_only $argc_include_dag_l1
+  start_containers
 }
 
 # @cmd Start containers
-# @flag   --include_dag_l1           Includes the dag l1 layer to build/run
-# @option --only                     Start specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-start() {
+function start() {
+  load_scripts
+
   set_docker_compose
   OUTPUT_YELLOW=$(tput setaf 3)
   OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
-  BASEDIR=$(dirname "$0")
-  VALID_ONLY_OPTIONS="global-l0 dag-l1 currency-l0 currency-l1 monitoring"
-
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
-
-  if [ ! -z "$argc_only" ]; then
-    if [[ ! $VALID_ONLY_OPTIONS =~ (^|[[:space:]])$argc_only($|[[:space:]]) ]]; then
-      echo "You should provide a valid only option"
-      exit 1
-    fi
-  fi
-
-  set -o allexport
-  source ../.env set
-
   export SHOULD_RESET_GENESIS_FILE=""
-  start_containers $argc_only $argc_include_dag_l1
+  start_containers
 }
 
 # @cmd Stop containers
-# @option --only                     Stop specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-stop() {
+function stop() { 
+  load_scripts
+
   export SHOULD_RESET_GENESIS_FILE=""
   export METAGRAPH_ID=""
   set_docker_compose
   check_if_docker_is_running
-  BASEDIR=$(dirname "$0")
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
+
   cd ..
 
   echo "Stopping containers ..."
 
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    stop_container currency-l1
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-data" ]]; then
+    stop_container metagraph-l1-data
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    stop_container currency-l0-genesis
-    stop_container currency-l0
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
+    stop_container metagraph-l1-currency
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "dag-l1" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l0" ]]; then
+    stop_container metagraph-l0-genesis
+    stop_container metagraph-l0
+  fi
+
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "dag-l1" ]]; then
     stop_container dag-l1
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "global-l0" ]]; then
     stop_container global-l0
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "monitoring" ]]; then
     stop_container monitoring
   fi
 }
 
 # @cmd Destroy containers
 # @flag   --delete_project            Delete custom project
-# @option --only                      Destroy specific layer. Options: global-l0, dag-l1, currency-l0, currency-l1, monitoring
-destroy() {
+function destroy() {
   export SHOULD_RESET_GENESIS_FILE=""
   export METAGRAPH_ID=""
+
+  load_scripts
+
   set_docker_compose
   check_if_docker_is_running
-  BASEDIR=$(dirname "$0")
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
 
-  source ../.env
   cd ..
 
   echo "Starting destroying containers ..."
 
   if [[ ! -z "$argc_delete_project" ]]; then
     echo "Removing the project codebase at $1..."
-    rm -r source/project/$PROJECT_NAME
+    rm -r source/project/$FRAMEWORK_NAME
     echo "Removed!"
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l1" ]]; then
-    destroy_container currency-l1
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-data" ]]; then
+    destroy_container metagraph-l1-data
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "currency-l0" ]]; then
-    destroy_container currency-l0-genesis
-    destroy_container currency-l0
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
+    destroy_container metagraph-l1-currency
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "dag-l1" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l0" ]]; then
+    destroy_container metagraph-l0-genesis
+    destroy_container metagraph-l0
+  fi
+
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "dag-l1" ]]; then
     destroy_container dag-l1
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "global-l0" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "global-l0" ]]; then
     destroy_container global-l0
   fi
 
-  if [[ -z "$argc_only" || "$argc_only" == "monitoring" ]]; then
+  if [[ " ${DOCKER_CONTAINERS[*]} " =~ "monitoring" ]]; then
     destroy_container monitoring
   fi
 
@@ -792,7 +290,7 @@ destroy() {
 
 # @cmd Check the status of the containers
 # @flag  --show_all    Show all containers, including the stopped
-status() {
+function status() {
   set_docker_compose
   check_if_docker_is_running
   if [[ ! -z "$argc_show_all" ]]; then
@@ -801,4 +299,5 @@ status() {
     docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
   fi
 }
+
 eval "$(argc --argc-eval "$0" "$@")"

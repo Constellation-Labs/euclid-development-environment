@@ -18,17 +18,20 @@ With the euclid-development-environment cloned, you'll see the following structu
 - infra
   - docker
 - scripts
+  - custom-template.sh
+  - docker.sh
   - hydra
   - hydra-update
+  - join-cluster.sh
+  - utils.sh
 - source
-  - currency-l0
+  - metagraph-l0
     - genesis
-  - currency-l1
-  - dag-l1
   - global-l0
     - genesis
   - p12-files
-- .env
+  - project
+- euclid.json
 ```
 let's see what each of these directories represents:
 
@@ -41,14 +44,14 @@ Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update
 ### Source
 Here is the home of the local codebase, this directories will be filled in ways you build the containers.
 
-Example: let's say that you'll build the container `currency-l0` (it will be explained better below, don't worry), on the directory `source/currency-l0` will be created one folder with the local codebase of the `currency-l0` node
+Example: let's say that you'll build the container `metagraph-l0` (it will be explained better below, don't worry), on the directory `source/metagraph-l0` will be created one folder with the local codebase of the `metagraph-l0` node
 
-The example above applies to the other containers: `currency-l1`, `dag-l1`, `global-l0`
+The example above applies to the other containers: `metagraph-l1-currency`, `dag-l1`, `global-l0`
 
 Inside the source folder, we also have the sub-directory `p12-files`. In this directory, you can provide the custom `.p12` files. This directory already comes with some examples, but they can be overwritten/removes to your own files.
 
-### .env
-Here is the environment configuration file, there you can set the `p12` file names and your GITHUB_TOKEN. It's required to fill the GitHub token here to run the `hydra` script
+### hydra.cfg
+Here is the hydra configuration file, there you can set the `p12` file names and your GITHUB_TOKEN. It's required to fill the GitHub token here to run the `hydra` script
 
 ## Hydra scripts options
 Run the following command to list all the possibilities of the `hydra` script
@@ -123,7 +126,7 @@ We have the option `install` to remove the link with remote `git`. You can call 
 
 After understanding the folder structure, we can start build our containers.
 
-*NOTE: Make sure to fill your GITHUB_TOKEN on .env file before start*
+*NOTE: Make sure to fill your GITHUB_TOKEN on euclid.json file before start*
 
 Move your terminal to directory `/scripts`, home of the `hydra` script.
 
@@ -157,6 +160,9 @@ Currency L0 - 3: http://localhost:9600/cluster/info
 Currency L1 - 1: http://localhost:9700/cluster/info
 Currency L1 - 2: http://localhost:9800/cluster/info
 Currency L1 - 3: http://localhost:9900/cluster/info
+Data L1 - 1: http://localhost:8000/cluster/info
+Data L1 - 2: http://localhost:8100/cluster/info
+Data L1 - 3: http://localhost:8200/cluster/info
 Grafana: http://localhost:3000/
 
 ```
