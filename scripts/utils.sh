@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function check_if_tessellation_needs_to_be_rebuild() {
-    PROJECT_TESSELLATION_VERSION=$(sed -n 's/.*val tessellation = "\(.*\)".*/\1/p' ../source/project/custom-project/project/Dependencies.scala)
+    PROJECT_TESSELLATION_VERSION=$(sed -n 's/.*val tessellation = "\(.*\)".*/\1/p' ../source/project/$PROJECT_NAME/project/Dependencies.scala)
     echo "Project tessellation version: $PROJECT_TESSELLATION_VERSION"
     echo "Tessellation version provided on euclid.json: $TESSELLATION_VERSION"
     if [[ "$PROJECT_TESSELLATION_VERSION" != "$TESSELLATION_VERSION" ]]; then
