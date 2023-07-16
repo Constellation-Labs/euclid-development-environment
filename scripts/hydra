@@ -28,11 +28,17 @@ function install() {
   echo "Installing hydra ..."
   echo "Installing Framework..."
   create_template project
+  
   chmod a+rwx infra/docker/monitoring
-  # if [ -d ".git" ]; then
-  #   chmod -R +w .git
-  #   rm -r .git
-  # fi
+  chmod -R a+rwx infra/docker/monitoring/grafana/storage/
+  chmod -R a+rwx infra/docker/monitoring/grafana/dashboard/
+  chmod -R a+rwx infra/docker/monitoring/grafana/datasource/
+  chmod -R a+rwx infra/docker/monitoring/prometheus/
+
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo "Installed"
 }
 
