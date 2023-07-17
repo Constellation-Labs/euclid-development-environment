@@ -1,18 +1,20 @@
+#!/usr/bin/env bash
+
 function create_template() {
     AVAILABLE_FRAMEWORKS="currency"
     if [[ ! " ${AVAILABLE_FRAMEWORKS[*]} " =~ $FRAMEWORK_NAME ]]; then
-        echo "You should select a valid framework"
+        echo_red "You should select a valid framework"
         exit 1
     fi
 
     cd source/$1
     if [ -d "$PROJECT_NAME" ]; then
-        echo "Template already exists!"
+        echo_yellow "Template already exists!"
     else
-        echo "Generating template $PROJECT_NAME ..."
+        echo_white "Generating template $PROJECT_NAME ..."
         
-        echo "Template version: $TEMPLATE_VERSION"
-        echo "Template version is tag or branch: $TEMPLATE_VERSION_IS_TAG_OR_BRANCH"
+        echo_white "Template version: $TEMPLATE_VERSION"
+        echo_white "Template version is tag or branch: $TEMPLATE_VERSION_IS_TAG_OR_BRANCH"
         
         if [ "$TEMPLATE_VERSION_IS_TAG_OR_BRANCH" == "tag" ]; then
             if [[ " ${FRAMEWORK_MODULES[*]} " =~ "data" ]]; then
@@ -34,7 +36,7 @@ function create_template() {
 
 function check_if_project_name_is_set() {
     if [[ -z "$PROJECT_NAME" ]]; then
-        echo "You should provide the PROJECT_NAME on euclid.json file"
+        echo_red "You should provide the PROJECT_NAME on euclid.json file"
         exit 1
     fi
 }
@@ -42,7 +44,7 @@ function check_if_project_name_is_set() {
 function check_if_project_directory_exists() {
     cd ../source/
     if [ ! -d "project/$PROJECT_NAME" ]; then
-        echo "You must install a framework before building. Run hydra install first"
+        echo_red "You must install a framework before building. Run hydra install first"
         exit 1
     fi
     cd ../scripts/
