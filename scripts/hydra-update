@@ -3,7 +3,7 @@
 check_if_container_is_running() {
   if docker ps --format '{{.Names}}' | grep "$1"; then
     echo You should stop the container $1 before update
-    exit
+    exit 1
   fi
 }
 
@@ -14,7 +14,7 @@ checkout_version() {
     echo "Valid version"
   else
     echo "Invalid version"
-    exit
+    exit 1
   fi
 }
 
@@ -24,14 +24,24 @@ update() {
   echo "You should stop all containers before update"
 
   echo "Checking if any container is running ..."
-  check_if_container_is_running l0-global
-  check_if_container_is_running l1-global-1
-  check_if_container_is_running l1-global-2
-  check_if_container_is_running l1-global-3
-  check_if_container_is_running l0-currency
-  check_if_container_is_running l1-currency-1
-  check_if_container_is_running l1-currency-2
-  check_if_container_is_running l1-currency-3
+  check_if_container_is_running global-l0-1
+
+  check_if_container_is_running dag-l1-1
+  check_if_container_is_running dag-l1-2
+  check_if_container_is_running dag-l1-3
+
+  check_if_container_is_running metagraph-l0-1
+  check_if_container_is_running metagraph-l0-2
+  check_if_container_is_running metagraph-l0-3
+  
+  check_if_container_is_running metagraph-l1-currency-1
+  check_if_container_is_running metagraph-l1-currency-2
+  check_if_container_is_running metagraph-l1-currency-3
+
+  check_if_container_is_running metagraph-l1-data-1
+  check_if_container_is_running metagraph-l1-data-2
+  check_if_container_is_running metagraph-l1-data-3
+  
   check_if_container_is_running grafana
   check_if_container_is_running prometheus
 

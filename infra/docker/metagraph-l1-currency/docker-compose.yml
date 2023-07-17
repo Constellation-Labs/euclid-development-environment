@@ -2,8 +2,8 @@
 # We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
 version: '3'
 services:
-  l1-currency-1:
-    container_name: l1-currency-1
+  metagraph-l1-currency-1:
+    container_name: metagraph-l1-currency-1
     build:
       context: ../../../source
       dockerfile: ../infra/docker/metagraph-l1-currency/initial-validator/Dockerfile
@@ -12,9 +12,9 @@ services:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
       - CL_CLI_HTTP_PORT=9002
-      - CL_L0_PEER_HTTP_HOST=l0-currency-1
+      - CL_L0_PEER_HTTP_HOST=metagraph-l0-1
       - CL_L0_PEER_HTTP_PORT=9000
-      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=global-l0-1
       - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
@@ -35,26 +35,26 @@ services:
              cp cl-wallet.jar jars/cl-wallet.jar && \
              java -jar metagraph-l1-currency.jar run-initial-validator --ip 172.50.0.30"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://l1-currency-1:9000/cluster/info" ]
+      test: [ "CMD", "curl", "-f", "http://metagraph-l1-currency-1:9000/cluster/info" ]
       interval: 10s
       timeout: 10s
       retries: 10
-  l1-currency-2:
-    container_name: l1-currency-2
+  metagraph-l1-currency-2:
+    container_name: metagraph-l1-currency-2
     build:
       context: ../../../source
       dockerfile: ../infra/docker/metagraph-l1-currency/node-2/Dockerfile
     image: metagraph-l1-currency-validator-node-2
     depends_on:
-      l1-currency-1:
+      metagraph-l1-currency-1:
         condition: service_healthy
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
       - CL_CLI_HTTP_PORT=9002
-      - CL_L0_PEER_HTTP_HOST=l0-currency-1
+      - CL_L0_PEER_HTTP_HOST=metagraph-l0-1
       - CL_L0_PEER_HTTP_PORT=9000
-      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=global-l0-1
       - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
@@ -89,26 +89,26 @@ services:
              cp jars/metagraph-l1-currency.jar metagraph-l1-currency.jar && \
              java -jar metagraph-l1-currency.jar run-validator --ip 172.50.0.31"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://l1-currency-2:9000/metrics" ]
+      test: [ "CMD", "curl", "-f", "http://metagraph-l1-currency-2:9000/metrics" ]
       interval: 10s
       timeout: 10s
       retries: 10
-  l1-currency-3:
-    container_name: l1-currency-3
+  metagraph-l1-currency-3:
+    container_name: metagraph-l1-currency-3
     build:
       context: ../../../source
       dockerfile: ../infra/docker/metagraph-l1-currency/node-3/Dockerfile
     image: metagraph-l1-currency-validator-node-3
     depends_on:
-      l1-currency-1:
+      metagraph-l1-currency-1:
         condition: service_healthy
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
       - CL_CLI_HTTP_PORT=9002
-      - CL_L0_PEER_HTTP_HOST=l0-currency-1
+      - CL_L0_PEER_HTTP_HOST=metagraph-l0-1
       - CL_L0_PEER_HTTP_PORT=9000
-      - CL_GLOBAL_L0_PEER_HTTP_HOST=l0-global
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=global-l0-1
       - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
@@ -143,7 +143,7 @@ services:
              cp jars/metagraph-l1-currency.jar metagraph-l1-currency.jar && \
              java -jar metagraph-l1-currency.jar run-validator --ip 172.50.0.32"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://l1-currency-3:9000/metrics" ]
+      test: [ "CMD", "curl", "-f", "http://metagraph-l1-currency-3:9000/metrics" ]
       interval: 10s
       timeout: 10s
       retries: 10
