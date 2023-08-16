@@ -154,15 +154,15 @@ After the end of `start_genesis`, you should see something like this:
 ```
 Containers successfully built. URLs:
 Global L0: http://localhost:9000/cluster/info
-Currency L0 - 1: http://localhost:9400/cluster/info
-Currency L0 - 2: http://localhost:9500/cluster/info
-Currency L0 - 3: http://localhost:9600/cluster/info
-Currency L1 - 1: http://localhost:9700/cluster/info
-Currency L1 - 2: http://localhost:9800/cluster/info
-Currency L1 - 3: http://localhost:9900/cluster/info
-Data L1 - 1: http://localhost:8000/cluster/info
-Data L1 - 2: http://localhost:8100/cluster/info
-Data L1 - 3: http://localhost:8200/cluster/info
+Metagraph L0 - 1: http://localhost:9400/cluster/info
+Metagraph L0 - 2: http://localhost:9500/cluster/info
+Metagraph L0 - 3: http://localhost:9600/cluster/info
+Metagraph L1 Currency - 1: http://localhost:9700/cluster/info
+Metagraph L1 Currency - 2: http://localhost:9800/cluster/info
+Metagraph L1 Currency - 3: http://localhost:9900/cluster/info
+Metagraph L1 Data - 1: http://localhost:8000/cluster/info
+Metagraph L1 Data - 2: http://localhost:8100/cluster/info
+Metagraph L1 Data - 3: http://localhost:8200/cluster/info
 Grafana: http://localhost:3000/
 
 ```

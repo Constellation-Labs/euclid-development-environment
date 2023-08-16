@@ -22,3 +22,4 @@ RUN cd codebase/$TEMPLATE_NAME  && \
     sbt --error currencyL0/assembly
 
 RUN mv codebase/$TEMPLATE_NAME/modules/l0/target/scala-2.13/${TEMPLATE_NAME}-currency-l0-assembly-* metagraph-l0.jar
+RUN touch start_genesis_metagraph.sh
