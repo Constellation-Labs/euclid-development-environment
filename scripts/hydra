@@ -25,8 +25,8 @@ function install() {
 
   check_if_project_name_is_set
 
-  echo "Installing hydra ..."
-  echo "Installing Framework..."
+  echo_white "Installing hydra ..."
+  echo_white "Installing Framework..."
   create_template project
 
   chmod -R a+rwx infra/docker/monitoring
@@ -35,11 +35,11 @@ function install() {
   chmod -R a+rwx infra/docker/monitoring/grafana/datasources/
   chmod -R a+rwx infra/docker/monitoring/prometheus/
 
-  if [ -d ".git" ]; then
-    chmod -R +w .git
-    rm -r .git
-  fi
-  echo "Installed"
+  # if [ -d ".git" ]; then
+  #   chmod -R +w .git
+  #   rm -r .git
+  # fi
+  echo_green "Installed"
 }
 
 # @cmd Build containers
@@ -54,25 +54,26 @@ function build() {
   check_if_docker_is_running
 
   if [[ -z "$GITHUB_TOKEN" ]]; then
-    echo "You should provide the GITHUB_TOKEN on euclid.json file"
+    echo_red "You should provide the GITHUB_TOKEN on euclid.json file"
     exit 1
   fi
 
-  check_if_tessellation_needs_to_be_rebuild
-  
   check_if_github_token_is_valid
   check_p12_files
   check_if_project_name_is_set
   check_if_project_directory_exists
   create_docker_custom_network
-
+  
+  check_if_tessellation_needs_to_be_rebuild
   cd ../infra/docker
 
   TESSELLATION_VERSION=$TESSELLATION_VERSION
   DOCKER_CONTAINERS=$DOCKER_CONTAINERS
 
   if [[ -z "$(docker images -q ubuntu-with-java-and-sbt)" || ! -z "$argc_rebuild_tessellation" ]]; then
-    echo "Building ubuntu shared image..."
+    echo
+    echo
+    echo_white "Building ubuntu base image..."
     cd ubuntu-with-java-and-sbt
     if [ ! -z "$argc_no_cache" ]; then
       $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --no-cache
@@ -80,91 +81,117 @@ function build() {
       $dockercompose build --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION
     fi
     cd ../
-    echo "Ubuntu image built"
+    echo_green "Ubuntu image built"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "global-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=""
+    echo
+    echo
+    echo_title "GLOBAL-L0"
+    echo
+    export SHOULD_RESET_GENESIS_FILE=true
+    export FORCE_ROLLBACK=false
     cd global-l0
     if [ ! -z "$argc_no_cache" ]; then
-      echo "Building Global L0 image... (NO CACHE)"
+      echo_white "Building Global L0 image... (NO CACHE)"
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD --no-cache
     else
-      echo "Building Global L0 image... (USING CACHE)"
+      echo_white "Building Global L0 image... (USING CACHE)"
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_KEY_ALIAS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD=$P12_GENESIS_FILE_PASSWORD
     fi
-    echo "Global L0 image built"
+    echo_green "Global L0 image built"
     cd ../
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "dag-l1" ]]; then
+    echo
+    echo
+    echo_title "DAG-L1"
+    echo
     cd dag-l1
     if [ ! -z "$argc_no_cache" ]; then
-      echo "Building DAG L1 image... (NO CACHE)"
+      echo_white "Building DAG L1 image... (NO CACHE)"
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
-      echo "Building DAG L1 image... (USING CACHE)"
+      echo_white "Building DAG L1 image... (USING CACHE)"
       $dockercompose build --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
-    echo "DAG L1 image built"
+    echo_green "DAG L1 image built"
     cd ../
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l0" ]]; then
-    export SHOULD_RESET_GENESIS_FILE=""
+    echo
+    echo
+    echo_title "METAGRAPH-L0"
+    echo
+    export SHOULD_RESET_GENESIS_FILE=true
+    export FORCE_ROLLBACK=false
     export METAGRAPH_ID=""
     cd metagraph-l0-genesis
     if [ ! -z "$argc_no_cache" ]; then
-      echo "Building Currency L0 image... (NO CACHE)"
+      echo_white "Building Metagraph L0 image... (NO CACHE)"
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
       cd ../metagraph-l0
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
-      echo "Building Currency L0 image... (USING CACHE)"
+      echo_white "Building Metagraph L0 image... (USING CACHE)"
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
       cd ../metagraph-l0
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
-    echo "Currency L0 image built"
+    echo_green "Metagraph L0 image built"
     cd ../
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
+    echo
+    echo
+    echo_title "METAGRAPH-L1-CURRENCY"
+    echo
     cd metagraph-l1-currency
     if [ ! -z "$argc_no_cache" ]; then
-      echo "Building Currency L1 image... (NO CACHE)"
+      echo_white "Building Metagraph L1 Currency image... (NO CACHE)"
       $dockercompose build  --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
-      echo "Building Currency L1 image... (USING CACHE)"
+      echo_white "Building Metagraph L1 Currency image... (USING CACHE)"
       $dockercompose build  --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
-    echo "Currency L1 image built"
+    echo_green "Metagraph L1 Currency image built"
     cd ../
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-data" ]]; then
+    echo
+    echo
+    echo_title "METAGRAPH-L1-DATA"
+    echo
     cd metagraph-l1-data
     if [ ! -z "$argc_no_cache" ]; then
-      echo "Building Data L1 image... (NO CACHE)"
+      echo_white "Building Metagraph L1 Data image... (NO CACHE)"
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
-      echo "Building Data L1 image... (USING CACHE)"
+      echo_white "Building Metagraph L1 Data image... (USING CACHE)"
       $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
-    echo "Data L1 image built"
+    echo_green "Metagraph L1 Data image built"
     cd ../
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "monitoring" ]]; then
+    echo
+    echo
+    echo_title MONITORING
+    echo
     cd monitoring
     if [ ! -z "$argc_no_cache" ]; then
-      echo "Building monitoring image... (NO CACHE)"
+      echo_white "Building monitoring image... (NO CACHE)"
       $dockercompose build --no-cache
     else
-      echo "Building monitoring image... (USING CACHE)"
+      echo_white "Building monitoring image... (USING CACHE)"
       $dockercompose build
     fi
-    echo "monitoring image built"
+    echo_green "monitoring image built"
     cd ../
   fi
 
@@ -173,7 +200,7 @@ function build() {
     start_containers
   fi
 
-  echo "Cleaning up dangling docker images"
+  echo_white "Cleaning up dangling docker images"
   docker image prune -f
   exit
 }
@@ -188,11 +215,12 @@ function start_genesis() {
   check_if_docker_is_running
 
   export SHOULD_RESET_GENESIS_FILE=true
+  export FORCE_ROLLBACK=false
   start_containers
 }
 
-# @cmd Start containers
-function start() {
+# @cmd Start from rollback the containers
+function start_rollback() {
   load_scripts
 
   set_docker_compose
@@ -200,7 +228,23 @@ function start() {
   OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
-  export SHOULD_RESET_GENESIS_FILE=""
+  export SHOULD_RESET_GENESIS_FILE=false
+  export FORCE_ROLLBACK=true
+  start_containers
+}
+
+# @cmd Start containers
+function start() {
+  load_scripts
+  echo_yellow "This function will be deprecated in the newer versions, be sure to call start_genesis or start_rollback instead"
+
+  set_docker_compose
+  OUTPUT_YELLOW=$(tput setaf 3)
+  OUTPUT_WHITE=$(tput setaf 7)
+  check_if_docker_is_running
+
+  export SHOULD_RESET_GENESIS_FILE=false
+  export FORCE_ROLLBACK=false
   start_containers
 }
 
@@ -209,37 +253,38 @@ function stop() {
   load_scripts
 
   export SHOULD_RESET_GENESIS_FILE=""
+  export FORCE_ROLLBACK=""
   export METAGRAPH_ID=""
   set_docker_compose
   check_if_docker_is_running
 
   cd ..
 
-  echo "Stopping containers ..."
+  echo_white "Stopping containers ..."
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-data" ]]; then
-    stop_container metagraph-l1-data
+    stop_container metagraph-l1-data "METAGRAPH-L1-DATA"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
-    stop_container metagraph-l1-currency
+    stop_container metagraph-l1-currency "METAGRAPH-L1-CURRENCY"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l0" ]]; then
-    stop_container metagraph-l0-genesis
-    stop_container metagraph-l0
+    stop_container metagraph-l0-genesis "METAGRAPH-L0-GENESIS"
+    stop_container metagraph-l0 "METAGRAP-L0-VALIDATORS"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "dag-l1" ]]; then
-    stop_container dag-l1
+    stop_container dag-l1 "DAG-L1"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "global-l0" ]]; then
-    stop_container global-l0
+    stop_container global-l0 "GLOBAL-L0"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "monitoring" ]]; then
-    stop_container monitoring
+    stop_container monitoring "MONITORING"
   fi
 }
 
@@ -247,6 +292,7 @@ function stop() {
 # @flag   --delete_project            Delete custom project
 function destroy() {
   export SHOULD_RESET_GENESIS_FILE=""
+  export FORCE_ROLLBACK=""
   export METAGRAPH_ID=""
 
   load_scripts
@@ -256,40 +302,40 @@ function destroy() {
 
   cd ..
 
-  echo "Starting destroying containers ..."
+  echo_white "Starting destroying containers ..."
 
   if [[ ! -z "$argc_delete_project" ]]; then
-    echo "Removing the project codebase at $1..."
-    rm -r source/project/$PROJECT_NAME
-    echo "Removed!"
+    echo_white "Removing the project codebase $PROJECT_NAME..."
+    rm -r source/project/$PROJECT_NAME 2> /dev/null
+    echo_green "Removed!"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-data" ]]; then
-    destroy_container metagraph-l1-data
+    destroy_container metagraph-l1-data "METAGRAPH-L1-DATA"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l1-currency" ]]; then
-    destroy_container metagraph-l1-currency
+    destroy_container metagraph-l1-currency "METAGRAPH-L1-CURRENCY"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "metagraph-l0" ]]; then
-    destroy_container metagraph-l0-genesis
-    destroy_container metagraph-l0
+    destroy_container metagraph-l0-genesis "METAGRAPH-L0-GENESIS"
+    destroy_container metagraph-l0 "METAGRAPH-L0-VALIDATORS"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "dag-l1" ]]; then
-    destroy_container dag-l1
+    destroy_container dag-l1 "DAG-L1"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "global-l0" ]]; then
-    destroy_container global-l0
+    destroy_container global-l0 "GLOBAL-L0"
   fi
 
   if [[ " ${DOCKER_CONTAINERS[*]} " =~ "monitoring" ]]; then
-    destroy_container monitoring
+    destroy_container monitoring "MONITORING"
   fi
 
-  destroy_container ubuntu-with-java-and-sbt
+  destroy_container ubuntu-with-java-and-sbt "BASE-IMAGE"
 
   docker network rm custom-network
   docker image prune -f
