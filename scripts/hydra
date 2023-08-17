@@ -35,10 +35,10 @@ function install() {
   chmod -R a+rwx infra/docker/monitoring/grafana/datasources/
   chmod -R a+rwx infra/docker/monitoring/prometheus/
 
-  # if [ -d ".git" ]; then
-  #   chmod -R +w .git
-  #   rm -r .git
-  # fi
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
   echo_green "Installed"
 }
 
