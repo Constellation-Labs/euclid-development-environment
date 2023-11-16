@@ -78,7 +78,7 @@ function checkout_tessellation_version() {
 
 function get_metagraph_id_from_metagraph_l0_genesis() {
     for ((i = 1; i <= 11; i++)); do
-        METAGRAPH_ID=$(docker logs metagraph-l0-1 -n 1000 2>&1 | grep -o "Address from genesis data is .*" | grep -o "DAG.*")
+        METAGRAPH_ID==$(docker exec -it metagraph-l0-1 bash -c "cat genesis.address")
         if [[ -z "$METAGRAPH_ID" ]]; then
             if [ $i -eq 10 ]; then
                 echo_red "Could not find the metagraph_id, check the Metagraph L0 Genesis node logs"
