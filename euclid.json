@@ -1,14 +1,14 @@
 {
   "github_token": "",
   "metagraph_id": "",
-  "tessellation_version": "v2.0.1",
+  "tessellation_version": "v2.1.1",
   "project_name": "custom-project",
   "framework": {
     "name": "currency",
     "modules": [
       "data"
     ],
-    "version": "v2.0.1",
+    "version": "v2.1.1",
     "ref_type": "tag"
   },
   "p12_files": {
