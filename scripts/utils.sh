@@ -13,7 +13,7 @@ function check_if_tessellation_needs_to_be_rebuild() {
 function check_if_package_is_installed() {
     if [[ -z "$(which $1 | grep "/")" ]]; then
         echo_red "Could not find package $1, please install this package first"
-        exit 1;
+        exit 1
     fi
 }
 
@@ -27,7 +27,7 @@ function check_if_config_file_is_the_new_format() {
 function fill_env_variables_from_json_config_file() {
     check_if_package_is_installed jq
     check_if_config_file_is_the_new_format
-    
+
     export GITHUB_TOKEN=$(jq -r .github_token euclid.json)
     export METAGRAPH_ID=$(jq -r .metagraph_id euclid.json)
     export TESSELLATION_VERSION=$(jq -r .tessellation_version euclid.json)
@@ -46,7 +46,7 @@ function fill_env_variables_from_json_config_file() {
     export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
     export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
     export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
-    
+
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
     export OUTPUT_GREEN=$(tput setaf 2)
@@ -90,11 +90,11 @@ function get_metagraph_id_from_metagraph_l0_genesis() {
             cd ../../../
             echo_url "METAGRAPH_ID: " $METAGRAPH_ID
             echo_white "Filling the euclid.json file"
-            contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' euclid.json)" && \
-            echo -E "${contents}" > euclid.json
-            
+            contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' euclid.json)" &&
+                echo -E "${contents}" >euclid.json
+
             fill_env_variables_from_json_config_file
-            
+
             cd infra/docker/metagraph-l0-genesis
             break
         fi
@@ -107,12 +107,12 @@ function check_p12_files() {
         echo_red "File does not exists"
         exit 1
     fi
-    
+
     if [ ! -f "../source/p12-files/$P12_NODE_2_FILE_NAME" ]; then
         echo_red "File does not exists"
         exit 1
     fi
-    
+
     if [ ! -f "../source/p12-files/$P12_NODE_3_FILE_NAME" ]; then
         echo_red "File does not exists"
         exit 1
@@ -139,6 +139,72 @@ function echo_title() {
     echo $OUTPUT_CYAN"############ $1 ############"
 }
 
-function echo_url(){
+function echo_url() {
     echo $OUTPUT_YELLOW$1 $OUTPUT_WHITE$2
+}
+
+function is_valid_ip() {
+    local ip="$1"
+    # Regular expression to match IPv4 address
+    local ip_regex='^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    if [[ $ip =~ $ip_regex ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function create_ansible_hosts_file() {
+    echo_white "Creating Ansible hosts file ..."
+    EUCLID_JSON_CONFIG_FILE="../euclid.json"
+    ANSIBLE_HOSTS_FILE="../infra/ansible/hosts.ansible.yml"
+
+    rm -f $ANSIBLE_HOSTS_FILE
+    touch $ANSIBLE_HOSTS_FILE
+
+    echo_yellow "Remote hosts set on euclid.json: $(jq -r '.deployment.remote_hosts_ips' $EUCLID_JSON_CONFIG_FILE)"
+
+    echo "---
+nodes:
+  hosts:" >>$ANSIBLE_HOSTS_FILE
+
+    jq -r '.deployment.remote_hosts_ips | to_entries[] | "    \(.key):\n      ansible_host: \(.value)"' $EUCLID_JSON_CONFIG_FILE >>$ANSIBLE_HOSTS_FILE
+
+    # Append vars section to the Ansible hosts file
+    cat <<EOT >>"$ANSIBLE_HOSTS_FILE"
+
+  vars:
+    user: ubuntu
+    ansible_user: ubuntu
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+EOT
+
+    echo_green "Ansible hosts file created successfully: ${ANSIBLE_HOSTS_FILE}"
+}
+
+function ansible_validations() {
+    echo_white "Checking if Ansible is installed..."
+
+    if command -v ansible &>/dev/null; then
+        echo_green "Ansible is installed."
+    else
+        echo_red "Ansible is not installed. Please install Ansible before running this command"
+        exit 1
+    fi
+
+    echo_white "Checking if the hosts are filled and valid..."
+    HOSTS_FILE="../infra/ansible/hosts.ansible.yml"
+
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
+            ansible_host=$(echo "$line" | awk '{print $NF}')
+            if ! is_valid_ip "$ansible_host"; then
+                echo_red "Your hosts IPs are invalid or not filled, please update infra/ansible/hosts.ansible.yml file"
+                exit 1
+            fi
+        fi
+    done <"$HOSTS_FILE"
+
+    echo_green "Hosts filled and valid"
+    echo_yellow "NOTE: BE SURE THAT YOUR ssh_key IS ALLOWED ON THE REMOTE HOSTS SET ON FILE: infra/ansible/hosts.ansible.yml. Otherwise the installation will fail"
 }
