@@ -40,10 +40,19 @@
     ]
   },
   "deployment": {
-    "remote_hosts_ips": {
-      "node-1": "",
-      "node-2": "",
-      "node-3": ""
+    "remote_hosts": {
+      "node-1": {
+        "ip": "",
+        "user": ""
+      },
+      "node-2": {
+        "ip": "",
+        "user": ""
+      },
+      "node-3": {
+        "ip": "",
+        "user": ""
+      }
     }
   }
 }
