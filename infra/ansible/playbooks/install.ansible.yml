@@ -1,7 +1,7 @@
 ---
 - name: Install nodes dependencies
   hosts: nodes
-  become: true  # This allows Ansible to escalate privileges if necessary
+  become: true
 
   tasks:
     - name: Update APT package cache
