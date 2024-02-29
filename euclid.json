@@ -27,16 +27,23 @@
         "file_name": "token-key-2.p12",
         "alias": "token-key-2",
         "password": "password"
-      } 
+      }
     ]
   },
   "docker": {
     "default_containers": [
       "global-l0",
-      "metagraph-l0", 
-      "metagraph-l1-currency", 
-      "metagraph-l1-data", 
+      "metagraph-l0",
+      "metagraph-l1-currency",
+      "metagraph-l1-data",
       "monitoring"
     ]
+  },
+  "deployment": {
+    "remote_hosts_ips": {
+      "node-1": "",
+      "node-2": "",
+      "node-3": ""
+    }
   }
 }
