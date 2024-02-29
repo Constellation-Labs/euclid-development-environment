@@ -162,20 +162,18 @@ function create_ansible_hosts_file() {
     rm -f $ANSIBLE_HOSTS_FILE
     touch $ANSIBLE_HOSTS_FILE
 
-    echo_yellow "Remote hosts set on euclid.json: $(jq -r '.deployment.remote_hosts_ips' $EUCLID_JSON_CONFIG_FILE)"
+    echo_yellow "Remote hosts set on euclid.json: $(jq -r '.deployment.remote_hosts' $EUCLID_JSON_CONFIG_FILE)"
 
     echo "---
 nodes:
   hosts:" >>$ANSIBLE_HOSTS_FILE
 
-    jq -r '.deployment.remote_hosts_ips | to_entries[] | "    \(.key):\n      ansible_host: \(.value)"' $EUCLID_JSON_CONFIG_FILE >>$ANSIBLE_HOSTS_FILE
+    jq -r '.deployment.remote_hosts | to_entries[] | "    \(.key):\n      ansible_host: \(.value.ip)\n      ansible_user: \(.value.user)"' $EUCLID_JSON_CONFIG_FILE >>$ANSIBLE_HOSTS_FILE
 
     # Append vars section to the Ansible hosts file
     cat <<EOT >>"$ANSIBLE_HOSTS_FILE"
 
   vars:
-    user: ubuntu
-    ansible_user: ubuntu
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOT
 
