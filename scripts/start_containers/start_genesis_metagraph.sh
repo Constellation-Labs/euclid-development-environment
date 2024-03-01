@@ -11,6 +11,8 @@ function run_genesis(){
     # Check the exit status
     if [ $? -eq 0 ]; then
         echo "Successfully created metagraphId, running genesis"
+        cp genesis.address genesis/
+        cp genesis.snapshot genesis/
         java -jar metagraph-l0.jar run-genesis genesis.snapshot --ip 172.50.0.20; 
     else
         echo "Failing when starting genesis: $?"
