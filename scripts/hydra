@@ -360,4 +360,17 @@ function remote_configure() {
   ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_CONFIGURE_PLAYBOOK_FILE
 }
 
+# @cmd Remotely deploy to cloud instances using Ansible
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/playbooks/deploy.ansible.yml
+function remote_deploy() {
+  load_scripts
+  ansible_validations
+  cd ..
+  
+  echo_yellow "Deploying on remote hosts"
+  echo_white ""
+  ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
+}
+
 eval "$(argc --argc-eval "$0" "$@")"
