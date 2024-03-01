@@ -13,7 +13,7 @@ function check_if_tessellation_needs_to_be_rebuild() {
 function check_if_package_is_installed() {
     if [[ -z "$(which $1 | grep "/")" ]]; then
         echo_red "Could not find package $1, please install this package first"
-        exit 1;
+        exit 1
     fi
 }
 
@@ -27,7 +27,7 @@ function check_if_config_file_is_the_new_format() {
 function fill_env_variables_from_json_config_file() {
     check_if_package_is_installed jq
     check_if_config_file_is_the_new_format
-    
+
     export GITHUB_TOKEN=$(jq -r .github_token euclid.json)
     export METAGRAPH_ID=$(jq -r .metagraph_id euclid.json)
     export TESSELLATION_VERSION=$(jq -r .tessellation_version euclid.json)
@@ -46,7 +46,10 @@ function fill_env_variables_from_json_config_file() {
     export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
     export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
     export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
-    
+    export ANSIBLE_HOSTS_FILE=$(jq -r .ansible.hosts_file euclid.json)
+    export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .ansible.configure_playbook_file euclid.json)
+    export ANSIBLE_DEPLOY_PLAYBOOK_FILE=$(jq -r .ansible.deploy_playbook_file euclid.json)
+
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
     export OUTPUT_GREEN=$(tput setaf 2)
@@ -90,11 +93,11 @@ function get_metagraph_id_from_metagraph_l0_genesis() {
             cd ../../../
             echo_url "METAGRAPH_ID: " $METAGRAPH_ID
             echo_white "Filling the euclid.json file"
-            contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' euclid.json)" && \
-            echo -E "${contents}" > euclid.json
-            
+            contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' euclid.json)" &&
+                echo -E "${contents}" >euclid.json
+
             fill_env_variables_from_json_config_file
-            
+
             cd infra/docker/metagraph-l0-genesis
             break
         fi
@@ -107,12 +110,12 @@ function check_p12_files() {
         echo_red "File does not exists"
         exit 1
     fi
-    
+
     if [ ! -f "../source/p12-files/$P12_NODE_2_FILE_NAME" ]; then
         echo_red "File does not exists"
         exit 1
     fi
-    
+
     if [ ! -f "../source/p12-files/$P12_NODE_3_FILE_NAME" ]; then
         echo_red "File does not exists"
         exit 1
@@ -139,6 +142,45 @@ function echo_title() {
     echo $OUTPUT_CYAN"############ $1 ############"
 }
 
-function echo_url(){
+function echo_url() {
     echo $OUTPUT_YELLOW$1 $OUTPUT_WHITE$2
+}
+
+function is_valid_ip() {
+    local ip="$1"
+    # Regular expression to match IPv4 address
+    local ip_regex='^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    if [[ $ip =~ $ip_regex ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function ansible_validations() {
+    echo_white "Checking if Ansible is installed..."
+
+    if command -v ansible &>/dev/null; then
+        echo_green "Ansible is installed."
+    else
+        echo_red "Ansible is not installed. Please install Ansible before running this command"
+        exit 1
+    fi
+
+    echo_white "Checking if host configuration is valid..."
+    cd ..
+
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
+            ansible_host=$(echo "$line" | awk '{print $NF}')
+            if ! is_valid_ip "$ansible_host"; then
+                echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
+                exit 1
+            fi
+        fi
+    done <"$ANSIBLE_HOSTS_FILE"
+
+    cd scripts
+    
+    echo_green "Hosts are valid"
 }

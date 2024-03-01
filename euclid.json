@@ -27,16 +27,21 @@
         "file_name": "token-key-2.p12",
         "alias": "token-key-2",
         "password": "password"
-      } 
+      }
     ]
   },
   "docker": {
     "default_containers": [
       "global-l0",
-      "metagraph-l0", 
-      "metagraph-l1-currency", 
-      "metagraph-l1-data", 
+      "metagraph-l0",
+      "metagraph-l1-currency",
+      "metagraph-l1-data",
       "monitoring"
     ]
+  },
+  "ansible": {
+    "hosts_file": "infra/ansible/hosts.ansible.yml",
+    "configure_playbook_file": "infra/ansible/playbooks/configure.ansible.yml",
+    "deploy_playbook_file": "infra/ansible/playbooks/deploy.ansible.yml"
   }
 }
