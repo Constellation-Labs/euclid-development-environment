@@ -46,6 +46,8 @@ function fill_env_variables_from_json_config_file() {
     export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
     export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
     export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
+    export ANSIBLE_HOSTS_FILE=$(jq -r .ansible.hosts_file euclid.json)
+    export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .ansible.configure_playbook_file euclid.json)
 
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
@@ -154,33 +156,17 @@ function is_valid_ip() {
     fi
 }
 
-function create_ansible_hosts_file() {
-    echo_white "Creating Ansible hosts file ..."
-    EUCLID_JSON_CONFIG_FILE="../euclid.json"
-    ANSIBLE_HOSTS_FILE="../infra/ansible/hosts.ansible.yml"
-
-    rm -f $ANSIBLE_HOSTS_FILE
-    touch $ANSIBLE_HOSTS_FILE
-
-    echo_yellow "Remote hosts set on euclid.json: $(jq -r '.deployment.remote_hosts' $EUCLID_JSON_CONFIG_FILE)"
-
-    echo "---
-nodes:
-  hosts:" >>$ANSIBLE_HOSTS_FILE
-
-    jq -r '.deployment.remote_hosts | to_entries[] | "    \(.key):\n      ansible_host: \(.value.ip)\n      ansible_user: \(.value.user)"' $EUCLID_JSON_CONFIG_FILE >>$ANSIBLE_HOSTS_FILE
-
-    # Append vars section to the Ansible hosts file
-    cat <<EOT >>"$ANSIBLE_HOSTS_FILE"
-
-  vars:
-    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-EOT
-
-    echo_green "Ansible hosts file created successfully: ${ANSIBLE_HOSTS_FILE}"
-}
-
 function ansible_validations() {
+    echo ""
+    echo ""
+    echo_white "###########################################################"
+    echo ""
+    echo_yellow "YOU SHOULD PROVIDE YOUR HOSTS INFORMATION ON $ANSIBLE_HOSTS_FILE"
+    echo ""
+    echo_white "###########################################################"
+    echo ""
+    echo ""
+
     echo_white "Checking if Ansible is installed..."
 
     if command -v ansible &>/dev/null; then
@@ -191,18 +177,19 @@ function ansible_validations() {
     fi
 
     echo_white "Checking if the hosts are filled and valid..."
-    HOSTS_FILE="../infra/ansible/hosts.ansible.yml"
+    cd ..
 
     while IFS= read -r line; do
         if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
             ansible_host=$(echo "$line" | awk '{print $NF}')
             if ! is_valid_ip "$ansible_host"; then
-                echo_red "Your hosts IPs are invalid or not filled, please update infra/ansible/hosts.ansible.yml file"
+                echo_red "Your hosts IPs are invalid or not filled, please update $ANSIBLE_HOSTS_FILE file"
                 exit 1
             fi
         fi
-    done <"$HOSTS_FILE"
+    done <"$ANSIBLE_HOSTS_FILE"
 
+    cd scripts
+    
     echo_green "Hosts filled and valid"
-    echo_yellow "NOTE: BE SURE THAT YOUR ssh_key IS ALLOWED ON THE REMOTE HOSTS SET ON FILE: infra/ansible/hosts.ansible.yml. Otherwise the installation will fail"
 }
