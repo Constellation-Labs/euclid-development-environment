@@ -41,6 +41,7 @@
   },
   "ansible": {
     "hosts_file": "infra/ansible/hosts.ansible.yml",
-    "configure_playbook_file": "infra/ansible/playbooks/configure.ansible.yml"
+    "configure_playbook_file": "infra/ansible/playbooks/configure.ansible.yml",
+    "deploy_playbook_file": "infra/ansible/playbooks/deploy.ansible.yml"
   }
 }

@@ -48,6 +48,7 @@ function fill_env_variables_from_json_config_file() {
     export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
     export ANSIBLE_HOSTS_FILE=$(jq -r .ansible.hosts_file euclid.json)
     export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .ansible.configure_playbook_file euclid.json)
+    export ANSIBLE_DEPLOY_PLAYBOOK_FILE=$(jq -r .ansible.deploy_playbook_file euclid.json)
 
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
