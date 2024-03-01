@@ -39,20 +39,8 @@
       "monitoring"
     ]
   },
-  "deployment": {
-    "remote_hosts": {
-      "node-1": {
-        "ip": "",
-        "user": ""
-      },
-      "node-2": {
-        "ip": "",
-        "user": ""
-      },
-      "node-3": {
-        "ip": "",
-        "user": ""
-      }
-    }
+  "ansible": {
+    "hosts_file": "infra/ansible/hosts.ansible.yml",
+    "configure_playbook_file": "infra/ansible/playbooks/configure.ansible.yml"
   }
 }
