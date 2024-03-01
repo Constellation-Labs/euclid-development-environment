@@ -9,6 +9,10 @@
 * Cargo is the Rust package manager
 * [Here](https://doc.rust-lang.org/cargo/getting-started/installation.html) you can check how to install Rust and Cargo
 
+## Ansible
+* Ansible is the tool to remotely configure and deploy
+* [Here](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) you can check how to install Ansible
+
 # First Steps
 
 ## Understanding the folder structure
@@ -16,6 +20,7 @@
 With the euclid-development-environment cloned, you'll see the following structure
 ```
 - infra
+  - ansible
   - docker
 - scripts
   - custom-template.sh
@@ -36,7 +41,9 @@ With the euclid-development-environment cloned, you'll see the following structu
 let's see what each of these directories represents:
 
 ### Infra
-This is the directory that contains all the Dockerfiles and things related to the Docker containers such as ports, IP's, names
+This is the directory that contains all the Dockerfiles and things related to the Docker containers such as ports, IP's, names.
+
+This directory contains the Ansible files responsible for configuring and deploying your Metagraph to remote hosts.
 
 ### Scripts
 Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update` scripts
@@ -66,13 +73,15 @@ you should see something like this:
 USAGE: hydra <COMMAND>
 
 COMMANDS:
-  install        Removes the remote git
-  build          Build all the containers
-  start          Start from last snapshot
-  start_genesis  Start all the containers
-  stop           Stop all the containers
-  destroy        Destroy all the containers
-  status         Check the status of the containers
+  install           Removes the remote git
+  build             Build all the containers
+  start             Start from last snapshot
+  start_genesis     Start all the containers
+  stop              Stop all the containers
+  destroy           Destroy all the containers
+  status            Check the status of the containers
+  remote_configure  Remotely configure cloud instances using Ansible
+  remote_deploy     Remotely deploy to cloud instances using Ansible
 ```
 TIP: You can use the same `-h` in each command listed above to see the accepted parameters
 
@@ -182,3 +191,43 @@ password: admin
 You'll be requested to update the password after your first login
 
 In this tool we have 2 dashboards, you can access them on `Dashboard` section
+
+
+## Deployment
+
+We utilize Ansible for configuring and deploying your Metagraph on remote instances. We have two scripts on Hydra dedicated to handling the deployment process: `hydra remote_configure` and `hydra remote_deploy`.
+
+### `hydra remote_configure`
+
+This script configures your remote instance with all the necessary dependencies to run a Metagraph, including Java and Scala.
+
+### `hydra remote_deploy`
+
+This script effectively creates all directories and transfers all your files to the remote hosts. Specifically, it creates the following directories:
+
+-   `code/global-l0`
+-   `code/metagraph-l0`
+-   `code/currency-l1`
+-   `code/data-l1`
+
+Each directory above contains `cl-keytool.jar` and `cl-wallet.jar`. Additionally, they contain the following:
+
+**In `code/metagraph-l0`:**
+
+-   genesis.csv
+-   genesis.snapshot
+-   genesis.address
+-   metagraph-l0.jar
+-   :your_token_key.p12
+
+**In `code/currency-l1`:**
+
+-   currency-l1.jar
+-   :your_token_key.p12
+
+**In `code/data-l1`:**
+
+-   data-l1.jar
+-   :your_token_key.p12
+
+**NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/hosts.ansible.yml` file.
