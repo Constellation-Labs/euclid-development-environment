@@ -9,6 +9,10 @@
 * Cargo is the Rust package manager
 * [Here](https://doc.rust-lang.org/cargo/getting-started/installation.html) you can check how to install Rust and Cargo
 
+## Ansible
+* Ansible is a configuration tool for configuring and deploying to remote hosts
+* [Here](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) you can check how to install Ansible
+
 # First Steps
 
 ## Understanding the folder structure
@@ -16,6 +20,7 @@
 With the euclid-development-environment cloned, you'll see the following structure
 ```
 - infra
+  - ansible
   - docker
 - scripts
   - custom-template.sh
@@ -36,7 +41,9 @@ With the euclid-development-environment cloned, you'll see the following structu
 let's see what each of these directories represents:
 
 ### Infra
-This is the directory that contains all the Dockerfiles and things related to the Docker containers such as ports, IP's, names
+This directory contains infrastructure related to the running of Euclid. 
+- Docker: This directory contains docker configuration, including Dockerfiles, and port, IP, and name configurations for running Euclid locally. 
+- Ansible: This directory contains Ansible configurations used for configuring and deploying to remote hosts. 
 
 ### Scripts
 Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update` scripts
@@ -66,13 +73,15 @@ you should see something like this:
 USAGE: hydra <COMMAND>
 
 COMMANDS:
-  install        Removes the remote git
-  build          Build all the containers
-  start          Start from last snapshot
-  start_genesis  Start all the containers
-  stop           Stop all the containers
-  destroy        Destroy all the containers
-  status         Check the status of the containers
+  install           Removes the remote git
+  build             Build all the containers
+  start_genesis     Start containers from the genesis snapshot (erasing history)
+  start_rollback    Start containers from the last snapshot (maintaining history)
+  stop              Stop all the containers
+  destroy           Destroy all the containers
+  status            Check the status of the containers
+  remote_configure  Remotely configure cloud instances using Ansible
+  remote_deploy     Remotely deploy to cloud instances using Ansible
 ```
 TIP: You can use the same `-h` in each command listed above to see the accepted parameters
 
@@ -182,3 +191,38 @@ password: admin
 You'll be requested to update the password after your first login
 
 In this tool we have 2 dashboards, you can access them on `Dashboard` section
+
+
+## Deployment
+
+Configuring and deploying to remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote_configure` and `hydra remote_deploy`.
+Prior to running these methods, remote host information must be configured in  `infra/ansible/hosts.ansible.yml`
+
+### `hydra remote_configure`
+
+This method configures remote instances with all the necessary dependencies to run a Metagraph, including Java, Scala, and required build tools. The Ansible playbook used for this process can be found and edited in `infra/ansible/playbooks/deploy.ansible.yml`. 
+
+### `hydra remote_deploy`
+
+This method creates all required directories on the remote hosts, and creates or updates metagraph files to match your local Euclid environment. Specifically, it creates the following directories:
+
+-   `code/global-l0`
+-   `code/metagraph-l0`
+-   `code/currency-l1`
+-   `code/data-l1`
+
+Each directory will be created with `cl-keytool.jar`, `cl-wallet.jar`, and a P12 file for the instance. Additionally, they contain the following:
+
+**In `code/metagraph-l0`:**
+-   metagraph-l0.jar     // The executable for the mL0 layer
+-   genesis.csv              // The initial token balance allocations
+-   genesis.snapshot    // The genesis snapshot created locally
+-   genesis.address      // The metagraph address created in the genesis snapshot
+-   
+**In `code/currency-l1`:**
+-   currency-l1.jar     // The executable for the cL1 layer
+-   
+**In `code/data-l1`:**
+-   data-l1.jar     // The executable for the dL1 layer
+
+**NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/hosts.ansible.yml` file.

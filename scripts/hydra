@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function load_scripts () {
+function load_scripts() {
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
   if [ -d "scripts" ]; then
@@ -11,14 +11,14 @@ function load_scripts () {
   source ./join-cluster.sh
   source ./custom-template.sh
   source ./utils.sh
-  
+
   cd ../
   fill_env_variables_from_json_config_file
   cd scripts/
 }
 
 # @cmd Installs a local framework and detaches project
-function install() {  
+function install() {
   load_scripts
 
   cd ../
@@ -49,8 +49,6 @@ function install() {
 function build() {
   load_scripts
   set_docker_compose
-  OUTPUT_YELLOW=$(tput setaf 3)
-  OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
   if [[ -z "$GITHUB_TOKEN" ]]; then
@@ -63,7 +61,7 @@ function build() {
   check_if_project_name_is_set
   check_if_project_directory_exists
   create_docker_custom_network
-  
+
   check_if_tessellation_needs_to_be_rebuild
   cd ../infra/docker
 
@@ -152,10 +150,10 @@ function build() {
     cd metagraph-l1-currency
     if [ ! -z "$argc_no_cache" ]; then
       echo_white "Building Metagraph L1 Currency image... (NO CACHE)"
-      $dockercompose build  --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
+      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD --no-cache
     else
       echo_white "Building Metagraph L1 Currency image... (USING CACHE)"
-      $dockercompose build  --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
+      $dockercompose build --build-arg TEMPLATE_NAME=$PROJECT_NAME --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN --build-arg P12_FILE_NAME_GENESIS=$P12_GENESIS_FILE_NAME --build-arg P12_FILE_NAME_NODE_2=$P12_NODE_2_FILE_NAME --build-arg P12_FILE_NAME_NODE_3=$P12_NODE_3_FILE_NAME --build-arg P12_FILE_KEY_ALIAS_GENESIS=$P12_GENESIS_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_2=$P12_NODE_2_FILE_KEY_ALIAS --build-arg P12_FILE_KEY_ALIAS_NODE_3=$P12_NODE_3_FILE_KEY_ALIAS --build-arg P12_FILE_PASSWORD_GENESIS=$P12_GENESIS_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_2=$P12_NODE_2_FILE_PASSWORD --build-arg P12_FILE_PASSWORD_NODE_3=$P12_NODE_3_FILE_PASSWORD
     fi
     echo_green "Metagraph L1 Currency image built"
     cd ../
@@ -205,13 +203,11 @@ function build() {
   exit
 }
 
-# @cmd Start from genesis the containers
+# @cmd Start containers from the genesis snapshot (erasing history)
 function start_genesis() {
   load_scripts
 
   set_docker_compose
-  OUTPUT_YELLOW=$(tput setaf 3)
-  OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
   export SHOULD_RESET_GENESIS_FILE=true
@@ -219,13 +215,11 @@ function start_genesis() {
   start_containers
 }
 
-# @cmd Start from rollback the containers
+# @cmd Start containers from the last snapshot (maintaining history)
 function start_rollback() {
   load_scripts
 
   set_docker_compose
-  OUTPUT_YELLOW=$(tput setaf 3)
-  OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
   export SHOULD_RESET_GENESIS_FILE=false
@@ -239,8 +233,6 @@ function start() {
   echo_yellow "This function will be deprecated in the newer versions, be sure to call start_genesis or start_rollback instead"
 
   set_docker_compose
-  OUTPUT_YELLOW=$(tput setaf 3)
-  OUTPUT_WHITE=$(tput setaf 7)
   check_if_docker_is_running
 
   export SHOULD_RESET_GENESIS_FILE=false
@@ -249,7 +241,7 @@ function start() {
 }
 
 # @cmd Stop containers
-function stop() { 
+function stop() {
   load_scripts
 
   export SHOULD_RESET_GENESIS_FILE=""
@@ -306,7 +298,7 @@ function destroy() {
 
   if [[ ! -z "$argc_delete_project" ]]; then
     echo_white "Removing the project codebase $PROJECT_NAME..."
-    rm -r source/project/$PROJECT_NAME 2> /dev/null
+    rm -r source/project/$PROJECT_NAME 2>/dev/null
     echo_green "Removed!"
   fi
 
@@ -345,7 +337,7 @@ function destroy() {
 # @flag  --show_all    Show all containers, including the stopped
 function status() {
   load_scripts
-  
+
   set_docker_compose
   check_if_docker_is_running
   if [[ ! -z "$argc_show_all" ]]; then
@@ -353,6 +345,32 @@ function status() {
   else
     docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
   fi
+}
+
+# @cmd Remotely configure cloud instances using Ansible.
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_CONFIGURE_PLAYBOOK_FILE: infra/ansible/playbooks/configure.ansible.yml
+function remote_configure() {
+  load_scripts
+  ansible_validations
+  cd ..
+  
+  echo_yellow "Configuring dependencies on remote hosts"
+  echo_white ""
+  ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_CONFIGURE_PLAYBOOK_FILE
+}
+
+# @cmd Remotely deploy to cloud instances using Ansible
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/playbooks/deploy.ansible.yml
+function remote_deploy() {
+  load_scripts
+  ansible_validations
+  cd ..
+  
+  echo_yellow "Deploying on remote hosts"
+  echo_white ""
+  ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
 }
 
 eval "$(argc --argc-eval "$0" "$@")"
