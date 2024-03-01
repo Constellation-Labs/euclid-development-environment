@@ -1,0 +1,18 @@
+---
+nodes:
+  hosts:
+    node-1:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: #Optional: Your ssh key file path
+    node-2:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: #Optional: Your ssh key file path
+    node-3:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: #Optional: Your ssh key file path
+
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"

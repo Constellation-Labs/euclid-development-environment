@@ -347,18 +347,17 @@ function status() {
   fi
 }
 
-# @cmd Remote install to your nodes the dependencies to run the metagraph using Ansible
-function remote_install() {
+# @cmd Remotely configure cloud instances using Ansible.
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_CONFIGURE_PLAYBOOK_FILE: infra/ansible/playbooks/configure.ansible.yml
+function remote_configure() {
   load_scripts
-  create_ansible_hosts_file
   ansible_validations
-
-  cd ../infra/ansible
+  cd ..
   
-  echo_yellow "Starting installing dependencies in the remote hosts"
+  echo_yellow "Configuring dependencies on remote hosts"
   echo_white ""
-  ansible-playbook -i hosts.ansible.yml playbooks/install.ansible.yml    
-  echo_green "Finished installation in the remote hosts"
+  ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_CONFIGURE_PLAYBOOK_FILE
 }
 
 eval "$(argc --argc-eval "$0" "$@")"
