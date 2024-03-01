@@ -158,16 +158,6 @@ function is_valid_ip() {
 }
 
 function ansible_validations() {
-    echo ""
-    echo ""
-    echo_white "###########################################################"
-    echo ""
-    echo_yellow "YOU SHOULD PROVIDE YOUR HOSTS INFORMATION ON $ANSIBLE_HOSTS_FILE"
-    echo ""
-    echo_white "###########################################################"
-    echo ""
-    echo ""
-
     echo_white "Checking if Ansible is installed..."
 
     if command -v ansible &>/dev/null; then
@@ -177,14 +167,14 @@ function ansible_validations() {
         exit 1
     fi
 
-    echo_white "Checking if the hosts are filled and valid..."
+    echo_white "Checking if host configuration is valid..."
     cd ..
 
     while IFS= read -r line; do
         if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
             ansible_host=$(echo "$line" | awk '{print $NF}')
             if ! is_valid_ip "$ansible_host"; then
-                echo_red "Your hosts IPs are invalid or not filled, please update $ANSIBLE_HOSTS_FILE file"
+                echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
                 exit 1
             fi
         fi
@@ -192,5 +182,5 @@ function ansible_validations() {
 
     cd scripts
     
-    echo_green "Hosts filled and valid"
+    echo_green "Hosts are valid"
 }

@@ -203,7 +203,7 @@ function build() {
   exit
 }
 
-# @cmd Start from genesis the containers
+# @cmd Start containers from the genesis snapshot (erasing history)
 function start_genesis() {
   load_scripts
 
@@ -215,7 +215,7 @@ function start_genesis() {
   start_containers
 }
 
-# @cmd Start from rollback the containers
+# @cmd Start containers from the last snapshot (maintaining history)
 function start_rollback() {
   load_scripts
 
