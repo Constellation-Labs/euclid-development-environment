@@ -274,7 +274,7 @@ After the script completes execution, you can verify if your metagraph is genera
 
 You can verify if the cluster was successfully built by accessing the following URL:
 
-`http://{your_host_ip}:{your_layer_port}/cluster.info` 
+`http://{your_host_ip}:{your_layer_port}/cluster/info` 
 
 Replace:
 
