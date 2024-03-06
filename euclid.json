@@ -39,9 +39,21 @@
       "monitoring"
     ]
   },
-  "ansible": {
-    "hosts_file": "infra/ansible/hosts.ansible.yml",
-    "configure_playbook_file": "infra/ansible/playbooks/configure.ansible.yml",
-    "deploy_playbook_file": "infra/ansible/playbooks/deploy.ansible.yml"
+  "deploy": {
+    "network": {
+      "name": "integrationnet|mainnet",
+      "gl0_node": {
+        "ip": ":gl0_node_ip",
+        "id": ":gl0_node_id",
+        "public_port": ":gl0_node_public_port"
+      }
+    },
+    "ansible": {
+      "hosts": "infra/ansible/hosts.ansible.yml",
+      "playbooks": {
+        "deploy": "infra/ansible/playbooks/deploy/deploy.ansible.yml",
+        "start": "infra/ansible/playbooks/start/start.ansible.yml"
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-FROM ubuntu-with-java-and-sbt
+FROM --platform=linux/amd64 ubuntu-with-java-and-sbt
 
 ARG GIT_PERSONAL_ACCESS_TOKEN
 ARG P12_FILE_NAME
