@@ -195,7 +195,7 @@ function ansible_validations() {
 function check_network() {
     local network="$1"
     case "$network" in
-    "testnet" | "integrationnet" | "mainnet")
+    "integrationnet" | "mainnet")
         echo "Valid network: $network"
         ;;
     *)
