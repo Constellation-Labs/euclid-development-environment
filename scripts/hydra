@@ -357,7 +357,19 @@ function remote_deploy() {
   
   echo_yellow "Deploying on remote hosts"
   echo_white ""
-  ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
+  if [[ " ${DOCKER_CONTAINERS[@]} " =~ "metagraph-l1-currency" ]]; then
+    deploy_cl1=true
+  else
+    deploy_cl1=false
+  fi
+
+  if [[ " ${DOCKER_CONTAINERS[@]} " =~ "metagraph-l1-data" ]]; then
+    deploy_dl1=true
+  else
+    deploy_dl1=false
+  fi
+  
+  ansible-playbook -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
 }
 
 # @cmd Remotely start the metagraph on cloud instances using Ansible
@@ -373,9 +385,11 @@ function remote_start() {
   echo_yellow "Starting on remote hosts"
   echo_white ""
   if [ ! -z "$argc_force_genesis" ]; then
-    ansible-playbook -e "force_genesis=true" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_START_PLAYBOOK_FILE
+    force_genesis=true
   else
-    ansible-playbook -e "force_genesis=false" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_START_PLAYBOOK_FILE
+    force_genesis=false
   fi
+
+  ansible-playbook -e "force_genesis=$force_genesis" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_START_PLAYBOOK_FILE
 }
 eval "$(argc --argc-eval "$0" "$@")"
