@@ -26,11 +26,11 @@ RUN mkdir codebase
 RUN cd codebase/ && \
     git clone https://github.com/Constellation-Labs/tessellation.git && \
     cd tessellation && \
-    git checkout $TESSELLATION_VERSION && \
+    git checkout develop && \
     rm -r version.sbt && \
     echo "ThisBuild / version := \"$TESSELLATION_VERSION\"" > version.sbt  && \
-    sbt --error wallet/assembly core/assembly keytool/assembly shared/publishM2 kernel/publishM2 keytool/publishM2 sdk/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2
+    sbt wallet/assembly dagL0/assembly keytool/assembly kernel/publishM2 shared/publishM2 keytool/publishM2 nodeShared/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2
 
 RUN mv codebase/tessellation/modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* cl-wallet.jar && \
     mv codebase/tessellation/modules/keytool/target/scala-2.13/tessellation-keytool-assembly-* cl-keytool.jar && \
-    mv codebase/tessellation/modules/core/target/scala-2.13/tessellation-core-assembly-* global-l0.jar
+    mv codebase/tessellation/modules/dag-l0/target/scala-2.13/tessellation-dag-l0-assembly-* global-l0.jar

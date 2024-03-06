@@ -1,7 +1,7 @@
 {
   "github_token": "",
   "metagraph_id": "",
-  "tessellation_version": "v2.1.1",
+  "tessellation_version": "99.99.99",
   "project_name": "custom-project",
   "framework": {
     "name": "currency",
@@ -35,8 +35,7 @@
       "global-l0",
       "metagraph-l0",
       "metagraph-l1-currency",
-      "metagraph-l1-data",
-      "monitoring"
+      "metagraph-l1-data"
     ]
   },
   "ansible": {
