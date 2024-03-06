@@ -2,7 +2,7 @@
 - name: Install nodes dependencies
   hosts: nodes
   become: true
-
+  gather_facts: false  
   tasks:
     - name: Update APT package cache
       apt:
