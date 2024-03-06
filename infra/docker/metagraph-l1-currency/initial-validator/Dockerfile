@@ -1,4 +1,4 @@
-FROM ubuntu-with-java-and-sbt
+FROM --platform=linux/amd64 ubuntu-with-java-and-sbt
 
 ARG GIT_PERSONAL_ACCESS_TOKEN
 ARG P12_FILE_NAME_GENESIS
@@ -19,6 +19,6 @@ COPY project/$TEMPLATE_NAME codebase/$TEMPLATE_NAME
 COPY p12-files/${P12_FILE_NAME_GENESIS} ${P12_FILE_NAME_GENESIS}
 
 RUN cd codebase/$TEMPLATE_NAME && \
-    sbt --error currencyL1/assembly
+    sbt currencyL1/assembly
 
 RUN mv codebase/$TEMPLATE_NAME/modules/l1/target/scala-2.13/${TEMPLATE_NAME}-currency-l1-assembly-* metagraph-l1-currency.jar
