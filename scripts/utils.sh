@@ -48,9 +48,9 @@ function fill_env_variables_from_json_config_file() {
     export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
 
     export DEPLOY_NETWORK_NAME=$(jq -r .deploy.network.name euclid.json)
-    export DEPLOY_NETWORK_HOST_IP=$(jq -r .deploy.network.node.ip euclid.json)
-    export DEPLOY_NETWORK_HOST_ID=$(jq -r .deploy.network.node.id euclid.json)
-    export DEPLOY_NETWORK_HOST_PUBLIC_PORT=$(jq -r .deploy.network.node.public_port euclid.json)
+    export DEPLOY_NETWORK_HOST_IP=$(jq -r .deploy.network.gl0_node.ip euclid.json)
+    export DEPLOY_NETWORK_HOST_ID=$(jq -r .deploy.network.gl0_node.id euclid.json)
+    export DEPLOY_NETWORK_HOST_PUBLIC_PORT=$(jq -r .deploy.network.gl0_node.public_port euclid.json)
 
     export ANSIBLE_HOSTS_FILE=$(jq -r .deploy.ansible.hosts euclid.json)
     export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.configure euclid.json)

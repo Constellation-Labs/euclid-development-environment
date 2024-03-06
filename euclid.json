@@ -42,7 +42,7 @@
   "deploy": {
     "network": {
       "name": "testnet|integrationnet|mainnet",
-      "node": {
+      "gl0_node": {
         "ip": ":gl0_node_ip",
         "id": ":gl0_node_id",
         "public_port": ":gl0_node_public_port"

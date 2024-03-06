@@ -16,15 +16,15 @@
     ignore_errors: true
     when: l0_process_id.stdout is defined
 
-  - name: Ensure metagraph-l0 older-logs directory exists
+  - name: Ensure metagraph-l0 archived-logs directory exists
     ansible.builtin.file:
-      path: /home/{{ ansible_user }}/code/metagraph-l0/older-logs
+      path: /home/{{ ansible_user }}/code/metagraph-l0/archived-logs
       state: directory
 
   - name: Save metagraph-l0 current logs
     shell: |
       cd "/home/{{ ansible_user }}/code/metagraph-l0"
-      mv logs older-logs/logs_{{ current_time }}
+      mv logs archived-logs/logs_{{ current_time }}
     ignore_errors: true
     when: l0_process_id.stdout is defined
 
@@ -40,15 +40,15 @@
     ignore_errors: true
     when: cl1_process_id.stdout is defined
 
-  - name: Ensure currency-l1 older-logs directory exists
+  - name: Ensure currency-l1 archived-logs directory exists
     ansible.builtin.file:
-      path: /home/{{ ansible_user }}/code/currency-l1/older-logs
+      path: /home/{{ ansible_user }}/code/currency-l1/archived-logs
       state: directory
 
   - name: Save currency-l1 current logs
     shell: |
       cd "/home/{{ ansible_user }}/code/currency-l1"
-      mv logs older-logs/logs_{{ current_time }}
+      mv logs archived-logs/logs_{{ current_time }}
     ignore_errors: true
     when: cl1_process_id.stdout is defined
 
@@ -64,14 +64,14 @@
     ignore_errors: true
     when: dl1_process_id.stdout is defined
 
-  - name: Ensure data-l1 older-logs directory exists
+  - name: Ensure data-l1 archived-logs directory exists
     ansible.builtin.file:
-      path: /home/{{ ansible_user }}/code/data-l1/older-logs
+      path: /home/{{ ansible_user }}/code/data-l1/archived-logs
       state: directory
 
   - name: Save data-l1 current logs
     shell: |
       cd "/home/{{ ansible_user }}/code/data-l1"
-      mv logs older-logs/logs_{{ current_time }}
+      mv logs archived-logs/logs_{{ current_time }}
     ignore_errors: true
     when: dl1_process_id.stdout is defined
