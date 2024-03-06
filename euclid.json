@@ -41,7 +41,7 @@
   },
   "deploy": {
     "network": {
-      "name": "testnet|integrationnet|mainnet",
+      "name": "integrationnet|mainnet",
       "gl0_node": {
         "ip": ":gl0_node_ip",
         "id": ":gl0_node_id",

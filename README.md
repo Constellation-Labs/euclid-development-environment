@@ -201,7 +201,7 @@ Prior to running these methods, remote host information must be configured in  `
 
 ### Host Configuration
 
-To run your metagraph remotely, you'll need remote hosts—ideally, at least three of them. These hosts should be running either `ubuntu-20.04` or `ubuntu-22.04`. It's recommended that each host meets the following minimum requirements:
+To run your metagraph remotely, you'll need remote server instances - 3 instances for the default configuration. These hosts should be running either `ubuntu-20.04` or `ubuntu-22.04`. It's recommended that each host meets the following minimum requirements:
 
 -   16GB of RAM
 -   8vCPU
@@ -211,21 +211,22 @@ You can choose your preferred platform for hosting your instances, such as AWS o
 
 -   Host IP
 -   Host user
--   Host SSH key (optional if your localhost already has access to the remote host)
+-   Host SSH key (optional if your default SSH token already has access to the remote host)
 
 ### P12 Files
 
-These files serve as your token files and should be located in the `source/p12-files` directory by default. Details such as the `file-name`, `key-alias`, and `password` should be specified in the `euclid.json` file under the `p12_files` section. By default, Euclid comes with three example files: `token-key.p12`, `token-key-1.p12`, and `token-key-2.p12`. **NOTE:** Before deploying, be sure to replace these example files with your own, as these files are public and their credentials are shared.
+P12 files contain the public/private key pair identifying each node (peerID) and should be located in the `source/p12-files` directory by default. The `file-name`, `key-alias`, and `password` should be specified in the `euclid.json` file under the `p12_files` section. By default, Euclid comes with three example files: `token-key.p12`, `token-key-1.p12`, and `token-key-2.p12`. **NOTE:** Before deploying, be sure to replace these example files with your own, as these files are public and their credentials are shared.
 
-Each `p12` file contains a `peerId`, and each node is associated with a `peerId`. **NOTE:** Ensure that your peerIDs are registered on the MainNet network. Otherwise, the metagraph startup will fail because the network will reject the snapshots.
+**NOTE:** If deploying to MainNet, ensure that your peerIDs are registered and present on the metagraph seedlist. Otherwise, the metagraph startup will fail because the network will reject the snapshots.
+
 
 ### Network Selection
 
-Currently, there are three networks available for running your metagraph: `TestNet`, `IntegrationNet`, and `MainNet`. You need to specify the network on which your metagraph will run in the `euclid.json` file under `deploy -> network -> name`.
+Currently, there are two networks available for running your metagraph: `IntegrationNet`, and `MainNet`. You need to specify the network on which your metagraph will run in the `euclid.json` file under `deploy -> network -> name`.
 
 ### GL0 Node Configuration
 
-The deploy script does not deploy the `gl0` node. It's recommended to use `nodectl` to build your `gl0` node. Information on installing `nodectl` can be found [here](https://docs.constellationnetwork.io/validate/automated/nodectl). `Nodectl` helps manage `gl0` nodes by providing tools such as `auto-upgrade` and `auto-restart`.
+The deploy script does not deploy the `gl0` node. It's recommended to use `nodectl` to build your `gl0` node. Information on installing `nodectl` can be found [here](https://docs.constellationnetwork.io/validate/automated/nodectl). `Nodectl` helps manage `gl0` nodes by providing tools such as `auto-upgrade` and `auto-restart` which keep the node online in the case of a disconnection or network upgrade. Using these features is highly recommended for the stability of your metagraph. 
 
 **NOTE:** Your GL0 node must be up and running before deploying your metagraph. You can use the same host to run all four layers: `gl0`, `ml0`, `cl1`, and `dl1`.
 
@@ -254,21 +255,34 @@ Each directory will be created with `cl-keytool.jar`, `cl-wallet.jar`, and a P12
 
 ### `hydra remote_start`
 
-This method initiates the remote startup of your metagraph in one of the available networks: testnet, integrationnet, and mainnet. The network should be set in `euclid.json` under `deploy` -> `network`
+This method initiates the remote startup of your metagraph in one of the available networks: integrationnet or mainnet. The network should be set in `euclid.json` under `deploy` -> `network`
 
 To begin the remote startup of the metagraph, we utilize the parameters configured in euclid.json (`network`, `gl0_node -> ip`, `gl0_node -> id`, `gl0_node -> public_port`, `ansible -> hosts`, and `ansible -> playbooks -> start`). The startup process unfolds as follows:
 
 1.  Termination of any processes currently running on the metagraph ports, which by default are 7000 for ml0, 8000 for cl1, and 9000 for dl1 (you can change on `hosts.ansible.yml`).
 2.  Relocation of any existing logs to a folder named `archived-logs`, residing within each layer directory: `metagraph-l0`, `currency-l1`, and `data-l1`.
 3.  Initiation of the `metagraph-l0` layer, with `node-1` designated as the genesis node.
-4.  Initial startup as `genesis`, transitioning to `rollback` for subsequent executions. To force a genesis startup, utilize the `--force_genesis` flag with the `hydra remote_start` command.  This will move the current `data` directory to a folder named `archived-data`.
+4.  Initial startup as `genesis`, transitioning to `rollback` for subsequent executions. To force a genesis startup, utilize the `--force_genesis` flag with the `hydra remote_start` command.  This will move the current `data` directory to a folder named `archived-data` and restart the metagraph from the first snapshot.
 5.  Detection of missing files required for layer execution, such as `:your_file.p12` and `metagraph-l0.jar`, triggering an error and halting execution.
-6.  Following the initiation of `metagraph-l0`, the l1 layers, namely `currency-l1` and `data-l1`, are started. These layers only commence if their respective JARs are present in the directories. Unlike `metagraph-l0`, the absence of JARs does not prompt an error but rather prevents startup.
+6.  Following the initiation of `metagraph-l0`, the l1 layers, namely `currency-l1` and `data-l1`, are started. These layers only started if present in your project. 
 
 After the script completes execution, you can verify if your metagraph is generating snapshots by checking the block explorer of the selected network:
 
--   Testnet: [https://be-testnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest](https://be-testnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest)
 -   Integrationnet: [https://be-integrationnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest](https://be-integrationnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest)
 -   Mainnet: [https://be-mainnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest](https://be-mainnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest)
+
+
+You can verify if the cluster was successfully built by accessing the following URL:
+
+`http://{your_host_ip}:{your_layer_port}/cluster.info` 
+
+Replace:
+
+-   `{your_host_ip}`: Provide your host's IP address.
+-   `{your_layer_port}`: Enter the public port you assigned to each layer.
+
+Each layer directory on every node contains a folder named `logs`. You can monitor and track your metagraph logs by running:
+
+`tail -f logs/app.log`
 
 **NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/hosts.ansible.yml` file.
