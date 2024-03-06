@@ -80,8 +80,8 @@ COMMANDS:
   stop              Stop all the containers
   destroy           Destroy all the containers
   status            Check the status of the containers
-  remote_configure  Remotely configure cloud instances using Ansible
   remote_deploy     Remotely deploy to cloud instances using Ansible
+  remote_start      Remotely start the metagraph on cloud instances using Ansible
 ```
 TIP: You can use the same `-h` in each command listed above to see the accepted parameters
 
@@ -195,16 +195,11 @@ In this tool we have 2 dashboards, you can access them on `Dashboard` section
 
 ## Deployment
 
-Configuring and deploying to remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote_configure` and `hydra remote_deploy`.
+Configuring, deploying, and starting to remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote_deploy` and `hydra remote_start`.
 Prior to running these methods, remote host information must be configured in  `infra/ansible/hosts.ansible.yml`
 
-### `hydra remote_configure`
-
-This method configures remote instances with all the necessary dependencies to run a Metagraph, including Java, Scala, and required build tools. The Ansible playbook used for this process can be found and edited in `infra/ansible/playbooks/deploy.ansible.yml`. 
-
 ### `hydra remote_deploy`
-
-This method creates all required directories on the remote hosts, and creates or updates metagraph files to match your local Euclid environment. Specifically, it creates the following directories:
+This method configures remote instances with all the necessary dependencies to run a Metagraph, including Java, Scala, and required build tools. The Ansible playbook used for this process can be found and edited in `infra/ansible/playbooks/deploy.ansible.yml`. Also, creates all required directories on the remote hosts, and creates or updates metagraph files to match your local Euclid environment. Specifically, it creates the following directories:
 
 -   `code/global-l0`
 -   `code/metagraph-l0`
@@ -225,4 +220,25 @@ Each directory will be created with `cl-keytool.jar`, `cl-wallet.jar`, and a P12
 **In `code/data-l1`:**
 -   data-l1.jar     // The executable for the dL1 layer
 
+
+### `hydra remote_start`
+
+This method initiates the remote startup of your metagraph in one of the available networks: testnet, integrationnet, and mainnet.
+
+To commence the remote startup of the metagraph, we utilize the parameters configured on Euclid. The startup process unfolds as follows:
+
+1.  Termination of any processes currently running on the metagraph ports, which by default are 7000 for ml0, 8000 for cl1, and 9000 for dl1.
+2.  Relocation of any existing logs to a folder named `older-logs`, residing within each layer directory: `metagraph-l0`, `currency-l1`, and `data-l1`.
+3.  Initiation of the `metagraph-l0` layer, with `node-1` designated as the genesis node.
+4.  Initial startup as `genesis`, transitioning to `rollback` for subsequent executions. To force a genesis startup, utilize the `--force_genesis` flag with the `hydra remote_start` command.  This will move the current `data` directory to a folder named `older-datas`.
+5.  Detection of missing files required for layer execution, such as `:your_file.p12` and `metagraph-l0.jar`, triggering an error and halting execution.
+6.  Following the initiation of `metagraph-l0`, the l1 layers, namely `currency-l1` and `data-l1`, are started. These layers only commence if their respective JARs are present in the directories. Unlike `metagraph-l0`, the absence of JARs does not prompt an error but rather prevents startup.
+
+After the script completes execution, you can verify if your metagraph is generating snapshots by checking the block explorer of the selected network:
+
+-   Testnet: [https://be-testnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest](https://be-testnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest)
+-   Integrationnet: [https://be-integrationnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest](https://be-integrationnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest)
+-   Mainnet: [https://be-mainnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest](https://be-mainnet.constellationnetwork.io/currency/:your_metagraph_id/snapshots/latest)
+
+**NOTE:** Ensure that your peerIDs are registered on the desired network; otherwise, the metagraph startup will fail because the network will reject the snapshots.
 **NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/hosts.ansible.yml` file.

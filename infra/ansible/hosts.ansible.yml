@@ -16,3 +16,12 @@ nodes:
 
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    metagraph_l0_public_port: 7000
+    metagraph_l0_p2p_port: 7001
+    metagraph_l0_cli_port: 7002
+    currency_l1_public_port: 8000
+    currency_l1_p2p_port: 8001
+    currency_l1_cli_port: 8002
+    data_l1_public_port: 9000
+    data_l1_p2p_port: 9001
+    data_l1_cli_port: 9002

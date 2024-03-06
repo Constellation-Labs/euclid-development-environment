@@ -46,9 +46,16 @@ function fill_env_variables_from_json_config_file() {
     export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias euclid.json)
     export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password euclid.json)
     export DOCKER_CONTAINERS=$(jq -r .docker.default_containers euclid.json)
-    export ANSIBLE_HOSTS_FILE=$(jq -r .ansible.hosts_file euclid.json)
-    export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .ansible.configure_playbook_file euclid.json)
-    export ANSIBLE_DEPLOY_PLAYBOOK_FILE=$(jq -r .ansible.deploy_playbook_file euclid.json)
+
+    export DEPLOY_NETWORK_NAME=$(jq -r .deploy.network.name euclid.json)
+    export DEPLOY_NETWORK_HOST_IP=$(jq -r .deploy.network.node.ip euclid.json)
+    export DEPLOY_NETWORK_HOST_ID=$(jq -r .deploy.network.node.id euclid.json)
+    export DEPLOY_NETWORK_HOST_PUBLIC_PORT=$(jq -r .deploy.network.node.public_port euclid.json)
+
+    export ANSIBLE_HOSTS_FILE=$(jq -r .deploy.ansible.hosts euclid.json)
+    export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.configure euclid.json)
+    export ANSIBLE_DEPLOY_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.deploy euclid.json)
+    export ANSIBLE_START_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.start euclid.json)
 
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
@@ -181,6 +188,19 @@ function ansible_validations() {
     done <"$ANSIBLE_HOSTS_FILE"
 
     cd scripts
-    
+
     echo_green "Hosts are valid"
+}
+
+function check_network() {
+    local network="$1"
+    case "$network" in
+    "testnet" | "integrationnet" | "mainnet")
+        echo "Valid network: $network"
+        ;;
+    *)
+        echo "Invalid network: $network"
+        exit 1
+        ;;
+    esac
 }

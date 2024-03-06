@@ -347,19 +347,6 @@ function status() {
   fi
 }
 
-# @cmd Remotely configure cloud instances using Ansible.
-# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
-# -> DEFAULT_ANSIBLE_CONFIGURE_PLAYBOOK_FILE: infra/ansible/playbooks/configure.ansible.yml
-function remote_configure() {
-  load_scripts
-  ansible_validations
-  cd ..
-  
-  echo_yellow "Configuring dependencies on remote hosts"
-  echo_white ""
-  ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_CONFIGURE_PLAYBOOK_FILE
-}
-
 # @cmd Remotely deploy to cloud instances using Ansible
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/playbooks/deploy.ansible.yml
@@ -373,4 +360,22 @@ function remote_deploy() {
   ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
 }
 
+# @cmd Remotely start the metagraph on cloud instances using Ansible
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/playbooks/start/start.ansible.yml
+# @flag   --force_genesis                      Force metagraph to run as genesis
+function remote_start() {
+  load_scripts
+  ansible_validations
+  check_network $DEPLOY_NETWORK_NAME
+  cd ..
+  
+  echo_yellow "Starting on remote hosts"
+  echo_white ""
+  if [ ! -z "$argc_force_genesis" ]; then
+    ansible-playbook -e "force_genesis=true" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_START_PLAYBOOK_FILE
+  else
+    ansible-playbook -e "force_genesis=false" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_START_PLAYBOOK_FILE
+  fi
+}
 eval "$(argc --argc-eval "$0" "$@")"
