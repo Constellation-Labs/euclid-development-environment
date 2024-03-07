@@ -1,4 +1,6 @@
 ---
+- import_playbook: configure.ansible.yml
+
 - name: Create directories on remote hosts
   hosts: nodes
   gather_facts: false
