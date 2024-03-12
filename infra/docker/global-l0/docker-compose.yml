@@ -3,6 +3,7 @@
 version: '3'
 services:
   global-l0-1:
+    platform: linux/amd64
     container_name: global-l0-1
     build:
       context: ../../../source
@@ -12,13 +13,11 @@ services:
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
       - CL_ENV=dev
-      - SHOULD_RESET_GENESIS_FILE=${SHOULD_RESET_GENESIS_FILE}
-      - FORCE_ROLLBACK=${FORCE_ROLLBACK}
     volumes:
       - ../shared/jars:/code/jars/
       - ../../../source/global-l0/tessellation:/code/codebase/tessellation
       - ../../../source/global-l0/genesis:/code/genesis/.
-      - ../../../scripts/start_containers/start_genesis_global.sh:/code/start_genesis_global.sh
+      - ../../../scripts/start-containers/global:/code/start_scripts
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -26,7 +25,7 @@ services:
       custom-network:
         ipv4_address: 172.50.0.5
     command: >
-      sh -c 'chmod a+rwx start_genesis_global.sh && ./start_genesis_global.sh'
+       sh -c 'mv start_scripts/start.sh . && chmod a+x start.sh && ./start.sh'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://global-l0-1:9000/cluster/info" ]
       interval: 10s

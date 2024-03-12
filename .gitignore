@@ -4,3 +4,6 @@ infra/docker/monitoring/prometheus/monitoring/
 .idea
 infra/docker/shared/jars/**.jar
 .vscode
+source/project/*
+source/metagraph-l0/genesis/genesis.address
+source/metagraph-l0/genesis/genesis.snapshot
