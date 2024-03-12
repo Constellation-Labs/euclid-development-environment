@@ -3,6 +3,7 @@
 version: '3'
 services:
   metagraph-l0-2:
+    platform: linux/amd64
     container_name: metagraph-l0-2
     build:
       context: ../../../source
@@ -51,6 +52,7 @@ services:
       timeout: 10s
       retries: 10
   metagraph-l0-3:
+    platform: linux/amd64
     container_name: metagraph-l0-3
     build:
       context: ../../../source

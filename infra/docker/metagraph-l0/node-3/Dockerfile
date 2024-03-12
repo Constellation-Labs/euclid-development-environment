@@ -1,4 +1,6 @@
-FROM --platform=linux/amd64 ubuntu-with-java-and-sbt
+ARG TESSELLATION_VERSION
+
+FROM --platform=linux/amd64 metagraph-base-image-${TESSELLATION_VERSION}
 
 ARG GIT_PERSONAL_ACCESS_TOKEN
 ARG P12_FILE_NAME_GENESIS

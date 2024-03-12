@@ -1,0 +1,9 @@
+# docker-compose.yml
+# We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
+version: '3'
+services:
+  metagraph-base-image:
+    platform: linux/amd64
+    container_name: "metagraph-base-image-${TESSELLATION_VERSION}"
+    build: .
+    image: "metagraph-base-image-${TESSELLATION_VERSION}"
