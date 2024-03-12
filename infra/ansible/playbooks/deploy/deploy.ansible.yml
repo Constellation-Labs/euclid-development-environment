@@ -59,9 +59,9 @@
         dest: /home/{{ ansible_user }}/code/currency-l1
       when: deploy_cl1 | bool
 
-    - name: Sending metagraph-l1-currency.jar to currency-l1
+    - name: Sending currency-l1.jar to currency-l1
       copy:
-        src: ../../../docker/shared/jars/metagraph-l1-currency.jar
+        src: ../../../docker/shared/jars/currency-l1.jar
         dest: /home/{{ ansible_user }}/code/currency-l1/currency-l1.jar
       when: deploy_cl1 | bool
 
@@ -77,9 +77,9 @@
         dest: /home/{{ ansible_user }}/code/data-l1
       when: deploy_dl1 | bool
 
-    - name: Sending metagraph-l1-data.jar to data-l1
+    - name: Sending data-l1.jar to data-l1
       copy:
-        src: ../../../docker/shared/jars/metagraph-l1-data.jar
+        src: ../../../docker/shared/jars/data-l1.jar
         dest: /home/{{ ansible_user }}/code/data-l1/data-l1.jar
       when: deploy_dl1 | bool
 
