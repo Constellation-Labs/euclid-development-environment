@@ -2,66 +2,73 @@
 # We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
 version: '3'
 services:
-  dag-l1-1:
+  data-l1-1:
     platform: linux/amd64
-    container_name: dag-l1-1
+    container_name: data-l1-1
     build:
       context: ../../../source
-      dockerfile: ../infra/docker/dag-l1/initial-validator/Dockerfile
-    image: dag-l1-initial-validator
+      dockerfile: ../infra/docker/data-l1/initial-validator/Dockerfile
+    image: data-l1-initial-validator
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
       - CL_CLI_HTTP_PORT=9002
-      - CL_L0_PEER_HTTP_HOST=global-l0-1
+      - CL_L0_PEER_HTTP_HOST=metagraph-l0-1
       - CL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=global-l0-1
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
     ports:
-      - '9100:9000'
-      - '9101:9001'
-      - '9102:9002'
+      - '8000:9000'
+      - '8001:9001'
+      - '8002:9002'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.10
+        ipv4_address: 172.50.0.40
     command: >
-      sh -c "cp dag-l1.jar jars/dag-l1.jar && \
+      sh -c "export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
+             export CL_L0_PEER_ID=$${CL_GLOBAL_L0_PEER_ID}
+             export CL_L0_TOKEN_IDENTIFIER=$METAGRAPH_ID && \
+             cp data-l1.jar jars/data-l1.jar && \
              cp cl-wallet.jar jars/cl-wallet.jar && \
-             java -jar dag-l1.jar run-initial-validator --ip 172.50.0.10"
+             java -jar data-l1.jar run-initial-validator --ip 172.50.0.40"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://dag-l1-1:9000/cluster/info" ]
+      test: [ "CMD", "curl", "-f", "http://data-l1-1:9000/cluster/info" ]
       interval: 10s
       timeout: 10s
       retries: 10
-  dag-l1-2:
+  data-l1-2:
     platform: linux/amd64
-    container_name: dag-l1-2
+    container_name: data-l1-2
     build:
       context: ../../../source
-      dockerfile: ../infra/docker/dag-l1/node-2/Dockerfile
-    image: dag-l1-validator-node-2
+      dockerfile: ../infra/docker/data-l1/node-2/Dockerfile
+    image: data-l1-validator-node-2
     depends_on:
-      dag-l1-1:
+      data-l1-1:
         condition: service_healthy
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
       - CL_CLI_HTTP_PORT=9002
-      - CL_L0_PEER_HTTP_HOST=global-l0-1
+      - CL_L0_PEER_HTTP_HOST=metagraph-l0-1
       - CL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=global-l0-1
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
     ports:
-      - '9200:9000'
-      - '9201:9001'
-      - '9202:9002'
+      - '8100:9000'
+      - '8101:9001'
+      - '8102:9002'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.11
+        ipv4_address: 172.50.0.41
     command: >
       sh -c "cp jars/cl-wallet.jar genesis/cl-wallet.jar && \
       
@@ -70,46 +77,53 @@ services:
              export CL_KEYSTORE=$${CL_KEYSTORE_GENESIS} && \
              export CL_KEYALIAS=$${CL_KEYALIAS_GENESIS} && \
              export CL_PASSWORD=$${CL_PASSWORD_GENESIS} && \
+      
+             export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
+             export CL_L0_PEER_ID=$${CL_GLOBAL_L0_PEER_ID}
+             export CL_L0_TOKEN_IDENTIFIER=$METAGRAPH_ID && \
+      
              cd ../ && \
       
              export CL_KEYSTORE=$${CL_KEYSTORE_NODE_2} && \
              export CL_KEYALIAS=$${CL_KEYALIAS_NODE_2} && \
              export CL_PASSWORD=$${CL_PASSWORD_NODE_2} && \
       
-             cp jars/dag-l1.jar dag-l1.jar && \
-             java -jar dag-l1.jar run-validator --ip 172.50.0.11"
+             cp jars/data-l1.jar data-l1.jar && \
+             java -jar data-l1.jar run-validator --ip 172.50.0.41"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://dag-l1-2:9000/metrics" ]
+      test: [ "CMD", "curl", "-f", "http://data-l1-2:9000/metrics" ]
       interval: 10s
       timeout: 10s
       retries: 10
-  dag-l1-3:
+  data-l1-3:
     platform: linux/amd64
-    container_name: dag-l1-3
+    container_name: data-l1-3
     build:
       context: ../../../source
-      dockerfile: ../infra/docker/dag-l1/node-3/Dockerfile
-    image: dag-l1-validator-node-3
+      dockerfile: ../infra/docker/data-l1/node-3/Dockerfile
+    image: data-l1-validator-node-3
     depends_on:
-      dag-l1-1:
+      data-l1-1:
         condition: service_healthy
     environment:
       - CL_PUBLIC_HTTP_PORT=9000
       - CL_P2P_HTTP_PORT=9001
       - CL_CLI_HTTP_PORT=9002
-      - CL_L0_PEER_HTTP_HOST=global-l0-1
+      - CL_L0_PEER_HTTP_HOST=metagraph-l0-1
       - CL_L0_PEER_HTTP_PORT=9000
+      - CL_GLOBAL_L0_PEER_HTTP_HOST=global-l0-1
+      - CL_GLOBAL_L0_PEER_HTTP_PORT=9000
       - CL_APP_ENV=dev
       - CL_COLLATERAL=0
     volumes:
       - ../shared/jars:/code/jars/
     ports:
-      - '9300:9000'
-      - '9301:9001'
-      - '9302:9002'
+      - '8200:9000'
+      - '8201:9001'
+      - '8202:9002'
     networks:
       custom-network:
-        ipv4_address: 172.50.0.12
+        ipv4_address: 172.50.0.42
     command: >
       sh -c "cp jars/cl-wallet.jar genesis/cl-wallet.jar && \
 
@@ -118,6 +132,10 @@ services:
              export CL_KEYSTORE=$${CL_KEYSTORE_GENESIS} && \
              export CL_KEYALIAS=$${CL_KEYALIAS_GENESIS} && \
              export CL_PASSWORD=$${CL_PASSWORD_GENESIS} && \
+
+             export CL_GLOBAL_L0_PEER_ID=$$(java -jar cl-wallet.jar show-id) && \
+             export CL_L0_PEER_ID=$${CL_GLOBAL_L0_PEER_ID}
+             export CL_L0_TOKEN_IDENTIFIER=$METAGRAPH_ID && \
 
              cd ../ && \
 
@@ -125,10 +143,10 @@ services:
              export CL_KEYALIAS=$${CL_KEYALIAS_NODE_3} && \
              export CL_PASSWORD=$${CL_PASSWORD_NODE_3} && \
 
-             cp jars/dag-l1.jar dag-l1.jar && \
-             java -jar dag-l1.jar run-validator --ip 172.50.0.12"
+             cp jars/data-l1.jar data-l1.jar && \
+             java -jar data-l1.jar run-validator --ip 172.50.0.42"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://dag-l1-3:9000/metrics" ]
+      test: [ "CMD", "curl", "-f", "http://data-l1-3:9000/metrics" ]
       interval: 10s
       timeout: 10s
       retries: 10
