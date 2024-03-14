@@ -20,22 +20,8 @@
 With the euclid-development-environment cloned, you'll see the following structure
 ```
 - infra
-  - ansible
-  - docker
 - scripts
-  - custom-template.sh
-  - docker.sh
-  - hydra
-  - hydra-update
-  - join-cluster.sh
-  - utils.sh
 - source
-  - metagraph-l0
-    - genesis
-  - global-l0
-    - genesis
-  - p12-files
-  - project
 - euclid.json
 ```
 let's see what each of these directories represents:
@@ -46,18 +32,16 @@ This directory contains infrastructure related to the running of Euclid.
 - Ansible: This directory contains Ansible configurations used for configuring and deploying to remote hosts. 
 
 ### Scripts
-Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update` scripts
+Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update` scripts.
 
 ### Source
-Here is the home of the local codebase, this directories will be filled in ways you build the containers.
-
-Example: let's say that you'll build the container `metagraph-l0` (it will be explained better below, don't worry), on the directory `source/metagraph-l0` will be created one folder with the local codebase of the `metagraph-l0` node
-
-The example above applies to the other containers: `metagraph-l1-currency`, `dag-l1`, `global-l0`
-
-Inside the source folder, we also have the sub-directory `p12-files`. In this directory, you can provide the custom `.p12` files. This directory already comes with some examples, but they can be overwritten/removes to your own files.
-
-### hydra.cfg
+Here is the home of the local codebase and required files for each layer.
+- `global-l0/genesis`: In this directory, you can provide a custom `genesis.csv` file. This file contains the initial balances for addresses on global-l0 layer when running start-genesis.
+- `metagraph-l0/genesis`: In this directory, you can provide a custom `genesis.csv` file. This file contains the initial balances for addresses on metagraph-l0 layer which determine your L0 token starting balances when running start-genesis.
+- `p12-files`: In this directory, you can provide custom `.p12` files. This directory contains default files for test development, but they should be overwritten with your own files before deploying to a cloud environment. 
+- `project`: This directory contains all of your custom project code. Projects can be installed here via `hydra install` or `hydra install-template`. 
+ 
+### euclid.json
 Here is the hydra configuration file, there you can set the `p12` file names and your GITHUB_TOKEN. It's required to fill the GitHub token here to run the `hydra` script
 
 ## Hydra scripts options
@@ -73,16 +57,20 @@ you should see something like this:
 USAGE: hydra <COMMAND>
 
 COMMANDS:
-  install           Removes the remote git
-  build             Build all the containers
-  start_genesis     Start containers from the genesis snapshot (erasing history)
-  start_rollback    Start containers from the last snapshot (maintaining history)
-  stop              Stop all the containers
-  destroy           Destroy all the containers
+  install           Installs a local framework and detaches project
+  install-template  Installs a project from templates
+  build             Build containers
+  start-genesis     Start containers from the genesis snapshot (erasing history) [aliases: start-genesis]
+  start-rollback    Start containers from the last snapshot (maintaining history) [aliases: start-rollback]
+  stop              Stop containers
+  destroy           Destroy containers
+  purge             Destroy containers and images
   status            Check the status of the containers
-  remote_deploy     Remotely deploy to cloud instances using Ansible
-  remote_start      Remotely start the metagraph on cloud instances using Ansible
+  remote-deploy     Remotely deploy to cloud instances using Ansible [aliases: remote-deploy]
+  remote-start      Remotely start the metagraph on cloud instances using Ansible [aliases: remote-start]
+  update            Update Euclid
 ```
+
 TIP: You can use the same `-h` in each command listed above to see the accepted parameters
 
 ### Building
@@ -95,9 +83,9 @@ This script has some parameters such as `--no_cache` (run without previous cache
 If you provide the `--run` parameter you should see the available URLs at the end of script execution
 
 ### Starting
-We have the options `start_genesis` and `start` to start the containers. This option will fail case you didn't build the containers yet. You can call the option this way:
+We have the options `start-genesis` and `start` to start the containers. This option will fail case you didn't build the containers yet. You can call the option this way:
 ```
-./hydra start_genesis
+./hydra start-genesis
 ./hydra start   
 ```
 
@@ -110,7 +98,6 @@ We have the option `stop` to stop the containers. You can call the option this w
 ```
 ./hydra stop   
 ```
-This script has the parameter `--only` (to stop a specifical container).
 
 ### Destroying
 We have the option `destroiy` to destroy the containers. You can call the option this way:
@@ -131,6 +118,19 @@ We have the option `install` to remove the link with remote `git`. You can call 
 ```
 ./hydra install   
 ```
+You can import a metagraph template from custom examples by using the following command:
+
+```
+./hydra install-template
+```
+
+By default, we use the [Metagraph Examples](https://github.com/Constellation-Labs/metagraph-examples) repository. You should provide the template name when running this command. 
+To list the templates available to install, type:
+
+```
+./hydra install-template --list
+```
+
 ## Let's build
 
 After understanding the folder structure, we can start build our containers.
@@ -156,10 +156,10 @@ Then run the following to build your containers
 
 After the end of this step, run the following:
 ```
-./hydra start_genesis
+./hydra start-genesis
 ```
 
-After the end of `start_genesis`, you should see something like this:
+After the end of `start-genesis`, you should see something like this:
 ```
 Containers successfully built. URLs:
 Global L0: http://localhost:9000/cluster/info
@@ -195,7 +195,7 @@ In this tool we have 2 dashboards, you can access them on `Dashboard` section
 
 ## Deployment
 
-Configuring, deploying, and starting remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote_deploy` and `hydra remote_start`.
+Configuring, deploying, and starting remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote-deploy` and `hydra remote-start`.
 Prior to running these methods, remote host information must be configured in  `infra/ansible/hosts.ansible.yml`
 
 
@@ -230,7 +230,7 @@ The deploy script does not deploy the `gl0` node. It's recommended to use `nodec
 
 **NOTE:** Your GL0 node must be up and running before deploying your metagraph. You can use the same host to run all four layers: `gl0`, `ml0`, `cl1`, and `dl1`.
 
-### `hydra remote_deploy`
+### `hydra remote-deploy`
 This method configures remote instances with all the necessary dependencies to run a metagraph, including Java, Scala, and required build tools. The Ansible playbook used for this process can be found and edited in `infra/ansible/playbooks/deploy.ansible.yml`. It also creates all required directories on the remote hosts, and creates or updates metagraph files to match your local Euclid environment. Specifically, it creates the following directories:
 
 -   `code/global-l0`
@@ -253,7 +253,7 @@ Each directory will be created with `cl-keytool.jar`, `cl-wallet.jar`, and a P12
 -   data-l1.jar     // The executable for the dL1 layer
 
 
-### `hydra remote_start`
+### `hydra remote-start`
 
 This method initiates the remote startup of your metagraph in one of the available networks: integrationnet or mainnet. The network should be set in `euclid.json` under `deploy` -> `network`
 
@@ -262,7 +262,7 @@ To begin the remote startup of the metagraph, we utilize the parameters configur
 1.  Termination of any processes currently running on the metagraph ports, which by default are 7000 for ml0, 8000 for cl1, and 9000 for dl1 (you can change on `hosts.ansible.yml`).
 2.  Relocation of any existing logs to a folder named `archived-logs`, residing within each layer directory: `metagraph-l0`, `currency-l1`, and `data-l1`.
 3.  Initiation of the `metagraph-l0` layer, with `node-1` designated as the genesis node.
-4.  Initial startup as `genesis`, transitioning to `rollback` for subsequent executions. To force a genesis startup, utilize the `--force_genesis` flag with the `hydra remote_start` command.  This will move the current `data` directory to a folder named `archived-data` and restart the metagraph from the first snapshot.
+4.  Initial startup as `genesis`, transitioning to `rollback` for subsequent executions. To force a genesis startup, utilize the `--force_genesis` flag with the `hydra remote-start` command.  This will move the current `data` directory to a folder named `archived-data` and restart the metagraph from the first snapshot.
 5.  Detection of missing files required for layer execution, such as `:your_file.p12` and `metagraph-l0.jar`, triggering an error and halting execution.
 6.  Following the initiation of `metagraph-l0`, the l1 layers, namely `currency-l1` and `data-l1`, are started. These layers only started if present in your project. 
 
