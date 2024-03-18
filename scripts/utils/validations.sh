@@ -22,7 +22,6 @@ function check_ansible() {
     fi
 
     echo_white "Checking if host configuration is valid..."
-    cd ..
 
     while IFS= read -r line; do
         if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
