@@ -2,7 +2,7 @@
   "github_token": "",
   "metagraph_id": "",
   "tessellation_version": "2.3.1",
-  "project_name": "custom-project",
+  "project_name": "",
   "framework": {
     "name": "currency",
     "modules": [
