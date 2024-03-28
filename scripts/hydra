@@ -38,8 +38,6 @@ function load_scripts() {
   source ./hydra-operations/remote-deploy.sh
   source ./hydra-operations/remote-start.sh
 
-  source ./cluster/join-cluster.sh
-
   source ./template/custom-template.sh
 
   source ./utils/echo-colors.sh
@@ -89,7 +87,6 @@ function install-template() {
 # @cmd Build containers
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
-# @flag   --rebuild_tessellation          Rebuild the tessellation project
 function build() {
   check_if_should_run_update
 
@@ -115,8 +112,7 @@ function start-genesis() {
   set_docker_compose
   check_if_docker_is_running
 
-  export FORCE_ROLLBACK=false
-  start_containers false
+  start_containers true
 
   exit 0
 }
@@ -132,8 +128,7 @@ function start-rollback() {
   set_docker_compose
   check_if_docker_is_running
 
-  export FORCE_ROLLBACK=true
-  start_containers true
+  start_containers false
 
   exit 0
 }

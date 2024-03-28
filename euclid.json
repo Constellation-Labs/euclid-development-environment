@@ -11,33 +11,40 @@
     "version": "v2.3.1",
     "ref_type": "tag"
   },
-  "p12_files": {
-    "genesis": {
-      "file_name": "token-key.p12",
-      "alias": "token-key",
-      "password": "password"
+  "layers": [
+    "global-l0",
+    "metagraph-l0",
+    "currency-l1",
+    "data-l1"
+  ],
+  "nodes": [
+    {
+      "name": "metagraph-node-1",
+      "key_file": {
+        "name": "token-key.p12",
+        "alias": "token-key",
+        "password": "password"
+      }
     },
-    "validators": [
-      {
-        "file_name": "token-key-1.p12",
+    {
+      "name": "metagraph-node-2",
+      "key_file": {
+        "name": "token-key-1.p12",
         "alias": "token-key-1",
         "password": "password"
-      },
-      {
-        "file_name": "token-key-2.p12",
+      }
+    },
+    {
+      "name": "metagraph-node-3",
+      "key_file": {
+        "name": "token-key-2.p12",
         "alias": "token-key-2",
         "password": "password"
       }
-    ]
-  },
+    }
+  ],
   "docker": {
-    "default_containers": [
-      "global-l0",
-      "metagraph-l0",
-      "currency-l1",
-      "data-l1",
-      "monitoring"
-    ]
+    "start_monitoring_container": false
   },
   "deploy": {
     "network": {

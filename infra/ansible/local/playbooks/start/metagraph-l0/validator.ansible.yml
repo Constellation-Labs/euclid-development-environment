@@ -1,0 +1,73 @@
+---
+- name: (Metagraph-L0) Copy file to Docker container
+  command: docker cp {{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ validator_node_info.key_file.name }} {{ validator_node_info.name }}:code/metagraph-l0/{{ validator_node_info.key_file.name }}
+
+- name: (Metagraph-L0) Set validator number
+  set_fact:
+    validator_number: "{{ index + 1 }}"
+
+- name: (Metagraph-L0) Set local variables
+  set_fact:
+    cl_public_http_port: "{{ (base_metagraph_l0_public_port | int ) + (offset * ( validator_number | int)) }}"
+    cl_p2p_http_port: "{{ (base_metagraph_l0_p2p_port | int ) + (offset * ( validator_number | int)) }}"
+    cl_cli_http_port: "{{ (base_metagraph_l0_cli_port | int ) + (offset * ( validator_number | int)) }}"
+    node_ip: "{{ base_prefix_ip }}{{ (( validator_number | int ) + 1) * offset }}"
+    lead_node_ip: "{{ base_prefix_ip }}{{ offset }}"
+    lead_node_p2p_port: "{{ base_metagraph_l0_p2p_port | int }}"
+    gl0_lead_node_public_port: "{{ base_global_l0_public_port | int }}"
+
+- name: (Metagraph-L0) Get metagraph address
+  shell: |
+    cd metagraph-l0
+    cat {{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address
+  register: metagraph_id_raw
+  
+- set_fact:
+    metagraph_id: "{{ metagraph_id_raw.stdout }}"
+
+- name: (Metagraph-L0) Start as validator
+  community.docker.docker_container_exec:
+    container: "{{ validator_node_info.name }}"
+    env: 
+      CL_PUBLIC_HTTP_PORT: "{{ cl_public_http_port }}"
+      CL_P2P_HTTP_PORT: "{{ cl_p2p_http_port }}"
+      CL_CLI_HTTP_PORT: "{{ cl_cli_http_port }}"
+
+      CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ lead_node_ip }}"
+      CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_lead_node_public_port }}"
+      CL_GLOBAL_L0_PEER_ID: "{{ lead_node_id }}"
+
+      CL_KEYSTORE: "{{ validator_node_info.key_file.name }}"
+      CL_KEYALIAS: "{{ validator_node_info.key_file.alias }}"
+      CL_PASSWORD: "{{ validator_node_info.key_file.password }}"
+
+      CL_L0_TOKEN_IDENTIFIER: "{{ metagraph_id }}"
+      
+      CL_APP_ENV: dev
+      CL_COLLATERAL: "0"
+    command: |
+      bash -c '
+      cd metagraph-l0
+      nohup java -jar metagraph-l0.jar run-validator --ip {{ node_ip }} > metagraph-l0.log 2>&1 &
+      '
+
+- name: (Metagraph-L0) Check if node is ReadyToJoin
+  uri:
+    url: "http://localhost:{{ cl_public_http_port }}/node/info"
+    method: GET
+    return_content: yes
+  register: response
+  until: response.status == 200 and ("ReadyToJoin" in response.content | string or retries >= 100)
+  retries: 120
+  delay: 1
+  vars:
+    retries: 0
+
+- name: (Metagraph-L0) Join Cluster
+  community.docker.docker_container_exec:
+    container: "{{ validator_node_info.name }}"
+    command: >
+      curl -X POST 
+      -H "Content-Type: application/json" 
+      -d '{"id": "{{ lead_node_id }}", "ip": "{{ lead_node_ip }}", "p2pPort": "{{ lead_node_p2p_port }}"}' 
+      "http://localhost:{{ cl_cli_http_port }}/cluster/join"
