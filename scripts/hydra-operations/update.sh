@@ -177,6 +177,7 @@ function update_ansible_files() {
 }
 
 update_euclid() {
+  echo_white "################################## UPDATE ##################################"
   check_if_should_update
   check_if_any_container_is_running
 
@@ -184,7 +185,7 @@ update_euclid() {
 
   echo "Starting update ..."
   echo "Getting updated version"
-  git clone --quiet https://github.com/Constellation-Labs/euclid-development-environment.git > /dev/null
+  git clone --quiet https://github.com/Constellation-Labs/euclid-development-environment.git >/dev/null
   cd euclid-development-environment/
   checkout_version $argc_euclid_version
 
@@ -195,4 +196,5 @@ update_euclid() {
   chmod -R +w $INFRA_PATH/euclid-development-environment
   rm -r $INFRA_PATH/euclid-development-environment
   echo "Updating process finished!"
+  echo_white "####################################################################"
 }

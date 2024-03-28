@@ -1,21 +1,22 @@
 function install_template() {
+  echo_white "################################## INSTALL TEMPLATE ##################################"
   repo_name_with_git=$(basename "$argc_repo")
   repo_name="${repo_name_with_git%.git}"
 
   if [ "${argc_list}" ]; then
     echo_yellow "Fetching templates..."
-    
+
     cd $INFRA_PATH
     rm -r -f $INFRA_PATH/$repo_name
     git clone --quiet $argc_repo >/dev/null
-    
+
     echo_yellow ""
     echo_yellow "Available templates"
     echo_green ""
     ls -1 $INFRA_PATH/$repo_name/$argc_path
-    
+
     rm -rf $INFRA_PATH/$repo_name
-    
+
     echo_green ""
     exit 0
   fi
@@ -64,9 +65,11 @@ function install_template() {
 
   rm -r -f $INFRA_PATH/$repo_name
 
-  # cd $ROOT_PATH
-  # if [ -d ".git" ]; then
-  #   chmod -R +w .git
-  #   rm -r .git
-  # fi
+  cd $ROOT_PATH
+  if [ -d ".git" ]; then
+    chmod -R +w .git
+    rm -r .git
+  fi
+
+  echo_white "####################################################################"
 }
