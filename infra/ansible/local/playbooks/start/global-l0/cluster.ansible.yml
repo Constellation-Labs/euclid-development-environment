@@ -1,0 +1,33 @@
+---
+- name: (Global L0) Start global-l0
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  tasks:
+  - name: (Global L0) Check if should run genesis
+    set_fact:
+      force_genesis_bool: "{{ force_genesis | default(true) | bool }}"
+      
+  - name: Get all nodes from euclid.json
+    set_fact:
+      all_nodes: "{{ lookup('env', 'NODES') }}"
+
+  - name: Get the first node
+    set_fact:
+      first_node_info: "{{ all_nodes[0] }}"
+
+  - name: (Global L0) Run genesis
+    include_tasks: genesis.ansible.yml
+    vars:
+      node_info: "{{ first_node_info }}"
+    run_once: true
+    when: force_genesis_bool
+
+  - name: (Global L0) Run rollback
+    include_tasks: rollback.ansible.yml
+    vars:
+      node_info: "{{ first_node_info }}"
+    run_once: true
+    when: not force_genesis_bool
