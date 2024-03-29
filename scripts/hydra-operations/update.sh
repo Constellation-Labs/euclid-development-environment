@@ -22,20 +22,20 @@ function check_if_should_update() {
   echo "This operation will update the following files/directories:"
   echo "Directory - infra/docker"
   echo "Directory - scripts"
-  echo "File - infra/ansible/hosts.ansible.yml"
-  echo "File - infra/ansible/playbooks/deploy/configure.ansible.yml"
-  echo "File - infra/ansible/playbooks/deploy/deploy.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/clean.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/start.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/currency-l1/cluster.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/currency-l1/initial_validator.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/currency-l1/validator.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/data-l1/cluster.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/data-l1/initial_validator.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/data-l1/validator.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/metagraph-l0/cluster.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/metagraph-l0/genesis.ansible.yml"
-  echo "File - infra/ansible/playbooks/start/metagraph-l0/validator.ansible.yml"
+  echo "File - infra/ansible/remote/hosts.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/deploy/configure.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/deploy/deploy.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/clean.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/start.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/currency-l1/cluster.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/currency-l1/initial_validator.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/currency-l1/validator.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/data-l1/cluster.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/data-l1/initial_validator.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/data-l1/validator.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/metagraph-l0/cluster.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/metagraph-l0/genesis.ansible.yml"
+  echo "File - infra/ansible/remote/playbooks/start/metagraph-l0/validator.ansible.yml"
 
   default="N"
   echo "Do you want to proceed? (Y/N, default: $default): "
@@ -112,59 +112,59 @@ function update_ansible_files() {
   if [ -d "$DIRECTORY" ]; then
     chmod +x ansible/hosts.ansible.yml
     rm -r ansible/hosts.ansible.yml
-    cp euclid-development-environment/infra/ansible/hosts.ansible.yml .
+    cp euclid-development-environment/infra/ansible/remote/hosts.ansible.yml .
 
-    chmod +x ansible/playbooks/deploy/configure.ansible.yml
-    rm -r ansible/playbooks/deploy/configure.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/deploy/configure.ansible.yml .
+    chmod +x ansible/remote/playbooks/deploy/configure.ansible.yml
+    rm -r ansible/remote/playbooks/deploy/configure.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/deploy/configure.ansible.yml .
 
-    chmod +x ansible/playbooks/deploy/deploy.ansible.yml
-    rm -r ansible/playbooks/deploy/deploy.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/deploy/deploy.ansible.yml .
+    chmod +x ansible/remote/playbooks/deploy/deploy.ansible.yml
+    rm -r ansible/remote/playbooks/deploy/deploy.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/deploy/deploy.ansible.yml .
 
-    chmod +x ansible/playbooks/start/clean.ansible.yml
-    rm -r ansible/playbooks/start/clean.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/clean.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/clean.ansible.yml
+    rm -r ansible/remote/playbooks/start/clean.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/clean.ansible.yml .
 
-    chmod +x ansible/playbooks/start/start.ansible.yml
-    rm -r ansible/playbooks/start/start.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/start.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/start.ansible.yml
+    rm -r ansible/remote/playbooks/start/start.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/start.ansible.yml .
 
-    chmod +x ansible/playbooks/start/currency-l1/cluster.ansible.yml
-    rm -r ansible/playbooks/start/currency-l1/cluster.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/currency-l1/cluster.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/currency-l1/cluster.ansible.yml
+    rm -r ansible/remote/playbooks/start/currency-l1/cluster.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/currency-l1/cluster.ansible.yml .
 
-    chmod +x ansible/playbooks/start/currency-l1/initial_validator.ansible.yml
-    rm -r ansible/playbooks/start/currency-l1/initial_validator.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/currency-l1/initial_validator.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/currency-l1/initial_validator.ansible.yml
+    rm -r ansible/remote/playbooks/start/currency-l1/initial_validator.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/currency-l1/initial_validator.ansible.yml .
 
-    chmod +x ansible/playbooks/start/currency-l1/validator.ansible.yml
-    rm -r ansible/playbooks/start/currency-l1/validator.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/currency-l1/validator.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/currency-l1/validator.ansible.yml
+    rm -r ansible/remote/playbooks/start/currency-l1/validator.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/currency-l1/validator.ansible.yml .
 
-    chmod +x ansible/playbooks/start/data-l1/cluster.ansible.yml
-    rm -r ansible/playbooks/start/data-l1/cluster.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/data-l1/cluster.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/data-l1/cluster.ansible.yml
+    rm -r ansible/remote/playbooks/start/data-l1/cluster.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/data-l1/cluster.ansible.yml .
 
-    chmod +x ansible/playbooks/start/data-l1/initial_validator.ansible.yml
-    rm -r ansible/playbooks/start/data-l1/initial_validator.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/data-l1/initial_validator.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/data-l1/initial_validator.ansible.yml
+    rm -r ansible/remote/playbooks/start/data-l1/initial_validator.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/data-l1/initial_validator.ansible.yml .
 
-    chmod +x ansible/playbooks/start/data-l1/validator.ansible.yml
-    rm -r ansible/playbooks/start/data-l1/validator.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/data-l1/validator.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/data-l1/validator.ansible.yml
+    rm -r ansible/remote/playbooks/start/data-l1/validator.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/data-l1/validator.ansible.yml .
 
-    chmod +x ansible/playbooks/start/metagraph-l0/cluster.ansible.yml
-    rm -r ansible/playbooks/start/metagraph-l0/cluster.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/metagraph-l0/cluster.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/metagraph-l0/cluster.ansible.yml
+    rm -r ansible/remote/playbooks/start/metagraph-l0/cluster.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/metagraph-l0/cluster.ansible.yml .
 
-    chmod +x ansible/playbooks/start/metagraph-l0/genesis.ansible.yml
-    rm -r ansible/playbooks/start/metagraph-l0/genesis.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/metagraph-l0/genesis.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/metagraph-l0/genesis.ansible.yml
+    rm -r ansible/remote/playbooks/start/metagraph-l0/genesis.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/metagraph-l0/genesis.ansible.yml .
 
-    chmod +x ansible/playbooks/start/metagraph-l0/validator.ansible.yml
-    rm -r ansible/playbooks/start/metagraph-l0/validator.ansible.yml
-    cp euclid-development-environment/infra/ansible/playbooks/start/metagraph-l0/validator.ansible.yml .
+    chmod +x ansible/remote/playbooks/start/metagraph-l0/validator.ansible.yml
+    rm -r ansible/remote/playbooks/start/metagraph-l0/validator.ansible.yml
+    cp euclid-development-environment/infra/ansible/remote/playbooks/start/metagraph-l0/validator.ansible.yml .
 
   else
     chmod +x ansible

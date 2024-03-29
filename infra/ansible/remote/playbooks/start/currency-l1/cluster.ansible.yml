@@ -2,6 +2,8 @@
 - name: Start currency-l1 initial validator
   hosts: node-1
   gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   environment:
     CL_PUBLIC_HTTP_PORT: "{{ base_currency_l1_public_port }}"
     CL_P2P_HTTP_PORT: "{{ base_currency_l1_p2p_port }}"
@@ -15,9 +17,9 @@
     CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_IP') }}"
     CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_PUBLIC_PORT') }}"
 
-    CL_KEYSTORE: "{{ lookup('env', 'P12_NODE_1_FILE_NAME') }}"
-    CL_KEYALIAS: "{{ lookup('env', 'P12_NODE_1_FILE_KEY_ALIAS') }}"
-    CL_PASSWORD: "{{ lookup('env', 'P12_NODE_1_FILE_PASSWORD') }}"
+    CL_KEYSTORE: "{{ all_nodes[0].key_file.name }}"
+    CL_KEYALIAS: "{{ all_nodes[0].key_file.alias }}"
+    CL_PASSWORD: "{{ all_nodes[0].key_file.password }}"
     
     CL_APP_ENV: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
     CL_COLLATERAL: 0
@@ -40,6 +42,8 @@
 - name: Start currency-l1 validator 1
   hosts: node-2
   gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   environment:
     CL_PUBLIC_HTTP_PORT: "{{ base_currency_l1_public_port }}"
     CL_P2P_HTTP_PORT: "{{ base_currency_l1_p2p_port }}"
@@ -53,9 +57,9 @@
     CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_IP') }}"
     CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_PUBLIC_PORT') }}"
 
-    CL_KEYSTORE: "{{ lookup('env', 'P12_NODE_2_FILE_NAME') }}"
-    CL_KEYALIAS: "{{ lookup('env', 'P12_NODE_2_FILE_KEY_ALIAS') }}"
-    CL_PASSWORD: "{{ lookup('env', 'P12_NODE_2_FILE_PASSWORD') }}"
+    CL_KEYSTORE: "{{ all_nodes[1].key_file.name }}"
+    CL_KEYALIAS: "{{ all_nodes[1].key_file.alias }}"
+    CL_PASSWORD: "{{ all_nodes[1].key_file.password }}"
 
     CL_APP_ENV: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
     CL_COLLATERAL: 0
@@ -70,6 +74,8 @@
 - name: Start currency-l1 validator 2
   hosts: node-3
   gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   environment:
     CL_PUBLIC_HTTP_PORT: "{{ base_currency_l1_public_port }}"
     CL_P2P_HTTP_PORT: "{{ base_currency_l1_p2p_port }}"
@@ -83,9 +89,9 @@
     CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_IP') }}"
     CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_PUBLIC_PORT') }}"
 
-    CL_KEYSTORE: "{{ lookup('env', 'P12_NODE_3_FILE_NAME') }}"
-    CL_KEYALIAS: "{{ lookup('env', 'P12_NODE_3_FILE_KEY_ALIAS') }}"
-    CL_PASSWORD: "{{ lookup('env', 'P12_NODE_3_FILE_PASSWORD') }}"
+    CL_KEYSTORE: "{{ all_nodes[2].key_file.name }}"
+    CL_KEYALIAS: "{{ all_nodes[2].key_file.alias }}"
+    CL_PASSWORD: "{{ all_nodes[2].key_file.password }}"
 
     CL_APP_ENV: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
     CL_COLLATERAL: 0

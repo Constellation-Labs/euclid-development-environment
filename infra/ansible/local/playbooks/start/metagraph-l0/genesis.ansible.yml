@@ -43,12 +43,14 @@
       cp metagraph-l0/genesis.address shared_genesis
       cp metagraph-l0/genesis.snapshot shared_genesis
       '
-- name: (Metagraph-L0) Copy metagraph-l0.jar information to shared/jars
+- name: (Metagraph-L0) Copy jars information to shared/jars
   community.docker.docker_container_exec:
     container: "{{ node_info.name }}"
     command: |
       bash -c '
       cp metagraph-l0/metagraph-l0.jar shared_jars
+      cp metagraph-l0/cl-keytool.jar shared_jars
+      cp metagraph-l0/cl-wallet.jar shared_jars
       '
 
 - name: (Metagraph-L0) Start as genesis

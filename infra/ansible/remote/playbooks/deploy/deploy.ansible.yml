@@ -34,52 +34,52 @@
   tasks:
     - name: Sending cl-keytool.jar to metagraph-l0
       copy:
-        src: ../../../docker/shared/jars/cl-keytool.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-keytool.jar"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
     - name: Sending cl-wallet.jar to metagraph-l0
       copy:
-        src: ../../../docker/shared/jars/cl-wallet.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-wallet.jar"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
     - name: Sending metagraph-l0.jar to metagraph-l0
       copy:
-        src: ../../../docker/shared/jars/metagraph-l0.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/metagraph-l0.jar"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
     - name: Sending cl-keytool.jar to currency-l1
       copy:
-        src: ../../../docker/shared/jars/cl-keytool.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-keytool.jar"
         dest: /home/{{ ansible_user }}/code/currency-l1
       when: deploy_cl1 | bool
     
     - name: Sending cl-wallet.jar to currency-l1
       copy:
-        src: ../../../docker/shared/jars/cl-wallet.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-wallet.jar"
         dest: /home/{{ ansible_user }}/code/currency-l1
       when: deploy_cl1 | bool
 
     - name: Sending currency-l1.jar to currency-l1
       copy:
-        src: ../../../docker/shared/jars/currency-l1.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/currency-l1.jar"
         dest: /home/{{ ansible_user }}/code/currency-l1/currency-l1.jar
       when: deploy_cl1 | bool
 
     - name: Sending cl-keytool.jar to data-l1
       copy:
-        src: ../../../docker/shared/jars/cl-keytool.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}//docker/shared/jars/cl-keytool.jar"
         dest: /home/{{ ansible_user }}/code/data-l1
       when: deploy_dl1 | bool
 
     - name: Sending cl-wallet.jar to data-l1
       copy:
-        src: ../../../docker/shared/jars/cl-wallet.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}//docker/shared/jars/cl-wallet.jar"
         dest: /home/{{ ansible_user }}/code/data-l1
       when: deploy_dl1 | bool
 
     - name: Sending data-l1.jar to data-l1
       copy:
-        src: ../../../docker/shared/jars/data-l1.jar
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/data-l1.jar"
         dest: /home/{{ ansible_user }}/code/data-l1/data-l1.jar
       when: deploy_dl1 | bool
 
@@ -89,78 +89,84 @@
   tasks:
     - name: Sending metagraph l0 genesis.csv to metagraph-l0
       copy:
-        src: ../../../../source/metagraph-l0/genesis/genesis.csv
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/metagraph-l0/genesis/genesis.csv"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
     - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
       copy:
-        src: ../../../../source/metagraph-l0/genesis/genesis.snapshot
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.snapshot"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
     - name: Sending metagraph l0 genesis.address to metagraph-l0
       copy:
-        src: ../../../../source/metagraph-l0/genesis/genesis.address
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
 - name: Send p12 files to remote node-1
   hosts: node-1
   gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: Sending p12 file to metagraph-l0
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_1_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[0].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
         
     - name: Sending p12 file to currency-l1
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_1_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[0].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/currency-l1
       when: deploy_cl1 | bool
 
     - name: Sending p12 file to data-l1
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_1_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[0].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/data-l1
       when: deploy_dl1 | bool
 
 - name: Send p12 files to remote node-2
   hosts: node-2
   gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: Sending p12 file to metagraph-l0
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_2_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[1].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
         
     - name: Sending p12 file to currency-l1
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_2_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[1].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/currency-l1
       when: deploy_cl1 | bool
 
     - name: Sending p12 file to data-l1
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_2_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[1].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/data-l1
       when: deploy_dl1 | bool
 
 - name: Send p12 files to remote node-3
   hosts: node-3
   gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: Sending p12 file to metagraph-l0
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_3_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[2].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
         
     - name: Sending p12 file to currency-l1
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_3_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[2].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/currency-l1
       when: deploy_cl1 | bool
 
     - name: Sending p12 file to data-l1
       copy:
-        src: ../../../../source/p12-files/{{ lookup('env', 'P12_NODE_3_FILE_NAME') }}
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[2].key_file.name }}"
         dest: /home/{{ ansible_user }}/code/data-l1
       when: deploy_dl1 | bool
