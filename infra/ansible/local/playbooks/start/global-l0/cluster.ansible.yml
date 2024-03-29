@@ -5,16 +5,15 @@
   gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
   - name: (Global L0) Check if should run genesis
     set_fact:
       force_genesis_bool: "{{ force_genesis | default(true) | bool }}"
       
-  - name: Get all nodes from euclid.json
-    set_fact:
-      all_nodes: "{{ lookup('env', 'NODES') }}"
 
-  - name: Get the first node
+  - name: (Global L0) Get the first node
     set_fact:
       first_node_info: "{{ all_nodes[0] }}"
 

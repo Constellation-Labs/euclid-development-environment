@@ -5,10 +5,9 @@
   gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"  
   tasks:
-  - name: (Metagraph L0) Get all nodes from euclid.json
-    set_fact:
-      all_nodes: "{{ lookup('env', 'NODES') }}"
 
   - name: (Metagraph L0) Add port variable to node
     set_fact:

@@ -9,9 +9,6 @@
     - name: (Currency L1) Getting lead node information
       include_tasks: ../shared/get-lead-node-info.ansible.yml
 
-    - name: (Currency L1) Get all nodes from euclid.json
-      set_fact:
-        all_nodes: "{{ lookup('env', 'NODES') }}"
 
 - name: (Currency L1) Starting the initial validator
   hosts: localhost
@@ -19,6 +16,8 @@
   gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: (Currency L1) Starting
       include_tasks: initial-validator.ansible.yml
@@ -31,6 +30,8 @@
   gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: (Currency L1) Starting Validator
       include_tasks: validator.ansible.yml

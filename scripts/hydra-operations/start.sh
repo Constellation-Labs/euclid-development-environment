@@ -176,6 +176,34 @@ function print_nodes_information() {
         echo
         ((index++))
     done < <(jq -c '.[]' <<<"$NODES")
+
+    echo_green "Clusters URLs"
+    if [[ " ${LAYERS[*]} " =~ "global-l0" ]]; then
+        raw_port=$(yq eval '.base_global_l0_public_port' $ansible_vars_path)
+        echo_url "Global L0:" "http://localhost:$raw_port/cluster/info"
+    fi
+
+    if [[ " ${LAYERS[*]} " =~ "dag-l1" ]]; then
+        raw_port=$(yq eval '.base_dag_l1_public_port' $ansible_vars_path)
+        echo_url "DAG L1:" "http://localhost:$raw_port/cluster/info"
+    fi
+
+    if [[ " ${LAYERS[*]} " =~ "metagraph-l0" ]]; then
+        raw_port=$(yq eval '.base_metagraph_l0_public_port' $ansible_vars_path)
+        echo_url "Metagraph L0:" "http://localhost:$raw_port/cluster/info"
+    fi
+
+    if [[ " ${LAYERS[*]} " =~ "currency-l1" ]] || [[ " ${LAYERS[*]} " =~ "metagraph-l1-currency" ]]; then
+        raw_port=$(yq eval '.base_currency_l1_public_port' $ansible_vars_path)
+        echo_url "Currency L1:" "http://localhost:$raw_port/cluster/info"
+    fi
+
+    if [[ " ${LAYERS[*]} " =~ "data-l1" ]] || [[ " ${LAYERS[*]} " =~ "metagraph-l1-data" ]]; then
+        raw_port=$(yq eval '.base_data_l1_public_port' $ansible_vars_path)
+        echo_url "Data L1:" "http://localhost:$raw_port/cluster/info"
+    fi
+
+    echo
 }
 
 function start_containers() {
@@ -183,7 +211,7 @@ function start_containers() {
     check_ansible
     check_if_we_have_at_least_3_nodes
     check_p12_files
-    
+
     export ANSIBLE_LOCALHOST_WARNING=False
     export ANSIBLE_INVENTORY_UNPARSED_WARNING=False
 

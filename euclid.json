@@ -56,10 +56,10 @@
       }
     },
     "ansible": {
-      "hosts": "infra/ansible/hosts.ansible.yml",
+      "hosts": "infra/ansible/remote/hosts.ansible.yml",
       "playbooks": {
-        "deploy": "infra/ansible/playbooks/deploy/deploy.ansible.yml",
-        "start": "infra/ansible/playbooks/start/start.ansible.yml"
+        "deploy": "infra/ansible/remote/playbooks/deploy/deploy.ansible.yml",
+        "start": "infra/ansible/remote/playbooks/start/start.ansible.yml"
       }
     }
   }

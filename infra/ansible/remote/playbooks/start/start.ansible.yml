@@ -8,10 +8,12 @@
 - name: Get metagraph L0 node info
   gather_facts: false
   hosts: node-1
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
   environment:
-    CL_KEYSTORE: "{{ lookup('env', 'P12_NODE_1_FILE_NAME') }}"
-    CL_KEYALIAS: "{{ lookup('env', 'P12_NODE_1_FILE_KEY_ALIAS') }}"
-    CL_PASSWORD: "{{ lookup('env', 'P12_NODE_1_FILE_PASSWORD') }}"
+    CL_KEYSTORE: "{{ all_nodes[0].key_file.name }}"
+    CL_KEYALIAS: "{{ all_nodes[0].key_file.alias }}"
+    CL_PASSWORD: "{{ all_nodes[0].key_file.password }}"
   tasks:
     - name: Get node_id
       shell: |

@@ -1,9 +1,7 @@
 ---
-- name: (Lead) Get all nodes from euclid.json
-  set_fact:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
-
 - name: (Lead) Get the first node
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
   set_fact:
     node_info: "{{ all_nodes[0] }}"  
 
