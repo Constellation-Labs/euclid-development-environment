@@ -23,5 +23,5 @@ nodes:
     base_currency_l1_p2p_port: 9201
     base_currency_l1_cli_port: 9202
     base_data_l1_public_port: 9300
-    data_l1_p2p_port: 9301
-    data_l1_cli_port: 9302
+    base_data_l1_p2p_port: 9301
+    base_data_l1_cli_port: 9302

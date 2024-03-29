@@ -9,9 +9,6 @@
     - name: (Metagraph-L0) Getting lead node information
       include_tasks: ../shared/get-lead-node-info.ansible.yml
 
-    - name: (Metagraph-L0) Get all nodes from euclid.json
-      set_fact:
-        all_nodes: "{{ lookup('env', 'NODES') }}"
 
 - name: (Metagraph-L0) Genesis
   hosts: localhost
@@ -19,6 +16,8 @@
   gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: (Metagraph-L0) Check execution type
       set_fact:
@@ -46,6 +45,8 @@
   gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
   tasks:
     - name: (Metagraph-L0) Starting Validator
       include_tasks: validator.ansible.yml
