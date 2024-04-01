@@ -1,0 +1,100 @@
+---
+- import_playbook: clean.ansible.yml
+
+- name: Get metagraph id
+  gather_facts: false
+  hosts: node-1
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:
+    - name: Get metagraph address
+      shell: |
+        cd "/home/{{ ansible_user }}/code/metagraph-l0"
+        cat genesis.address
+      register: metagraph_id_raw
+  
+    - set_fact:
+        current_metagraph_id: "{{ metagraph_id_raw.stdout }}"
+
+- name: Set node 1 variables
+  gather_facts: false
+  hosts: node-1
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:  
+    - set_fact:
+        metagraph_id: "{{ current_metagraph_id }}"
+        cl_keystore: "{{ all_nodes[0].key_file.name }}"
+        cl_keyalias: "{{ all_nodes[0].key_file.alias }}"
+        cl_password: "{{ all_nodes[0].key_file.password }}"
+        network: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
+        gl0_ip: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_IP') }}"
+        gl0_port: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_PUBLIC_PORT') }}"
+        gl0_id: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_ID') }}"
+
+- name: Set node 2 variables
+  gather_facts: false
+  hosts: node-2
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:  
+    - set_fact:
+        all_nodes: "{{ lookup('env', 'NODES') }}"
+        metagraph_id: "{{ hostvars['node-1']['current_metagraph_id'] }}"
+        cl_keystore: "{{ all_nodes[1].key_file.name }}"
+        cl_keyalias: "{{ all_nodes[1].key_file.alias }}"
+        cl_password: "{{ all_nodes[1].key_file.password }}"
+        network: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
+        gl0_ip: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_IP') }}"
+        gl0_port: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_PUBLIC_PORT') }}"
+        gl0_id: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_ID') }}"
+
+- name: Set node 3 variables
+  gather_facts: false
+  hosts: node-3
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:  
+    - set_fact:
+        all_nodes: "{{ lookup('env', 'NODES') }}"
+        metagraph_id: "{{ hostvars['node-1']['current_metagraph_id'] }}"
+        cl_keystore: "{{ all_nodes[2].key_file.name }}"
+        cl_keyalias: "{{ all_nodes[2].key_file.alias }}"
+        cl_password: "{{ all_nodes[2].key_file.password }}"
+        network: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
+        gl0_ip: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_IP') }}"
+        gl0_port: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_PUBLIC_PORT') }}"
+        gl0_id: "{{ lookup('env', 'DEPLOY_NETWORK_HOST_ID') }}"
+
+- import_playbook: metagraph-l0/cluster.ansible.yml
+  vars:
+    force_genesis: "{{ force_genesis }}"
+
+- name: Get metagraph L0 node info
+  gather_facts: false
+  hosts: node-1
+  environment:
+    CL_KEYSTORE: "{{ cl_keystore }}"
+    CL_KEYALIAS: "{{ cl_keyalias }}"
+    CL_PASSWORD: "{{ cl_password }}"
+  tasks:
+    - name: Get node_id
+      shell: |
+        cd /home/{{ ansible_user }}/code/metagraph-l0
+        java -jar cl-wallet.jar show-id
+      register: node_id
+      ignore_errors: yes 
+
+    - set_fact:
+        ml0_node_1_ip: "{{ ansible_host }}"
+        ml0_node_1_id: "{{ node_id.stdout }}"
+
+- import_playbook: currency-l1/cluster.ansible.yml
+  vars:
+    ml0_node_1_id: "{{ hostvars['node-1']['ml0_node_1_id'] }}"
+    ml0_node_1_ip: "{{ hostvars['node-1']['ml0_node_1_ip'] }}"
+
+- import_playbook: data-l1/cluster.ansible.yml
+  vars:
+    ml0_node_1_id: "{{ hostvars['node-1']['ml0_node_1_id'] }}"
+    ml0_node_1_ip: "{{ hostvars['node-1']['ml0_node_1_ip'] }}"
