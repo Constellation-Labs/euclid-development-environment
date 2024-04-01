@@ -19,13 +19,16 @@ scrape_configs:
           - localhost:9090
   - job_name: dynamic-targets
     http_sd_configs:
-      - url: http://172.50.0.5:9000/targets
       - url: http://172.50.0.10:9000/targets
-      - url: http://172.50.0.11:9000/targets
-      - url: http://172.50.0.12:9000/targets
-      - url: http://172.50.0.20:9000/targets
-      - url: http://172.50.0.21:9000/targets
-      - url: http://172.50.0.22:9000/targets
-      - url: http://172.50.0.30:9000/targets
-      - url: http://172.50.0.31:9000/targets
-      - url: http://172.50.0.32:9000/targets
+      - url: http://172.50.0.10:9100/targets
+      - url: http://172.50.0.20:9110/targets
+      - url: http://172.50.0.30:9120/targets
+      - url: http://172.50.0.10:9200/targets
+      - url: http://172.50.0.20:9210/targets
+      - url: http://172.50.0.30:9220/targets
+      - url: http://172.50.0.10:9300/targets
+      - url: http://172.50.0.20:9310/targets
+      - url: http://172.50.0.30:9320/targets
+      - url: http://172.50.0.10:9400/targets
+      - url: http://172.50.0.20:9410/targets
+      - url: http://172.50.0.30:9420/targets

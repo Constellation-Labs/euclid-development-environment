@@ -1,0 +1,50 @@
+---
+- name: (DAG L1) Copy file to Docker container
+  command: docker cp {{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ node_info.key_file.name }} {{ node_info.name }}:code/dag-l1/{{ node_info.key_file.name }}
+
+- name: (DAG L1) Set local variables
+  set_fact:
+    cl_public_http_port: "{{ (base_dag_l1_public_port | int ) }}"
+    cl_p2p_http_port: "{{ (base_dag_l1_p2p_port | int ) }}"
+    cl_cli_http_port: "{{ (base_dag_l1_cli_port | int ) }}"
+    
+    node_ip: "{{ base_prefix_ip }}{{ offset }}"
+    
+    lead_node_ip: "{{ base_prefix_ip }}{{ offset }}"
+    gl0_lead_node_public_port: "{{ base_global_l0_public_port | int }}"
+
+- name: (DAG L1)  Start as initial-validator
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    env: 
+      CL_PUBLIC_HTTP_PORT: "{{ cl_public_http_port }}"
+      CL_P2P_HTTP_PORT: "{{ cl_p2p_http_port }}"
+      CL_CLI_HTTP_PORT: "{{ cl_cli_http_port}}"
+
+      CL_L0_PEER_HTTP_HOST: "{{ lead_node_ip }}"
+      CL_L0_PEER_HTTP_PORT: "{{ gl0_lead_node_public_port }}"
+      CL_L0_PEER_ID: "{{ lead_node_id }}"
+
+      CL_KEYSTORE: "{{ node_info.key_file.name }}"
+      CL_KEYALIAS: "{{ node_info.key_file.alias }}"
+      CL_PASSWORD: "{{ node_info.key_file.password }}"
+      
+      CL_APP_ENV: dev
+      CL_COLLATERAL: "0"
+    command: |
+      bash -c '
+      cd dag-l1
+      nohup java -jar dag-l1.jar run-initial-validator --ip {{ node_ip }} > dag-l1.log 2>&1 &
+      '
+
+- name: (DAG L1) Check if node is Ready
+  uri:
+    url: "http://localhost:{{ cl_public_http_port }}/node/info"
+    method: GET
+    return_content: yes
+  register: response
+  until: response.status == 200 and ("Ready" in response.content | string or retries >= 100)
+  retries: 120
+  delay: 1
+  vars:
+    retries: 0

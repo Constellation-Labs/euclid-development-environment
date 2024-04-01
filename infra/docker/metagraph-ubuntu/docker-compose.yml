@@ -1,0 +1,6 @@
+version: '3'
+services:
+  metagraph-ubuntu:
+    platform: linux/amd64
+    build: .
+    image: "metagraph-ubuntu-${TESSELLATION_VERSION}"

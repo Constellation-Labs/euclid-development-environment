@@ -1,0 +1,12 @@
+---
+- name: (Monitoring) Start Monitoring
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  tasks:
+    - name: (Monitoring) Starting monitoring container
+      shell: |
+       cd {{ lookup('env', 'INFRA_PATH') }}/docker/monitoring
+       {{ lookup('env', 'DOCKER_COMPOSE') }} up -d --no-recreate

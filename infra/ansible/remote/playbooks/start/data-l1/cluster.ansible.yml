@@ -1,0 +1,42 @@
+---
+- name: Start data-l1 initial validator
+  hosts: node-1
+  gather_facts: false
+  tasks:
+    - name: Starting data-l1 initial validator
+      include_tasks: initial_validator.ansible.yml
+
+    - name: Get node_id
+      environment:
+        CL_KEYSTORE: "{{ cl_keystore }}"
+        CL_KEYALIAS: "{{ cl_keyalias }}"
+        CL_PASSWORD: "{{ cl_password }}"
+      shell: |
+        cd /home/{{ ansible_user }}/code/data-l1
+        java -jar cl-wallet.jar show-id
+      register: node_id
+      ignore_errors: yes 
+
+    - set_fact:
+        dl1_node_1_ip: "{{ ansible_host }}"
+        dl1_node_1_id: "{{ node_id.stdout }}"
+
+- name: Start data-l1 validator 1
+  hosts: node-2
+  gather_facts: false
+  tasks:
+    - name: Starting data-l1 validator 1 node
+      include_tasks: validator.ansible.yml
+      vars:
+        data_l1_genesis_node_id: "{{ hostvars['node-1']['dl1_node_1_id'] }}"
+        data_l1_genesis_node_ip: "{{ hostvars['node-1']['dl1_node_1_ip'] }}"
+
+- name: Start data-l1 validator 2
+  hosts: node-3
+  gather_facts: false
+  tasks:
+    - name: Starting data-l1 validator 2 node
+      include_tasks: validator.ansible.yml
+      vars:
+        data_l1_genesis_node_id: "{{ hostvars['node-1']['dl1_node_1_id'] }}"
+        data_l1_genesis_node_ip: "{{ hostvars['node-1']['dl1_node_1_ip'] }}"

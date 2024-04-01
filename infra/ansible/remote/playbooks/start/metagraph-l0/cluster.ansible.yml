@@ -1,0 +1,50 @@
+---
+- name: Start metagraph-l0 genesis
+  hosts: node-1
+  gather_facts: false
+  tasks:
+    - name: Starting metagraph-l0 genesis node
+      include_tasks: genesis.ansible.yml
+      vars:
+        force_genesis: "{{ force_genesis_bool }}"
+
+    - name: Get node_id
+      environment:
+        CL_KEYSTORE: "{{ cl_keystore}}"
+        CL_KEYALIAS: "{{ cl_keyalias }}"
+        CL_PASSWORD: "{{ cl_password }}"
+      shell: |
+        cd /home/{{ ansible_user }}/code/metagraph-l0
+        java -jar cl-wallet.jar show-id
+      register: node_id
+      ignore_errors: yes 
+
+    - name: Get node_ip
+      uri:
+        url: "https://ifconfig.me/ip"
+        return_content: yes
+      register: ip_address_result
+
+    - set_fact:
+        ml0_node_1_ip: "{{ ip_address_result.content }}"
+        ml0_node_1_id: "{{ node_id.stdout }}"
+
+- name: Start metagraph-l0 validator 1
+  hosts: node-2
+  gather_facts: false
+  tasks:
+    - name: Starting metagraph-l0 validator 1 node
+      include_tasks: validator.ansible.yml
+      vars:
+        metagraph_l0_genesis_node_id: "{{ hostvars['node-1']['ml0_node_1_id'] }}"
+        metagraph_l0_genesis_node_ip: "{{ hostvars['node-1']['ml0_node_1_ip'] }}"
+
+- name: Start metagraph-l0 validator 2
+  hosts: node-3
+  gather_facts: false
+  tasks:
+    - name: Starting metagraph-l0 validator 2 node
+      include_tasks: validator.ansible.yml
+      vars:
+        metagraph_l0_genesis_node_id: "{{ hostvars['node-1']['ml0_node_1_id'] }}"
+        metagraph_l0_genesis_node_ip: "{{ hostvars['node-1']['ml0_node_1_ip'] }}"
