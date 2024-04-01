@@ -1,0 +1,63 @@
+---
+- name: (Global L0) Copy file to Docker container
+  command: docker cp {{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ node_info.key_file.name }} {{ node_info.name }}:code/global-l0/{{ node_info.key_file.name }}
+
+- name: (Global L0) Set local variables
+  set_fact:
+    cl_public_http_port: "{{ (base_global_l0_public_port | int ) }}"
+    cl_p2p_http_port: "{{ (base_global_l0_p2p_port | int ) }}"
+    cl_cli_http_port: "{{ (base_global_l0_cli_port | int ) }}"
+    node_ip: "{{ base_prefix_ip }}{{ offset }}"
+
+- name: (Global L0) Check if data directory exists
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: "/bin/bash -c 'if [[ ! -d global-l0/data/incremental_snapshot ]]; then echo \"Data directory not exists, cannot run rollback...\"; exit 1; fi'"
+  register: data_directory_check
+  ignore_errors: yes
+
+- name: (Global L0) Get last snapshot
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: "/bin/bash -c 'cd global-l0/data/incremental_snapshot && LAST_SNAPSHOT=$(ls -hatr | grep \"[_[:alnum:]]\\{64\\}\" | tail -1) && echo $LAST_SNAPSHOT'"
+  register: last_snapshot
+  when: data_directory_check.rc == 0 
+
+- name: (Global L0) Set last snapshot as variable
+  set_fact:
+    last_snapshot_hash: "{{ last_snapshot.stdout }}"
+  when: last_snapshot.rc == 0 and last_snapshot.stdout is defined and last_snapshot.stdout != ''
+  failed_when: last_snapshot.rc == 0 and (last_snapshot.stdout is not defined or last_snapshot.stdout == '')
+
+- name: (Global L0) Start Global L0 - Rollback
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: |
+      /bin/bash -c '
+      cd global-l0 &&
+      nohup java -jar global-l0.jar run-rollback --ip {{ node_ip }} {{ last_snapshot_hash }}> global-l0.log 2>&1 &
+      '
+    env:
+      CL_PUBLIC_HTTP_PORT: "{{ cl_public_http_port }}"
+      CL_P2P_HTTP_PORT: "{{ cl_p2p_http_port }}"
+      CL_CLI_HTTP_PORT: "{{ cl_cli_http_port }}"
+
+      CL_KEYSTORE: "{{  node_info.key_file.name }}"
+      CL_KEYALIAS: "{{  node_info.key_file.alias }}"
+      CL_PASSWORD: "{{  node_info.key_file.password }}"
+
+      CL_APP_ENV: dev
+      CL_COLLATERAL: "0"
+  when: not force_genesis_bool  
+
+- name: (Global L0) Check if GL0 is Ready
+  uri:
+    url: "http://localhost:{{ cl_public_http_port }}/node/info"
+    method: GET
+    return_content: yes
+  register: response
+  until: response.status == 200 and ("Ready" in response.content | string or retries >= 100)
+  retries: 120
+  delay: 1
+  vars:
+    retries: 0
