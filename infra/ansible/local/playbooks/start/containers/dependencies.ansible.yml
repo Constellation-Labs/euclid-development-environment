@@ -1,0 +1,15 @@
+---
+- name: Install requests module
+  pip:
+    name: requests
+    state: present
+
+- name: Check if community.docker collection is installed
+  stat:
+    path: "$HOME/.ansible/collections/ansible_collections/community/docker"
+  register: collection_status
+
+- name: Install community.docker collection if not installed
+  ansible.builtin.command:
+    cmd: ansible-galaxy collection install community.docker --force
+  when: not collection_status.stat.exists
