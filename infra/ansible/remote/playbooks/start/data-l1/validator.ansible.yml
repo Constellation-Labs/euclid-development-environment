@@ -1,0 +1,80 @@
+---
+- name: Check if data-l1.jar exists
+  stat:
+    path: "/home/{{ ansible_user }}/code/data-l1/data-l1.jar"
+  register: data_l1_jar
+
+- name: Display message if file data-l1.jar doesn't exist
+  debug:
+    msg: "File /home/{{ ansible_user }}/code/data-l1/data-l1.jar does not exist"
+  when: not data_l1_jar.stat.exists
+
+- name: Skip remaining tasks if file data-l1.jar doesn't exist
+  meta: end_play
+  when: not data_l1_jar.stat.exists
+  
+- name: Check if token file exists
+  stat:
+    path: "/home/{{ ansible_user }}/code/data-l1/{{ cl_keystore }}"
+  register: token_file
+
+- name: Throw an error if the token_file doesn't exist
+  fail:
+    msg: "File /home/{{ ansible_user }}/code/data-l1/{{ cl_keystore }} does not exist"
+  when: not token_file.stat.exists
+
+- name: Start as validator
+  environment:
+    CL_PUBLIC_HTTP_PORT: "{{ base_data_l1_public_port }}"
+    CL_P2P_HTTP_PORT: "{{ base_data_l1_p2p_port }}"
+    CL_CLI_HTTP_PORT: "{{ base_data_l1_cli_port }}"
+
+    CL_L0_PEER_ID: "{{ ml0_node_1_id }}"
+    CL_L0_PEER_HTTP_HOST: "{{ ml0_node_1_ip }}"
+    CL_L0_PEER_HTTP_PORT: "{{ base_metagraph_l0_public_port }}"
+
+    CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ gl0_ip }}"
+    CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port }}"
+    CL_GLOBAL_L0_PEER_ID: "{{ gl0_id }}"
+
+    CL_KEYSTORE: "{{ cl_keystore }}"
+    CL_KEYALIAS: "{{ cl_keyalias }}"
+    CL_PASSWORD: "{{ cl_password }}"
+    
+    CL_APP_ENV: "{{ network }}"
+    CL_COLLATERAL: 0
+    CL_L0_TOKEN_IDENTIFIER: "{{ metagraph_id }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/data-l1"
+    nohup java -jar data-l1.jar run-validator --ip {{ ansible_host }} > data-l1.log 2>&1 &
+
+- name: Check if node is ReadyToJoin
+  uri:
+    url: "http://localhost:{{ base_data_l1_public_port }}/node/info"
+    method: GET
+    return_content: yes
+  register: response
+  until: response.status == 200 and ("ReadyToJoin" in response.content | string or retries >= 100)
+  retries: 120
+  delay: 1
+  vars:
+    retries: 0
+
+- name: Join Cluster
+  uri:
+    url: "http://localhost:{{ base_data_l1_cli_port }}/cluster/join"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      id: "{{ data_l1_genesis_node_id }}"
+      ip: "{{ data_l1_genesis_node_ip }}"
+      p2pPort: "{{ base_data_l1_p2p_port }}"
+    return_content: yes
+  register: curl_output
+  until: (curl_output.status == 200 or curl_output.status == 404) or retries >= 5
+  retries: 5
+  delay: 10
+  vars:
+    retries: 0
