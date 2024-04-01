@@ -1,0 +1,16 @@
+---
+- name: (Kill) Find process ID by port
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: "/bin/bash -c 'lsof -t -i:{{ node_info.port }}'"
+  register: process_id
+  ignore_errors: true
+  failed_when: false
+
+- name: (Kill) Kill process
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: "/bin/bash -c 'kill -9 {{ process_id.stdout }}'"
+  ignore_errors: true
+  failed_when: false
+  when: process_id.stdout is defined

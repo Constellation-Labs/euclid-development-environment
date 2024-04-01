@@ -196,7 +196,7 @@ In this tool we have 2 dashboards, you can access them on `Dashboard` section
 ## Deployment
 
 Configuring, deploying, and starting remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote-deploy` and `hydra remote-start`.
-Prior to running these methods, remote host information must be configured in  `infra/ansible/hosts.ansible.yml`
+Prior to running these methods, remote host information must be configured in  `infra/ansible/remote/hosts.ansible.yml`
 
 
 ### Host Configuration
@@ -285,4 +285,4 @@ Each layer directory on every node contains a folder named `logs`. You can monit
 
 `tail -f logs/app.log`
 
-**NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/hosts.ansible.yml` file.
+**NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/remote/hosts.ansible.yml` file.

@@ -1,0 +1,27 @@
+---
+nodes:
+  hosts:
+    node-1:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node-2:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    node-3:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    base_metagraph_l0_public_port: 9100
+    base_metagraph_l0_p2p_port: 9101
+    base_metagraph_l0_cli_port: 9102
+    base_currency_l1_public_port: 9200
+    base_currency_l1_p2p_port: 9201
+    base_currency_l1_cli_port: 9202
+    base_data_l1_public_port: 9300
+    base_data_l1_p2p_port: 9301
+    base_data_l1_cli_port: 9302

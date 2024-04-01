@@ -1,0 +1,24 @@
+---
+- name: (Metagraph L0) Kill Metagraph L0 processes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"  
+  tasks:
+
+  - name: (Metagraph L0) Add port variable to node
+    set_fact:
+      node_list_with_port: "{{ node_list_with_port | default([]) + [{'name': item.name, 'key_file': item.key_file, 'port': (base_metagraph_l0_public_port | int) + (index * offset)}] }}"
+    loop: "{{ all_nodes }}"
+    loop_control:
+      loop_var: item
+      index_var: index
+
+  - name: (Metagraph L0) Killing
+    include_tasks: ../shared/kill.ansible.yml
+    loop: "{{ node_list_with_port }}"
+    loop_control:
+      loop_var: node_info

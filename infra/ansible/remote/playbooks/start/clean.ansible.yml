@@ -1,0 +1,77 @@
+- name: Kill current processes
+  hosts: nodes
+  gather_facts: false
+  tasks:
+  - name: Get current timestamp
+    set_fact:
+      current_time: "{{ lookup('pipe', 'date +%Y-%m-%dT%H:%M:%S%z') }}"
+
+  - name: Find metagraph-l0 process ID by port
+    shell: "lsof -t -i:{{ base_metagraph_l0_public_port }}"
+    register: l0_process_id
+    ignore_errors: true
+
+  - name: Kill metagraph-l0 process
+    shell: "kill -9 {{ l0_process_id.stdout }}"
+    ignore_errors: true
+    when: l0_process_id.stdout is defined
+
+  - name: Ensure metagraph-l0 archived-logs directory exists
+    ansible.builtin.file:
+      path: /home/{{ ansible_user }}/code/metagraph-l0/archived-logs
+      state: directory
+
+  - name: Save metagraph-l0 current logs
+    shell: |
+      cd "/home/{{ ansible_user }}/code/metagraph-l0"
+      mv logs archived-logs/logs_{{ current_time }}
+    ignore_errors: true
+    when: l0_process_id.stdout is defined
+
+
+
+  - name: Find currency-l1 process ID by port
+    shell: "lsof -t -i:{{ base_currency_l1_public_port }}"
+    register: cl1_process_id
+    ignore_errors: true
+
+  - name: Kill currency-l1 process
+    shell: "kill -9 {{ cl1_process_id.stdout }}"
+    ignore_errors: true
+    when: cl1_process_id.stdout is defined
+
+  - name: Ensure currency-l1 archived-logs directory exists
+    ansible.builtin.file:
+      path: /home/{{ ansible_user }}/code/currency-l1/archived-logs
+      state: directory
+
+  - name: Save currency-l1 current logs
+    shell: |
+      cd "/home/{{ ansible_user }}/code/currency-l1"
+      mv logs archived-logs/logs_{{ current_time }}
+    ignore_errors: true
+    when: cl1_process_id.stdout is defined
+
+
+
+  - name: Find data-l1 process ID by port
+    shell: "lsof -t -i:{{ base_data_l1_public_port }}"
+    register: dl1_process_id
+    ignore_errors: true
+
+  - name: Kill data-l1 process
+    shell: "kill -9 {{ dl1_process_id.stdout }}"
+    ignore_errors: true
+    when: dl1_process_id.stdout is defined
+
+  - name: Ensure data-l1 archived-logs directory exists
+    ansible.builtin.file:
+      path: /home/{{ ansible_user }}/code/data-l1/archived-logs
+      state: directory
+
+  - name: Save data-l1 current logs
+    shell: |
+      cd "/home/{{ ansible_user }}/code/data-l1"
+      mv logs archived-logs/logs_{{ current_time }}
+    ignore_errors: true
+    when: dl1_process_id.stdout is defined

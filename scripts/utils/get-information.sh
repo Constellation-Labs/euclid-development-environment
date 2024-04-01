@@ -2,6 +2,7 @@
 
 function get_env_variables_from_json_config_file() {
     check_if_package_is_installed jq
+    check_if_package_is_installed yq
     check_if_config_file_is_the_new_format
 
     export GITHUB_TOKEN=$(jq -r .github_token $ROOT_PATH/euclid.json)
@@ -12,16 +13,12 @@ function get_env_variables_from_json_config_file() {
     export PROJECT_NAME=$(jq -r .project_name $ROOT_PATH/euclid.json)
     export FRAMEWORK_NAME=$(jq -r .framework.name $ROOT_PATH/euclid.json)
     export FRAMEWORK_MODULES=$(jq -r .framework.modules $ROOT_PATH/euclid.json)
-    export P12_GENESIS_FILE_NAME=$(jq -r .p12_files.genesis.file_name $ROOT_PATH/euclid.json)
-    export P12_GENESIS_FILE_KEY_ALIAS=$(jq -r .p12_files.genesis.alias $ROOT_PATH/euclid.json)
-    export P12_GENESIS_FILE_PASSWORD=$(jq -r .p12_files.genesis.password $ROOT_PATH/euclid.json)
-    export P12_NODE_2_FILE_NAME=$(jq -r .p12_files.validators[0].file_name $ROOT_PATH/euclid.json)
-    export P12_NODE_2_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[0].alias $ROOT_PATH/euclid.json)
-    export P12_NODE_2_FILE_PASSWORD=$(jq -r .p12_files.validators[0].password $ROOT_PATH/euclid.json)
-    export P12_NODE_3_FILE_NAME=$(jq -r .p12_files.validators[1].file_name $ROOT_PATH/euclid.json)
-    export P12_NODE_3_FILE_KEY_ALIAS=$(jq -r .p12_files.validators[1].alias $ROOT_PATH/euclid.json)
-    export P12_NODE_3_FILE_PASSWORD=$(jq -r .p12_files.validators[1].password $ROOT_PATH/euclid.json)
-    export DOCKER_CONTAINERS=$(jq -r .docker.default_containers $ROOT_PATH/euclid.json)
+
+    export NODES=$(jq -r .nodes $ROOT_PATH/euclid.json)
+    
+    export START_MONITORING_CONTAINER=$(jq -r .docker.start_monitoring_container $ROOT_PATH/euclid.json)   
+
+    export LAYERS=$(jq -r .layers $ROOT_PATH/euclid.json)
 
     export DEPLOY_NETWORK_NAME=$(jq -r .deploy.network.name $ROOT_PATH/euclid.json)
     export DEPLOY_NETWORK_HOST_IP=$(jq -r .deploy.network.gl0_node.ip $ROOT_PATH/euclid.json)

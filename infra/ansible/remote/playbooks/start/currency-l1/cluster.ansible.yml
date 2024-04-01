@@ -1,0 +1,42 @@
+---
+- name: Start currency-l1 initial validator
+  hosts: node-1
+  gather_facts: false
+  tasks:
+    - name: Starting currency-l1 initial validator
+      include_tasks: initial_validator.ansible.yml
+
+    - name: Get node_id
+      environment:
+        CL_KEYSTORE: "{{ cl_keystore }}"
+        CL_KEYALIAS: "{{ cl_keyalias }}"
+        CL_PASSWORD: "{{ cl_password }}"
+      shell: |
+        cd /home/{{ ansible_user }}/code/currency-l1
+        java -jar cl-wallet.jar show-id
+      register: node_id
+      ignore_errors: yes 
+
+    - set_fact:
+        cl1_node_1_ip: "{{ ansible_host }}"
+        cl1_node_1_id: "{{ node_id.stdout }}"
+
+- name: Start currency-l1 validator 1
+  hosts: node-2
+  gather_facts: false
+  tasks:
+    - name: Starting currency-l1 validator 1 node
+      include_tasks: validator.ansible.yml
+      vars:
+        currency_l1_genesis_node_id: "{{ hostvars['node-1']['cl1_node_1_id'] }}"
+        currency_l1_genesis_node_ip: "{{ hostvars['node-1']['cl1_node_1_ip'] }}"
+
+- name: Start currency-l1 validator 2
+  hosts: node-3
+  gather_facts: false
+  tasks:
+    - name: Starting currency-l1 validator 2 node
+      include_tasks: validator.ansible.yml
+      vars:
+        currency_l1_genesis_node_id: "{{ hostvars['node-1']['cl1_node_1_id'] }}"
+        currency_l1_genesis_node_ip: "{{ hostvars['node-1']['cl1_node_1_ip'] }}"

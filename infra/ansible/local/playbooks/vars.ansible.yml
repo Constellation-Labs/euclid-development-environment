@@ -1,0 +1,22 @@
+base_prefix_ip: "172.50.0."
+offset: 10
+
+base_global_l0_public_port: 9000
+base_global_l0_p2p_port: 9001
+base_global_l0_cli_port: 9002
+
+base_dag_l1_public_port: 9100
+base_dag_l1_p2p_port: 9101
+base_dag_l1_cli_port: 9102
+
+base_metagraph_l0_public_port: 9200
+base_metagraph_l0_p2p_port: 9201
+base_metagraph_l0_cli_port: 9202
+
+base_currency_l1_public_port: 9300
+base_currency_l1_p2p_port: 9301
+base_currency_l1_cli_port: 9302
+
+base_data_l1_public_port: 9400
+base_data_l1_p2p_port: 9401
+base_data_l1_cli_port: 9402
