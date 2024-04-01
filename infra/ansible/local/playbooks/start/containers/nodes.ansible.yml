@@ -10,6 +10,9 @@
       set_fact:
         all_nodes: "{{ lookup('env', 'NODES') }}"
     
+    - name: Install dependencies
+      include_tasks: dependencies.ansible.yml
+
     - name: Create custom network
       docker_network:
         name: custom-network
