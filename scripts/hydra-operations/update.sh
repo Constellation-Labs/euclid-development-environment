@@ -105,7 +105,7 @@ function update_remote_ansible_files() {
     chmod +x $ANSIBLE_DIRECTORY
     rm -r $ANSIBLE_DIRECTORY
 
-    cp -r euclid-development-environment/infra/ansible/remote $ANSIBLE_DIRECTORY 
+    cp -r euclid-development-environment/infra/ansible/remote $ANSIBLE_DIRECTORY
   fi
 
   echo "Updated"
@@ -133,7 +133,7 @@ function update_local_ansible_files() {
     chmod +x $ANSIBLE_DIRECTORY
     rm -r $ANSIBLE_DIRECTORY
 
-    cp -r euclid-development-environment/infra/ansible/local $ANSIBLE_DIRECTORY 
+    cp -r euclid-development-environment/infra/ansible/local $ANSIBLE_DIRECTORY
   fi
 
   echo "Updated"
