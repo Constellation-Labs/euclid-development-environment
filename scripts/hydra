@@ -245,7 +245,7 @@ function update() {
     load_scripts
   fi
   if command -v run_migrations &>/dev/null; then
-    run_migrations
+    run_migrations $argc_version
   fi
   update_euclid
 
@@ -262,8 +262,8 @@ function check_if_should_run_update() {
     exit 1
   fi
 
-  local VERSION=$(jq -r '.version // empty' "$ROOT_PATH/euclid.json")
-  if [ -z "$VERSION" ]; then
+  local euclid_version_field=$(jq -r '.version // empty' "$ROOT_PATH/euclid.json")
+  if [ -z "$euclid_version_field" ]; then
     echo "$(tput setaf 3) Could not find the version field on euclid.json file, the file is probably outdated. Running migrations..."
     load_scripts
     run_migrations
