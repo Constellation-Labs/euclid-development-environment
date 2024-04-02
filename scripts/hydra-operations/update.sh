@@ -102,10 +102,8 @@ function update_remote_ansible_files() {
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/start $ANSIBLE_DIRECTORY/playbooks
 
   else
-    chmod +x $ANSIBLE_DIRECTORY
-    rm -r $ANSIBLE_DIRECTORY
-
-    cp -r euclid-development-environment/infra/ansible/remote $ANSIBLE_DIRECTORY
+    mkdir -p "$INFRA_PATH/ansible"
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote "$INFRA_PATH/ansible"
   fi
 
   echo "Updated"
@@ -130,10 +128,8 @@ function update_local_ansible_files() {
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/stop $ANSIBLE_DIRECTORY/playbooks
 
   else
-    chmod +x $ANSIBLE_DIRECTORY
-    rm -r $ANSIBLE_DIRECTORY
-
-    cp -r euclid-development-environment/infra/ansible/local $ANSIBLE_DIRECTORY
+    mkdir -p "$INFRA_PATH/ansible"
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local "$INFRA_PATH/ansible"
   fi
 
   echo "Updated"
