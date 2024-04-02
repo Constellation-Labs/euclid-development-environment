@@ -247,7 +247,7 @@ function update() {
 # @cmd Get the logs from containers
 # @arg container_name!        Container name
 # @arg layer!                 Layer name (global-l0, dag-l1, metagraph-l0, currency-l1, data-l1)
-# @option --retroative_rows   Retroative rows from logs file (default 10)
+# @option --retroactive_rows   Retroactive rows from logs file (default 10)
 function logs() {
   check_if_should_run_update
 
