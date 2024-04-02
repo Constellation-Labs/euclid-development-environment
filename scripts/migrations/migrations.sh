@@ -17,8 +17,8 @@ function run_migrations() {
     echo "Running migration v0.9.0"
     cd $SCRIPTS_PATH
     source ./migrations/v0.9.0.sh
-    VERSION="0.9.0"
     migrate_v_0_9_0
+    VERSION="0.9.0"
   fi
 
   rm -r -f $INFRA_PATH/euclid-development-environment
