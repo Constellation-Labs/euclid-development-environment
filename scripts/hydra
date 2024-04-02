@@ -190,7 +190,6 @@ function purge() {
 }
 
 # @cmd Check the status of the containers
-# @flag  --show_all    Show all containers, including the stopped
 function status() {
   check_if_should_run_update
 
