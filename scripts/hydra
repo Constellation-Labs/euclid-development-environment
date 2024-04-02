@@ -37,6 +37,7 @@ function load_scripts() {
   source ./hydra-operations/status.sh
   source ./hydra-operations/remote-deploy.sh
   source ./hydra-operations/remote-start.sh
+  source ./hydra-operations/logs.sh
 
   source ./template/custom-template.sh
 
@@ -70,7 +71,7 @@ function install-template() {
 
   build_paths
   load_scripts
-  
+
   if [ -z "${argc_repo}" ]; then
     argc_repo="https://github.com/Constellation-Labs/metagraph-examples.git"
   fi
@@ -215,7 +216,7 @@ function remote-deploy() {
   load_scripts
 
   remote_deploy_metagraph
-  
+
   exit 0
 }
 
@@ -240,6 +241,21 @@ function remote-start() {
 function update() {
   build_paths
   update_euclid
+
+  exit 0
+}
+
+# @cmd Get the logs from containers
+# @arg container_name!        Container name
+# @arg layer!                 Layer name (global-l0, dag-l1, metagraph-l0, currency-l1, data-l1)
+# @option --retroative_rows   Retroative rows from logs file (default 10)
+function logs() {
+  check_if_should_run_update
+
+  build_paths
+  load_scripts
+
+  logs_containers
 
   exit 0
 }
