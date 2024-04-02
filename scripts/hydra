@@ -37,6 +37,7 @@ function load_scripts() {
   source ./hydra-operations/status.sh
   source ./hydra-operations/remote-deploy.sh
   source ./hydra-operations/remote-start.sh
+  source ./hydra-operations/remote-status.sh
   source ./hydra-operations/logs.sh
 
   source ./template/custom-template.sh
@@ -237,6 +238,17 @@ function remote-start() {
   exit 0
 }
 
+# @cmd Check the status of the remote nodes
+function remote-status() {
+  check_if_should_run_update
+
+  build_paths
+  load_scripts
+
+  remote_status
+
+  exit 0
+}
 # @cmd Update Euclid
 # @option --version!  The Euclid version (https://github.com/Constellation-Labs/euclid-development-environment/releases)
 function update() {
