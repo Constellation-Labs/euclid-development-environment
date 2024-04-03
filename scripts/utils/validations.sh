@@ -24,17 +24,27 @@ function check_ansible() {
 
 function check_host_file() {
     echo_white "Checking if host configuration is valid..."
-
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
-            ansible_host=$(echo "$line" | awk '{print $NF}')
-            if ! check_ip "$ansible_host"; then
-                echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
-                exit 1
-            fi
+    while IFS= read -r node; do
+        ansible_host=$(jq -r '.ansible_host' <<<"$node")
+        ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
+        if ! check_ip "$ansible_host"; then
+            echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
+            exit 1
         fi
-    done <"$ANSIBLE_HOSTS_FILE"
-    echo_green "Hosts are valid"
+        finger_print=$(ssh-keygen -lf $ssh_private_key_file | awk '{print $2}')
+        if ! ssh-add -l | grep -q $finger_print >/dev/null 2>&1; then
+            echo_red "#################################"
+            echo_red "The ssh_key is not added to the SSH agent, please add to the agent before process."
+            echo_red "To add to the agent you need to run:"
+            echo
+            echo_white "eval \$(ssh-agent -s)"
+            echo_white "ssh-add $ssh_private_key_file"
+            echo
+            echo_yellow "If your file contains a password, you might need to install the library ssh-askpass if you don't have installed already"
+            echo_red "#################################"
+            exit 1
+        fi
+    done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.nodes.hosts[]')
 }
 
 function check_network() {
