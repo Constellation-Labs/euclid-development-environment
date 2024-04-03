@@ -23,7 +23,7 @@ function check_ansible() {
 }
 
 function check_host_file() {
-    echo_white "Checking if host configuration is valid and add the ssh_key files to the ssh-agent..."
+    echo_white "Checking if host configuration is valid..."
     while IFS= read -r node; do
         ansible_host=$(jq -r '.ansible_host' <<<"$node")
         ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
@@ -31,16 +31,15 @@ function check_host_file() {
             echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
             exit 1
         fi
-
-        echo_yellow "Adding ssh_key $ssh_private_key_file to ssh-agent"
-        eval "$(ssh-agent -s)" >/dev/null 2>&1
-        ssh-add $ssh_private_key_file >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo_green "ssh_key added to the ssh-agent"
-        else
-            echo_red "Failed to setup SSH agent or add key."
+        if ! ssh-add -l | grep -q $ssh_private_key_file >/dev/null 2>&1; then
+            echo_red "#################################"
+            echo_red "The ssh_key is not added to the SSH agent, please add to the agent before process."
+            echo_red "To add to the agent you need to run:"
+            echo_white "eval \$(ssh-agent -s)"
+            echo_white "ssh-add $ssh_private_key_file"
+            echo_red "#################################"
+            exit 1
         fi
-        echo
     done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.nodes.hosts[]')
 }
 
