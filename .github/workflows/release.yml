@@ -35,3 +35,13 @@ jobs:
         with:
           tagRegex: "v(.*)"
           tagRegexGroup: 1
+
+      - name: Release tag
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Euclid Release ${{ steps.tagName.outputs.tag }}
+          draft: false
+          prerelease: true
+          body: ${{ steps.build_changelog.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
