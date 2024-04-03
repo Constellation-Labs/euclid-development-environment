@@ -23,18 +23,25 @@ function check_ansible() {
 }
 
 function check_host_file() {
-    echo_white "Checking if host configuration is valid..."
-
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^[[:space:]]+ansible_host: ]]; then
-            ansible_host=$(echo "$line" | awk '{print $NF}')
-            if ! check_ip "$ansible_host"; then
-                echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
-                exit 1
-            fi
+    echo_white "Checking if host configuration is valid and add the ssh_key files to the ssh-agent..."
+    while IFS= read -r node; do
+        ansible_host=$(jq -r '.ansible_host' <<<"$node")
+        ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
+        if ! check_ip "$ansible_host"; then
+            echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
+            exit 1
         fi
-    done <"$ANSIBLE_HOSTS_FILE"
-    echo_green "Hosts are valid"
+
+        echo_yellow "Adding ssh_key $ssh_private_key_file to ssh-agent"
+        eval "$(ssh-agent -s)" >/dev/null 2>&1
+        ssh-add $ssh_private_key_file >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo_green "ssh_key added to the ssh-agent"
+        else
+            echo_red "Failed to setup SSH agent or add key."
+        fi
+        echo
+    done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.nodes.hosts[]')
 }
 
 function check_network() {
