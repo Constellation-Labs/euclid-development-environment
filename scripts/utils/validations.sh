@@ -35,8 +35,11 @@ function check_host_file() {
             echo_red "#################################"
             echo_red "The ssh_key is not added to the SSH agent, please add to the agent before process."
             echo_red "To add to the agent you need to run:"
+            echo
             echo_white "eval \$(ssh-agent -s)"
             echo_white "ssh-add $ssh_private_key_file"
+            echo
+            echo_yellow "If your file contains a password, you might need to install the library ssh-askpass if you don't have installed already"
             echo_red "#################################"
             exit 1
         fi
