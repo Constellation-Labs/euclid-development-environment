@@ -15,7 +15,7 @@ function echo_red() {
 }
 
 function echo_title() {
-    echo $OUTPUT_CYAN"############ $1 ############"
+    echo $OUTPUT_CYAN$1
 }
 
 function echo_url() {
