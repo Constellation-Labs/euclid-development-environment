@@ -31,7 +31,8 @@ function check_host_file() {
             echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
             exit 1
         fi
-        if ! ssh-add -l | grep -q $ssh_private_key_file >/dev/null 2>&1; then
+        finger_print=$(ssh-keygen -lf $ssh_private_key_file | awk '{print $2}')
+        if ! ssh-add -l | grep -q $finger_print >/dev/null 2>&1; then
             echo_red "#################################"
             echo_red "The ssh_key is not added to the SSH agent, please add to the agent before process."
             echo_red "To add to the agent you need to run:"
