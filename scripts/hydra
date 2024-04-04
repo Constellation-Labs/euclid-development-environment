@@ -225,7 +225,7 @@ function status() {
 # @alias remote_deploy
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/playbooks/deploy.ansible.yml
-# @flag   --deploy_only_metagraph_jars                      Deploy only metagraph JARs
+# @flag   --force_genesis                      Force metagraph to deploy as genesis
 function remote-deploy() {
   check_if_should_run_update
 
