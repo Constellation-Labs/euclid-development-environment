@@ -17,8 +17,20 @@ function check_ansible() {
     if command -v ansible &>/dev/null; then
         echo_green "Ansible is installed."
     else
-        echo_red "Ansible is not installed. Please install Ansible before running this command"
+        echo_red "Ansible is not installed. Please install Ansible > 2.16 before running this command"
         exit 1
+    fi
+
+    ansible_version=$(ansible --version 2>/dev/null | head -n 1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+    min_version="2.16"
+
+    echo_white "Checking if Ansible version is greater than $min_version"
+    version_comparison=$(echo -e "$ansible_version\n$min_version" | sort -V | head -n1)
+    if [[ "$version_comparison" != "$min_version" ]]; then
+        echo_red "Ansible version is less than $min_version. Be sure to update your ansible to a version greater then $min_version"
+        exit 1
+    else
+        echo_green "Ansible is greater than $min_version"
     fi
 }
 
