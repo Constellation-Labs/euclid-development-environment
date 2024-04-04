@@ -54,3 +54,4 @@
       loop_control:
         loop_var: validator_node_info
         index_var: index
+      no_log: true

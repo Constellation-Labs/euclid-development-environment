@@ -19,6 +19,12 @@ function remote_deploy_metagraph() {
     deploy_dl1=false
   fi
 
-  ansible-playbook -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
+  if [ ! -z "$argc_force_genesis" ]; then
+    force_genesis=true
+  else
+    force_genesis=false
+  fi
+
+  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
   echo_white "####################################################################"
 }
