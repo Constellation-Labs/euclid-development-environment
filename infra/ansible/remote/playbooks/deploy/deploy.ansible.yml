@@ -85,7 +85,7 @@
   tasks:
     - name: Check if genesis.csv exists
       stat:
-        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis/genesis.csv
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.csv
       register: genesis_csv_file_stat
 
     - name: Sending metagraph l0 genesis.csv to metagraph-l0
@@ -96,7 +96,7 @@
 
     - name: Check if genesis.snapshot exists
       stat:
-        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis/genesis.snapshot
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
       register: genesis_snapshot_file_stat
 
     - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
@@ -107,7 +107,7 @@
 
     - name: Check if genesis.address exists
       stat:
-        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis/genesis.address
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
       register: genesis_address_file_stat
 
     - name: Sending metagraph l0 genesis.address to metagraph-l0
@@ -115,7 +115,7 @@
         src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
       when: (force_genesis | bool) or (not genesis_address_file_stat.stat.exists)
-
+      
 - name: Send p12 files to remote node-1
   hosts: node-1
   gather_facts: false
