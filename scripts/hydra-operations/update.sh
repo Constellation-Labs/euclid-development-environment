@@ -66,7 +66,7 @@ function check_if_any_container_is_running() {
 function update_infra_docker() {
   cd $INFRA_PATH
   echo "Updating docker folder ..."
-  chmod +x docker
+  chmod -R +x docker
   rm -r docker
 
   cp -r euclid-development-environment/infra/docker .
@@ -76,7 +76,7 @@ function update_infra_docker() {
 function update_scripts() {
   echo "Updating scripts ..."
   cd $ROOT_PATH
-  chmod +x scripts
+  chmod -R +x scripts
   rm -r scripts
 
   cp -r infra/euclid-development-environment/scripts .
@@ -87,17 +87,14 @@ function update_remote_ansible_files() {
   echo "Updating remote ansible files..."
 
   ANSIBLE_DIRECTORY="$INFRA_PATH/ansible/remote"
-
+  chmod -R +x $ANSIBLE_DIRECTORY
   if [ -d "$ANSIBLE_DIRECTORY" ]; then
-    chmod +x $ANSIBLE_DIRECTORY/hosts.ansible.yml
     rm -r $ANSIBLE_DIRECTORY/hosts.ansible.yml
     cp $INFRA_PATH/euclid-development-environment/infra/ansible/remote/hosts.ansible.yml $ANSIBLE_DIRECTORY
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/deploy
     rm -r $ANSIBLE_DIRECTORY/playbooks/deploy
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/deploy $ANSIBLE_DIRECTORY/playbooks
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/start
     rm -r $ANSIBLE_DIRECTORY/playbooks/start
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/start $ANSIBLE_DIRECTORY/playbooks
 
@@ -113,17 +110,14 @@ function update_local_ansible_files() {
   echo "Updating local ansible files..."
 
   ANSIBLE_DIRECTORY="$INFRA_PATH/ansible/local"
-
+  chmod -R +x $ANSIBLE_DIRECTORY
   if [ -d "$ANSIBLE_DIRECTORY" ]; then
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/vars.ansible.yml
     rm -r $ANSIBLE_DIRECTORY/playbooks/vars.ansible.yml
     cp $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/vars.ansible.yml $ANSIBLE_DIRECTORY/playbooks
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/start
     rm -r $ANSIBLE_DIRECTORY/playbooks/start
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/start $ANSIBLE_DIRECTORY/playbooks
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/stop
     rm -r $ANSIBLE_DIRECTORY/playbooks/stop
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/stop $ANSIBLE_DIRECTORY/playbooks
 
