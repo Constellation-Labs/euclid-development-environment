@@ -1,5 +1,6 @@
 ---
 - import_playbook: configure.ansible.yml
+  when: not (deploy_only_metagraph_jars | bool)
 
 - name: Create directories on remote hosts
   hosts: nodes
@@ -11,6 +12,7 @@
         state: directory
       async: 300
       poll: 0
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Create currency-l1 directory
       file:
@@ -18,7 +20,7 @@
         state: directory
       async: 300
       poll: 0
-      when: deploy_cl1 | bool
+      when: deploy_cl1 | bool and not (deploy_only_metagraph_jars | bool)
 
     - name: Create data-l1 directory
       file:
@@ -26,7 +28,7 @@
         state: directory
       async: 300
       poll: 0
-      when: deploy_dl1 | bool
+      when: deploy_dl1 | bool and not (deploy_only_metagraph_jars | bool)
 
 - name: Send JARs to remote hosts
   hosts: nodes
@@ -89,16 +91,19 @@
       copy:
         src: "{{ lookup('env', 'SOURCE_PATH') }}/metagraph-l0/genesis/genesis.csv"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
+      when: not (deploy_only_metagraph_jars | bool)  
 
     - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
       copy:
         src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.snapshot"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Sending metagraph l0 genesis.address to metagraph-l0
       copy:
         src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
+      when: not (deploy_only_metagraph_jars | bool)
 
 - name: Send p12 files to remote node-1
   hosts: node-1
@@ -110,24 +115,27 @@
       copy:
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[0].key_file.name }}"
         dest: /home/{{ ansible_user }}/code
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Copy p12 file to metagraph-l0
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to currency-l1
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/currency-l1
-      when: deploy_cl1 | bool
+      when: deploy_cl1 | bool and not (deploy_only_metagraph_jars | bool)
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to data-l1
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/data-l1
-      when: deploy_dl1 | bool
+      when: deploy_dl1 | bool and not (deploy_only_metagraph_jars | bool)
 
     - name: Cleaning file
       shell: |
         rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+      when: not (deploy_only_metagraph_jars | bool)
 
 - name: Send p12 files to remote node-2
   hosts: node-2
@@ -139,24 +147,27 @@
       copy:
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[1].key_file.name }}"
         dest: /home/{{ ansible_user }}/code
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Copy p12 file to metagraph-l0
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to currency-l1
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/currency-l1
-      when: deploy_cl1 | bool
+      when: deploy_cl1 | bool and not (deploy_only_metagraph_jars | bool)
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to data-l1
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/data-l1
-      when: deploy_dl1 | bool
+      when: deploy_dl1 | bool and not (deploy_only_metagraph_jars | bool)
 
     - name: Cleaning file
       shell: |
         rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+      when: not (deploy_only_metagraph_jars | bool)
 
 - name: Send p12 files to remote node-3
   hosts: node-3
@@ -168,21 +179,24 @@
       copy:
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[2].key_file.name }}"
         dest: /home/{{ ansible_user }}/code
+      when: not (deploy_only_metagraph_jars | bool)  
 
     - name: Copy p12 file to metagraph-l0
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
+      when: not (deploy_only_metagraph_jars | bool)
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to currency-l1
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/currency-l1
-      when: deploy_cl1 | bool
+      when: deploy_cl1 | bool not (deploy_only_metagraph_jars | bool) 
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to data-l1
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/data-l1
-      when: deploy_dl1 | bool
+      when: deploy_dl1 | bool not (deploy_only_metagraph_jars | bool) 
       
     - name: Cleaning file
       shell: |
         rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+      when: not (deploy_only_metagraph_jars | bool) 
