@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+function ensure_permissions_on_files_and_directories(){
+  chmod -R a+rwx $INFRA_PATH
+  chmod -R a+rwx $SCRIPTS_PATH
+  chmod -R a+rwx $SOURCE_PATH
+}
 
 function build_paths() {
   BASEDIR=$(dirname "$0")
@@ -57,6 +62,7 @@ function install() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   install_project
@@ -73,6 +79,7 @@ function install-template() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   if [ -z "${argc_repo}" ]; then
@@ -95,6 +102,7 @@ function build() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   set_docker_compose
@@ -111,6 +119,7 @@ function start-genesis() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   set_docker_compose
@@ -127,6 +136,7 @@ function start-rollback() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   set_docker_compose
@@ -142,6 +152,7 @@ function stop() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   export FORCE_ROLLBACK=""
@@ -163,6 +174,7 @@ function destroy() {
   export METAGRAPH_ID=""
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   set_docker_compose
@@ -182,6 +194,7 @@ function purge() {
   export METAGRAPH_ID=""
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   set_docker_compose
@@ -197,6 +210,7 @@ function status() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   set_docker_compose
@@ -211,10 +225,12 @@ function status() {
 # @alias remote_deploy
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/playbooks/deploy.ansible.yml
+# @flag   --force_genesis                      Force metagraph to deploy as genesis
 function remote-deploy() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   remote_deploy_metagraph
@@ -231,6 +247,7 @@ function remote-start() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   remote_start_metagraph
@@ -243,6 +260,7 @@ function remote-status() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   remote_status
@@ -253,6 +271,7 @@ function remote-status() {
 # @option --version!  The Euclid version (https://github.com/Constellation-Labs/euclid-development-environment/releases)
 function update() {
   build_paths
+  ensure_permissions_on_files_and_directories
   if [ -d "$SCRIPTS_PATH/hydra-operations" ]; then
     load_scripts
   fi
@@ -272,6 +291,7 @@ function logs() {
   check_if_should_run_update
 
   build_paths
+  ensure_permissions_on_files_and_directories
   load_scripts
 
   logs_containers
@@ -282,6 +302,7 @@ function logs() {
 # The functions below are made for backward compatibility, they will be moved to scripts/hydra-operations/update in the next releases
 function check_if_should_run_update() {
   build_paths
+  ensure_permissions_on_files_and_directories
   DIRECTORY="$SCRIPTS_PATH/hydra-operations"
 
   if [ ! -d "$DIRECTORY" ]; then
@@ -363,7 +384,7 @@ function check_if_any_container_is_running() {
 function update_infra_docker() {
   cd $INFRA_PATH
   echo "Updating docker folder ..."
-  chmod +x docker
+  chmod -R +x docker
   rm -r docker
 
   cp -r euclid-development-environment/infra/docker .
@@ -373,7 +394,7 @@ function update_infra_docker() {
 function update_scripts() {
   echo "Updating scripts ..."
   cd $ROOT_PATH
-  chmod +x scripts
+  chmod -R +x scripts
   rm -r scripts
 
   cp -r infra/euclid-development-environment/scripts .
@@ -384,17 +405,15 @@ function update_remote_ansible_files() {
   echo "Updating remote ansible files..."
 
   ANSIBLE_DIRECTORY="$INFRA_PATH/ansible/remote"
+  chmod -R +x $ANSIBLE_DIRECTORY
 
   if [ -d "$ANSIBLE_DIRECTORY" ]; then
-    chmod +x $ANSIBLE_DIRECTORY/hosts.ansible.yml
     rm -r $ANSIBLE_DIRECTORY/hosts.ansible.yml
     cp $INFRA_PATH/euclid-development-environment/infra/ansible/remote/hosts.ansible.yml $ANSIBLE_DIRECTORY
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/deploy
     rm -r $ANSIBLE_DIRECTORY/playbooks/deploy
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/deploy $ANSIBLE_DIRECTORY/playbooks
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/start
     rm -r $ANSIBLE_DIRECTORY/playbooks/start
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/start $ANSIBLE_DIRECTORY/playbooks
 
@@ -410,17 +429,14 @@ function update_local_ansible_files() {
   echo "Updating local ansible files..."
 
   ANSIBLE_DIRECTORY="$INFRA_PATH/ansible/local"
-
+  chmod -R +x $ANSIBLE_DIRECTORY
   if [ -d "$ANSIBLE_DIRECTORY" ]; then
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/vars.ansible.yml
     rm -r $ANSIBLE_DIRECTORY/playbooks/vars.ansible.yml
     cp $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/vars.ansible.yml $ANSIBLE_DIRECTORY/playbooks
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/start
     rm -r $ANSIBLE_DIRECTORY/playbooks/start
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/start $ANSIBLE_DIRECTORY/playbooks
 
-    chmod +x $ANSIBLE_DIRECTORY/playbooks/stop
     rm -r $ANSIBLE_DIRECTORY/playbooks/stop
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/stop $ANSIBLE_DIRECTORY/playbooks
 

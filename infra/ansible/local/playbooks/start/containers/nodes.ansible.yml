@@ -2,7 +2,6 @@
 - name: Start Docker containers
   hosts: localhost
   connection: local
-  gather_facts: false
   vars_files:
     - ../../vars.ansible.yml
   tasks:
@@ -56,3 +55,4 @@
       loop_control:
         loop_var: node_info
         index_var: index
+      no_log: true
