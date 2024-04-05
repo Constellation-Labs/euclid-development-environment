@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 function ensure_permissions_on_files_and_directories(){
-  chmod -R a+rwx $INFRA_PATH
-  chmod -R a+rwx $SCRIPTS_PATH
-  chmod -R a+rwx $SOURCE_PATH
+  chmod -R a+rwx $INFRA_PATH 2>/dev/null
+  chmod -R a+rwx $SCRIPTS_PATH 2>/dev/null
+  chmod -R a+rwx $SOURCE_PATH 2>/dev/null
 }
 
 function build_paths() {
@@ -268,7 +268,7 @@ function remote-status() {
   exit 0
 }
 # @cmd Update Euclid
-# @option --version!  The Euclid version (https://github.com/Constellation-Labs/euclid-development-environment/releases)
+# @option --version2!  The Euclid version (https://github.com/Constellation-Labs/euclid-development-environment/releases)
 function update() {
   build_paths
   ensure_permissions_on_files_and_directories
@@ -276,9 +276,9 @@ function update() {
     load_scripts
   fi
   if command -v run_migrations &>/dev/null; then
-    run_migrations $argc_version
+    run_migrations $argc_version2
   fi
-  update_euclid
+  # update_euclid
 
   exit 0
 }
@@ -458,7 +458,7 @@ function update_euclid() {
   echo "Getting updated version"
   git clone --quiet https://github.com/Constellation-Labs/euclid-development-environment.git >/dev/null
   cd euclid-development-environment/
-  checkout_version $argc_version
+  checkout_version $argc_version2
 
   update_infra_docker
   update_scripts
