@@ -7,7 +7,12 @@ function try_start_docker_nodes() {
     echo_white ""
     echo_yellow "Ansible requires BECOME to install dependencies, please provide your sudo password"
     echo_white
-    ansible-playbook -K $INFRA_PATH/ansible/local/playbooks/start/containers/nodes.ansible.yml
+ 
+    if pip3 --version &>/dev/null; then
+        ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/containers/nodes.ansible.yml
+    else
+        ansible-playbook -K $INFRA_PATH/ansible/local/playbooks/start/containers/nodes.ansible.yml
+    fi
 
     if [ $? -eq 0 ]; then
         echo_green "Nodes containers started successfully."

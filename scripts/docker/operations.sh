@@ -27,4 +27,14 @@ function check_if_docker_is_running() {
         echo_red "You need to execute Docker service first to run the script."
         exit 1
     fi
+
+    if [[ $(uname) == "Darwin" ]]; then
+        DOCKER_SOCKET="/var/run/docker.sock"
+        if [ ! -e "$DOCKER_SOCKET" ]; then
+            echo_red "Could not find docker socket, be sure to enable the option"
+            echo_white "Allow the default Docker socket to be used"
+            echo_white "You can find this option in your Docker Desktop -> Settings -> Advanced"
+            exit 1
+        fi
+    fi
 }
