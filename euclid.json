@@ -1,6 +1,6 @@
 {
   "github_token": "",
-  "version": "0.9.3",
+  "version": "0.10.0-SNAPSHOT",
   "tessellation_version": "2.3.1",
   "project_name": "custom-project",
   "framework": {
