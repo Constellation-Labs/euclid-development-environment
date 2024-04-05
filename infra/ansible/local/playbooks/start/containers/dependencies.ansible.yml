@@ -1,6 +1,6 @@
 ---
 - name: Check if pip3 is installed
-  command: command -v pip3
+  shell: command -v pip3
   register: pip3_installed
   ignore_errors: yes
   changed_when: false
