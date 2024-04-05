@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 function ensure_permissions_on_files_and_directories(){
-  chmod -R a+rwx $INFRA_PATH
-  chmod -R a+rwx $SCRIPTS_PATH
-  chmod -R a+rwx $SOURCE_PATH
+  chmod -R a+rwx $INFRA_PATH 2>/dev/null
+  chmod -R a+rwx $SCRIPTS_PATH 2>/dev/null
+  chmod -R a+rwx $SOURCE_PATH 2>/dev/null
 }
 
 function build_paths() {
