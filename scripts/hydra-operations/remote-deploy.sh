@@ -24,8 +24,7 @@ function remote_deploy_metagraph() {
   else
     force_genesis=false
   fi
-  echo_yellow "Ansible requires BECOME to install dependencies, please provide your sudo password"
-  echo_white
-  ansible-playbook -K -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
+  
+  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
   echo_white "####################################################################"
 }
