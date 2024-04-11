@@ -1,0 +1,42 @@
+---
+- name: (Currency L1) Getting nodes info
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  tasks:
+    - name: (Currency L1) Getting lead node information
+      include_tasks: ../shared/get-lead-node-info.ansible.yml
+
+
+- name: (Currency L1) Starting the initial validator
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:
+    - name: (Currency L1) Starting
+      include_tasks: initial-validator.ansible.yml
+      vars:
+        node_info: "{{ all_nodes[0] }}"
+
+- name: (Currency L1) Starting the validators
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:
+    - name: (Currency L1) Starting Validator
+      include_tasks: validator.ansible.yml
+      loop: "{{ all_nodes[1:] }}"
+      loop_control:
+        loop_var: validator_node_info
+        index_var: index
+      no_log: true

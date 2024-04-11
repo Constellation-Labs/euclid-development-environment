@@ -1,0 +1,58 @@
+---
+- name: Start Docker containers
+  hosts: localhost
+  connection: local
+  vars_files:
+    - ../../vars.ansible.yml
+  tasks:
+    - name: Get all nodes from euclid.json
+      set_fact:
+        all_nodes: "{{ lookup('env', 'NODES') }}"
+    
+    - name: Install dependencies
+      include_tasks: dependencies.ansible.yml
+
+    - name: Create custom network
+      docker_network:
+        name: custom-network
+        driver: bridge
+        ipam_config:
+          - subnet: 172.50.0.0/24
+
+    - name: Starting Docker container
+      docker_container:
+        name: "{{ node_info.name }}"
+        image: metagraph-base-image:latest
+        state: started
+        platform: linux/amd64
+        networks:
+        - name: custom-network
+          ipv4_address: "{{ base_prefix_ip }}{{ (index + 1) * offset }}"
+        volumes:
+          - "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis:/code/shared_genesis"
+          - "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars:/code/shared_jars"
+        ports:
+          - "{{ (base_global_l0_public_port | int ) +  (offset * index) }}:{{ (base_global_l0_public_port | int ) + (offset * index) }}"
+          - "{{ (base_global_l0_p2p_port | int ) +  (offset * index) }}:{{ (base_global_l0_p2p_port | int ) + (offset * index) }}"
+          - "{{ (base_global_l0_cli_port | int ) +  (offset * index) }}:{{ (base_global_l0_cli_port | int ) + (offset * index) }}"
+
+          - "{{ (base_dag_l1_public_port | int ) +  (offset * index) }}:{{ (base_dag_l1_public_port | int ) + (offset * index) }}"
+          - "{{ (base_dag_l1_p2p_port | int ) +  (offset * index) }}:{{ (base_dag_l1_p2p_port | int ) + (offset * index) }}"
+          - "{{ (base_dag_l1_cli_port | int ) +  (offset * index) }}:{{ (base_dag_l1_cli_port | int ) + (offset * index) }}"
+
+          - "{{ (base_metagraph_l0_public_port | int ) +  (offset * index) }}:{{ (base_metagraph_l0_public_port | int ) + (offset * index) }}"
+          - "{{ (base_metagraph_l0_p2p_port | int ) +  (offset * index) }}:{{ (base_metagraph_l0_p2p_port | int ) + (offset * index) }}"
+          - "{{ (base_metagraph_l0_cli_port | int ) +  (offset * index) }}:{{ (base_metagraph_l0_cli_port | int ) + (offset * index) }}"
+
+          - "{{ (base_currency_l1_public_port | int ) +  (offset * index) }}:{{ (base_currency_l1_public_port | int ) + (offset * index) }}"
+          - "{{ (base_currency_l1_p2p_port | int ) +  (offset * index) }}:{{ (base_currency_l1_p2p_port | int ) + (offset * index) }}"
+          - "{{ (base_currency_l1_cli_port | int ) +  (offset * index) }}:{{ (base_currency_l1_cli_port | int ) + (offset * index) }}"
+
+          - "{{ (base_data_l1_public_port | int ) +  (offset * index) }}:{{ (base_data_l1_public_port | int ) + (offset * index) }}"
+          - "{{ (base_data_l1_p2p_port | int ) +  (offset * index) }}:{{ (base_data_l1_p2p_port | int ) + (offset * index) }}"
+          - "{{ (base_data_l1_cli_port | int ) +  (offset * index) }}:{{ (base_data_l1_cli_port | int ) + (offset * index) }}"
+      loop: "{{ all_nodes }}"
+      loop_control:
+        loop_var: node_info
+        index_var: index
+      no_log: true

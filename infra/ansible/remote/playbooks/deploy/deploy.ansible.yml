@@ -1,0 +1,198 @@
+---
+- import_playbook: configure.ansible.yml
+
+- name: Create directories on remote hosts
+  hosts: nodes
+  gather_facts: false
+  tasks:
+    - name: Create metagraph-l0 directory
+      file:
+        path: /home/{{ ansible_user }}/code/metagraph-l0
+        state: directory
+      async: 300
+      poll: 0
+
+    - name: Create currency-l1 directory
+      file:
+        path: /home/{{ ansible_user }}/code/currency-l1
+        state: directory
+      async: 300
+      poll: 0
+
+    - name: Create data-l1 directory
+      file:
+        path: /home/{{ ansible_user }}/code/data-l1
+        state: directory
+      async: 300
+      poll: 0
+
+- name: Send JARs to remote hosts
+  hosts: nodes
+  gather_facts: false
+  tasks:
+    - name: Sending cl-keytool.jar to nodes
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-keytool.jar"
+        dest: /home/{{ ansible_user }}/code
+
+    - name: Sending cl-wallet.jar to nodes
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-wallet.jar"
+        dest: /home/{{ ansible_user }}/code
+
+    - name: Copy cl-keytool.jar and cl-wallet.jar files to metagraph-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/cl-keytool.jar /home/{{ ansible_user }}/code/metagraph-l0
+        cp /home/{{ ansible_user }}/code/cl-wallet.jar /home/{{ ansible_user }}/code/metagraph-l0
+
+    - name: Copy cl-keytool.jar and cl-wallet.jar files to currency-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/cl-keytool.jar /home/{{ ansible_user }}/code/currency-l1
+        cp /home/{{ ansible_user }}/code/cl-wallet.jar /home/{{ ansible_user }}/code/currency-l1
+      when: deploy_cl1 | bool
+
+    - name: Copy cl-keytool.jar and cl-wallet.jar files to data-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/cl-keytool.jar /home/{{ ansible_user }}/code/data-l1
+        cp /home/{{ ansible_user }}/code/cl-wallet.jar /home/{{ ansible_user }}/code/data-l1
+      when: deploy_dl1 | bool
+
+    - name: Sending metagraph-l0.jar to metagraph-l0
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/metagraph-l0.jar"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0
+
+    - name: Sending currency-l1.jar to currency-l1
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/currency-l1.jar"
+        dest: /home/{{ ansible_user }}/code/currency-l1/currency-l1.jar
+      when: deploy_cl1 | bool
+
+    - name: Sending data-l1.jar to data-l1
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/data-l1.jar"
+        dest: /home/{{ ansible_user }}/code/data-l1/data-l1.jar
+      when: deploy_dl1 | bool
+
+    - name: Cleaning jars
+      shell: |
+        rm -f /home/{{ ansible_user }}/code/cl-keytool.jar
+        rm -f /home/{{ ansible_user }}/code/cl-wallet.jar
+
+- name: Send genesis information to remote hosts
+  hosts: nodes
+  gather_facts: false
+  tasks:
+    - name: Check if genesis.csv exists
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.csv
+      register: genesis_csv_file_stat
+
+    - name: Sending metagraph l0 genesis.csv to metagraph-l0
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/metagraph-l0/genesis/genesis.csv"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0
+      when: (force_genesis | bool) or (not genesis_csv_file_stat.stat.exists)
+
+    - name: Check if genesis.snapshot exists
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
+      register: genesis_snapshot_file_stat
+
+    - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.snapshot"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0
+      when: (force_genesis | bool) or (not genesis_snapshot_file_stat.stat.exists)
+
+    - name: Check if genesis.address exists
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
+      register: genesis_address_file_stat
+
+    - name: Sending metagraph l0 genesis.address to metagraph-l0
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0
+      when: (force_genesis | bool) or (not genesis_address_file_stat.stat.exists)
+      
+- name: Send p12 files to remote node-1
+  hosts: node-1
+  gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:
+    - name: Sending p12 file to node 1
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[0].key_file.name }}"
+        dest: /home/{{ ansible_user }}/code
+
+    - name: Copy p12 file to metagraph-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
+
+    - name: Copy key file to currency-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/currency-l1
+
+    - name: Copy key file to data-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/data-l1
+
+    - name: Cleaning file
+      shell: |
+        rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+
+- name: Send p12 files to remote node-2
+  hosts: node-2
+  gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:
+    - name: Sending p12 file to node 2
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[1].key_file.name }}"
+        dest: /home/{{ ansible_user }}/code
+
+    - name: Copy p12 file to metagraph-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
+
+    - name: Copy key file to currency-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/currency-l1
+
+    - name: Copy key file to data-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/data-l1
+
+    - name: Cleaning file
+      shell: |
+        rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+
+- name: Send p12 files to remote node-3
+  hosts: node-3
+  gather_facts: false
+  vars:
+     all_nodes: "{{ lookup('env', 'NODES') }}"
+  tasks:
+    - name: Sending p12 file to node 3
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[2].key_file.name }}"
+        dest: /home/{{ ansible_user }}/code
+
+    - name: Copy p12 file to metagraph-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
+
+    - name: Copy key file to currency-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/currency-l1
+
+    - name: Copy key file to data-l1
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/data-l1
+      
+    - name: Cleaning file
+      shell: |
+        rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}

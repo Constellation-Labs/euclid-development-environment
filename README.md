@@ -13,6 +13,14 @@
 * Ansible is a configuration tool for configuring and deploying to remote hosts
 * [Here](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) you can check how to install Ansible
 
+## JQ
+* jq is a lightweight and flexible command-line JSON processor. It allows you to manipulate JSON data easily, making it ideal for tasks like querying, filtering, and transforming JSON documents.
+* [Here](https://jqlang.github.io/jq/download/) you can check how to install jq
+
+## YQ
+* yq is a powerful command-line YAML processor and parser, similar to jq but for YAML data. It allows you to query, filter, and manipulate YAML documents easily from the command line, making it a handy tool for tasks such as extracting specific data, updating YAML files, and formatting output.
+* [Here](https://github.com/mikefarah/yq) you can check how to install yq
+
 # First Steps
 
 ## Understanding the folder structure
@@ -29,10 +37,12 @@ let's see what each of these directories represents:
 ### Infra
 This directory contains infrastructure related to the running of Euclid. 
 - Docker: This directory contains docker configuration, including Dockerfiles, and port, IP, and name configurations for running Euclid locally. 
-- Ansible: This directory contains Ansible configurations used for configuring and deploying to remote hosts. 
+- Ansible: This directory contains Ansible configurations to start your nodes locally and remotely
+  - **local**: Used for start and stop the nodes locally.
+  - **remote**: Used for configuring and deploying to remote hosts
 
 ### Scripts
-Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update` scripts.
+Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update (deprecated)` scripts.
 
 ### Source
 Here is the home of the local codebase and required files for each layer.
@@ -60,15 +70,17 @@ COMMANDS:
   install           Installs a local framework and detaches project
   install-template  Installs a project from templates
   build             Build containers
-  start-genesis     Start containers from the genesis snapshot (erasing history) [aliases: start-genesis]
-  start-rollback    Start containers from the last snapshot (maintaining history) [aliases: start-rollback]
+  start-genesis     Start containers from the genesis snapshot (erasing history) [aliases: start_genesis]
+  start-rollback    Start containers from the last snapshot (maintaining history) [aliases: start_rollback]
   stop              Stop containers
   destroy           Destroy containers
   purge             Destroy containers and images
   status            Check the status of the containers
-  remote-deploy     Remotely deploy to cloud instances using Ansible [aliases: remote-deploy]
-  remote-start      Remotely start the metagraph on cloud instances using Ansible [aliases: remote-start]
+  remote-deploy     Remotely deploy to cloud instances using Ansible [aliases: remote_deploy]
+  remote-start      Remotely start the metagraph on cloud instances using Ansible [aliases: remote_start]
+  remote-status     Check the status of the remote nodes
   update            Update Euclid
+  logs              Get the logs from containers
 ```
 
 TIP: You can use the same `-h` in each command listed above to see the accepted parameters
@@ -78,20 +90,14 @@ Let's start with the `build` command. This command could be used simply this way
 ```
 ./hydra build   
 ```
-This script has some parameters such as `--no_cache` (run without previous cache), `--run` (automatically run after build), `--only` (to build a specifical container), and `--include_dag_l1` (include the dag-l1 layer).
-
-If you provide the `--run` parameter you should see the available URLs at the end of script execution
+This script has some parameters such as `--no_cache` (run without previous cache), `--run` (automatically run after build).
 
 ### Starting
-We have the options `start-genesis` and `start` to start the containers. This option will fail case you didn't build the containers yet. You can call the option this way:
+We have the options `start-genesis` and `start-rollback` to start the containers. This option will fail case you didn't build the images yet.
 ```
 ./hydra start-genesis
-./hydra start   
+./hydra start-rollback   
 ```
-
-This script has some parameters such as `--only` (to start a specifical container), and `--include_dag_l1` (include the dag-l1 layer).
-
-You should see the URLs at the end
 
 ### Stopping
 We have the option `stop` to stop the containers. You can call the option this way:
@@ -100,18 +106,19 @@ We have the option `stop` to stop the containers. You can call the option this w
 ```
 
 ### Destroying
-We have the option `destroiy` to destroy the containers. You can call the option this way:
+We have the option `destroy` to destroy the containers. You can call the option this way:
 ```
 ./hydra destroy   
 ```
-This script has some parameters such as `--only` (to stop a specifical container), and `--delete_local_codebase` (delete your local codebases with containers).
-
+We also have the `purge` option to destroy the containers and clean all images
+```
+./hydra purge   
+```
 ### Status
 We have the option `status` to show the containers status. You can call the option this way:
 ```
 ./hydra status   
 ```
-This script has the parameter `--show_all` (to include stopped containers at the listing).
 
 ### Installing
 We have the option `install` to remove the link with remote `git`. You can call the option this way:
@@ -130,6 +137,20 @@ To list the templates available to install, type:
 ```
 ./hydra install-template --list
 ```
+### Logs
+We have the option `logs` to show the logs of nodes per container and layer. You can call the option this way:
+```
+./hydra logs :container_name :layer_name   
+```
+
+### Update
+We have the option `update` to update the Euclid. You can call the option this way:
+```
+./hydra update   
+```
+
+
+**NOTE: FOR ALL OPTIONS ABOVE YOU CAN USE `-h` TO CHECK THE AVAILABLE PARAMETERS** 
 
 ## Let's build
 
@@ -161,18 +182,38 @@ After the end of this step, run the following:
 
 After the end of `start-genesis`, you should see something like this:
 ```
-Containers successfully built. URLs:
+######################### METAGRAPH INFO #########################
+
+Metagraph ID: :your_metagraph_id
+
+
+Container metagraph-node-1 URLs
+Global L0: http://localhost:9000/node/info
+Metagraph L0: http://localhost:9200/node/info
+Currency L1: http://localhost:9300/node/info
+Data L1: http://localhost:9400/node/info
+
+
+Container metagraph-node-2 URLs
+Metagraph L0: http://localhost:9210/node/info
+Currency L1: http://localhost:9310/node/info
+Data L1: http://localhost:9410/node/info
+
+
+Container metagraph-node-3 URLs
+Metagraph L0: http://localhost:9220/node/info
+Currency L1: http://localhost:9320/node/info
+Data L1: http://localhost:9420/node/info
+
+
+Clusters URLs
 Global L0: http://localhost:9000/cluster/info
-Metagraph L0 - 1: http://localhost:9400/cluster/info
-Metagraph L0 - 2: http://localhost:9500/cluster/info
-Metagraph L0 - 3: http://localhost:9600/cluster/info
-Metagraph L1 Currency - 1: http://localhost:9700/cluster/info
-Metagraph L1 Currency - 2: http://localhost:9800/cluster/info
-Metagraph L1 Currency - 3: http://localhost:9900/cluster/info
-Metagraph L1 Data - 1: http://localhost:8000/cluster/info
-Metagraph L1 Data - 2: http://localhost:8100/cluster/info
-Metagraph L1 Data - 3: http://localhost:8200/cluster/info
-Grafana: http://localhost:3000/
+Metagraph L0: http://localhost:9200/cluster/info
+Currency L1: http://localhost:9300/cluster/info
+Data L1: http://localhost:9400/cluster/info
+
+####################################################################
+
 
 ```
 You can now access the URLs and see that your containers are working properly
@@ -196,9 +237,13 @@ In this tool we have 2 dashboards, you can access them on `Dashboard` section
 ## Deployment
 
 Configuring, deploying, and starting remote node instances is supported through Ansible playbooks. The default settings deploy to three node instances via SSH which host all layers of your metagraph project (gL0, mL0, cL1, dL1). Two hydra methods are available to help with the deployment process: `hydra remote-deploy` and `hydra remote-start`.
-Prior to running these methods, remote host information must be configured in  `infra/ansible/hosts.ansible.yml`
+Prior to running these methods, remote host information must be configured in  `infra/ansible/remote/hosts.ansible.yml`.
 
+By default, we use the default directory for the SSH file, which is `~/.ssh/id_rsa`. However, you can change it to your preferred SSH file directory. You can find instructions on how to generate your SSH file [here](https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key).
 
+Ansible functions more effectively with `.pem` key files. If you possess a `.ppk` key file, you can utilize [these instructions](https://tecadmin.net/convert-ppk-to-pem-using-command/) to convert it to `.pem`.
+
+If your file contains a password, you will be prompted to enter it to proceed with remote operations.
 ### Host Configuration
 
 To run your metagraph remotely, you'll need remote server instances - 3 instances for the default configuration. These hosts should be running either `ubuntu-20.04` or `ubuntu-22.04`. It's recommended that each host meets the following minimum requirements:
@@ -285,4 +330,86 @@ Each layer directory on every node contains a folder named `logs`. You can monit
 
 `tail -f logs/app.log`
 
-**NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/hosts.ansible.yml` file.
+**NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/remote/hosts.ansible.yml` file.
+
+### `hydra remote-status`
+This method will return the status of your remote hosts. You should see the following:
+```
+################################## Node 1 ##################################
+Metagraph L0
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+Currency L1
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+Data L1
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+
+################################## Node 2 ##################################
+Metagraph L0
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+Currency L1
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+Data L1
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+
+################################## Node 3 ##################################
+Metagraph L0
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+Currency L1
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+
+Data L1
+URL: http://:your_node_ip:your_port/node/info
+State: :state
+Host: :host
+Public port: :your_port
+P2P port: :your_port
+Peer id: :peerId
+```
+

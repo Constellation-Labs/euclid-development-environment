@@ -1,0 +1,47 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+name: Create Release
+
+jobs:
+  build:
+    if: startsWith(github.ref, 'refs/tags/')
+    name: Create Release
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install jq
+        shell: bash
+        run: |
+          sudo apt install -y jq
+
+      - name: Check if project version is release version
+        run:  |
+          test "v$(jq -r '.version' euclid.json)" = "${{ github.ref_name }}"
+
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v2.4.2
+        with:
+          configuration: ".github/config/changelog.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: little-core-labs/get-git-tag@v3.0.1
+        id: tagName
+        with:
+          tagRegex: "v(.*)"
+          tagRegexGroup: 1
+
+      - name: Release tag
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Euclid Release ${{ steps.tagName.outputs.tag }}
+          draft: false
+          prerelease: true
+          body: ${{ steps.build_changelog.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

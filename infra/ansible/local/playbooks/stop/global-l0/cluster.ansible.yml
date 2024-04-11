@@ -1,0 +1,15 @@
+---
+- name: (Global L0) Kill Metagraph L0 processes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../../vars.ansible.yml
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"  
+  tasks:
+
+  - name: (Global L0) Killing
+    include_tasks: ../shared/kill.ansible.yml
+    vars:
+      node_info: "{{ {'name': all_nodes[0].name, 'key_file': all_nodes[0].key_file, 'port': base_global_l0_public_port } }}"

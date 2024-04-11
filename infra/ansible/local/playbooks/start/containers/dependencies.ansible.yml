@@ -1,0 +1,39 @@
+---
+- name: Check if pip3 is installed
+  shell: command -v pip3
+  register: pip3_installed
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install pip3 on Debian/Ubuntu
+  apt:
+    name: python3-pip
+    state: present
+  when:
+    - ansible_os_family == "Debian"
+    - pip3_installed.rc != 0
+  become: true
+
+- name: Install pip3 on macOS
+  homebrew:
+    name: python3
+    state: present
+  when:
+    - ansible_os_family == "Darwin"
+    - pip3_installed.rc != 0
+  become: no
+
+- name: Install requests module
+  pip:
+    name: requests
+    state: present
+
+- name: Check if community.docker collection is installed
+  stat:
+    path: "$HOME/.ansible/collections/ansible_collections/community/docker"
+  register: collection_status
+
+- name: Install community.docker collection if not installed
+  ansible.builtin.command:
+    cmd: ansible-galaxy collection install community.docker --force
+  when: not collection_status.stat.exists
