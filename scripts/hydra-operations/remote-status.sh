@@ -20,8 +20,8 @@ function fetch_node_info() {
 }
 
 function remote_status() {
-  echo_white "################################## REMOTE STATUS ##################################"
-  check_host_file
+  echo_title "################################## REMOTE STATUS ##################################"
+  check_nodes_host_file
   metagraph_l0_port=$(yq eval '.nodes.vars.base_metagraph_l0_public_port' $ANSIBLE_HOSTS_FILE)
   currency_l1_port=$(yq eval '.nodes.vars.base_currency_l1_public_port' $ANSIBLE_HOSTS_FILE)
   data_l1_port=$(yq eval '.nodes.vars.base_data_l1_public_port' $ANSIBLE_HOSTS_FILE)
@@ -53,5 +53,5 @@ function remote_status() {
     echo
   done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.nodes.hosts[]')
 
-  echo_white "####################################################################"
+  
 }

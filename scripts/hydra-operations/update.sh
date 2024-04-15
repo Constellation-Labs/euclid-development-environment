@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function check_if_container_is_running() {
+function check_if_the_container_is_running() {
   if docker ps --format '{{.Names}}' | grep "$1"; then
     echo You should stop the container $1 before update
     exit 1
@@ -25,8 +25,10 @@ function check_if_should_update() {
   echo "Directory - infra/ansible/local/playbooks/start"
   echo "Directory - infra/ansible/local/playbooks/stop"
   echo "File - infra/ansible/local/playbooks/vars.ansible.yml"
-  echo "Directory - infra/ansible/remote/playbooks/deploy"
-  echo "Directory - infra/ansible/remote/playbooks/start"
+  echo "Directory - infra/ansible/remote/nodes/playbooks/deploy"
+  echo "Directory - infra/ansible/remote/nodes/playbooks/start"
+  echo "Directory - infra/ansible/remote/monitoring/playbooks/deploy"
+  echo "Directory - infra/ansible/remote/monitoring/playbooks/start"
   echo "File - infra/ansible/remote/hosts.ansible.yml"
 
   default="N"
@@ -55,12 +57,12 @@ function check_if_any_container_is_running() {
   echo "Checking if any container is running ..."
   while IFS= read -r node; do
     name=$(jq -r '.name' <<<"$node")
-    check_if_container_is_running $name
+    check_if_the_container_is_running $name
     echo
   done < <(jq -c '.[]' <<<"$NODES")
 
-  check_if_container_is_running grafana
-  check_if_container_is_running prometheus
+  check_if_the_container_is_running grafana
+  check_if_the_container_is_running prometheus
 }
 
 function update_infra_docker() {
@@ -88,15 +90,22 @@ function update_remote_ansible_files() {
 
   ANSIBLE_DIRECTORY="$INFRA_PATH/ansible/remote"
   chmod -R +x $ANSIBLE_DIRECTORY
+
   if [ -d "$ANSIBLE_DIRECTORY" ]; then
     rm -r $ANSIBLE_DIRECTORY/hosts.ansible.yml
     cp $INFRA_PATH/euclid-development-environment/infra/ansible/remote/hosts.ansible.yml $ANSIBLE_DIRECTORY
 
-    rm -r $ANSIBLE_DIRECTORY/playbooks/deploy
-    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/deploy $ANSIBLE_DIRECTORY/playbooks
+    rm -r $ANSIBLE_DIRECTORY/nodes/playbooks/deploy
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/nodes/playbooks/deploy $ANSIBLE_DIRECTORY/nodes/playbooks
 
-    rm -r $ANSIBLE_DIRECTORY/playbooks/start
-    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/start $ANSIBLE_DIRECTORY/playbooks
+    rm -r $ANSIBLE_DIRECTORY/nodes/playbooks/start
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/nodes/playbooks/start $ANSIBLE_DIRECTORY/nodes/playbooks
+
+    rm -r $ANSIBLE_DIRECTORY/monitoring/playbooks/deploy
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/monitoring/playbooks/deploy $ANSIBLE_DIRECTORY/monitoring/playbooks
+
+    rm -r $ANSIBLE_DIRECTORY/monitoring/playbooks/start
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/monitoring/playbooks/start $ANSIBLE_DIRECTORY/monitoring/playbooks
 
   else
     mkdir -p "$INFRA_PATH/ansible"
@@ -130,7 +139,7 @@ function update_local_ansible_files() {
 }
 
 update_euclid() {
-  echo_white "################################## UPDATE ##################################"
+  echo_title "################################## UPDATE ##################################"
   check_if_should_update
   check_if_any_container_is_running
 
@@ -147,8 +156,12 @@ update_euclid() {
   update_remote_ansible_files
   update_local_ansible_files
 
+  if command -v run_migrations &>/dev/null; then
+    run_migrations
+  fi
+
   chmod -R +w $INFRA_PATH/euclid-development-environment
   rm -r $INFRA_PATH/euclid-development-environment
   echo "Updating process finished!"
-  echo_white "####################################################################"
+  
 }

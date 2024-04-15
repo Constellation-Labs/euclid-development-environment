@@ -1,0 +1,24 @@
+---
+- import_playbook: configure.ansible.yml
+
+- name: Send metagraph-monitoring-service to remote host
+  hosts: monitoring
+  gather_facts: false
+  tasks:
+    - name: Create directory
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/code
+        state: directory
+
+    - name: Sending metagraph-monitoring-service excluding node_modules
+      ansible.builtin.synchronize:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/metagraph-monitoring-service/"
+        dest: "/home/{{ ansible_user }}/code/metagraph-monitoring-service"
+        delete: yes
+        rsync_opts:
+          - "--exclude=node_modules/"
+
+    - name: Install project dependencies
+      shell: |
+        cd "/home/{{ ansible_user }}/code/metagraph-monitoring-service"
+        yarn

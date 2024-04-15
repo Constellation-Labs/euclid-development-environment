@@ -1,5 +1,5 @@
 function install_template() {
-  echo_white "################################## INSTALL TEMPLATE ##################################"
+  echo_title "################################## INSTALL TEMPLATE ##################################"
   repo_name_with_git=$(basename "$argc_repo")
   repo_name="${repo_name_with_git%.git}"
 
@@ -71,5 +71,5 @@ function install_template() {
     rm -r .git
   fi
 
-  echo_white "####################################################################"
+  
 }

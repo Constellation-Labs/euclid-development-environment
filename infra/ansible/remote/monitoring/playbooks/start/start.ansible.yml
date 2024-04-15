@@ -1,0 +1,37 @@
+---
+- name: Start monitoring service
+  hosts: monitoring
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Check if monitoring-service exists
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-monitoring-service
+      register: result_dir
+
+    - name: Fail if monitoring-service does not exist
+      fail:
+        msg: "The metagraph-monitoring-service does not exist."
+      when: not (result_dir.stat.exists and result_dir.stat.isdir)
+
+    - name: Stop current process
+      shell: |
+        cd /home/{{ ansible_user }}/code/metagraph-monitoring-service
+        yarn kill
+      ignore_errors: true
+
+    - name: Check if should force_restart
+      set_fact:
+        force_restart_bool: "{{ force_restart | default(false) | bool }}"
+
+    - name: Start monitoring service
+      shell: |
+        cd /home/{{ ansible_user }}/code/metagraph-monitoring-service
+        yarn start
+      when: not force_restart_bool
+
+    - name: Start monitoring service forcing restart
+      shell: |
+        cd /home/{{ ansible_user }}/code/metagraph-monitoring-service
+        yarn force-restart
+      when: force_restart_bool

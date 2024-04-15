@@ -16,7 +16,7 @@ function get_env_variables_from_json_config_file() {
 
     export NODES=$(jq -r .nodes $ROOT_PATH/euclid.json)
     
-    export START_MONITORING_CONTAINER=$(jq -r .docker.start_monitoring_container $ROOT_PATH/euclid.json)   
+    export START_GRAFANA_CONTAINER=$(jq -r .docker.start_grafana_container $ROOT_PATH/euclid.json)   
 
     export LAYERS=$(jq -r .layers $ROOT_PATH/euclid.json)
 
@@ -27,8 +27,10 @@ function get_env_variables_from_json_config_file() {
 
     export ANSIBLE_HOSTS_FILE=$(jq -r .deploy.ansible.hosts $ROOT_PATH/euclid.json)
     export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.configure $ROOT_PATH/euclid.json)
-    export ANSIBLE_DEPLOY_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.deploy $ROOT_PATH/euclid.json)
-    export ANSIBLE_START_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.start $ROOT_PATH/euclid.json)
+    export ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE=$(jq -r .deploy.ansible.nodes.playbooks.deploy $ROOT_PATH/euclid.json)
+    export ANSIBLE_NODES_START_PLAYBOOK_FILE=$(jq -r .deploy.ansible.nodes.playbooks.start $ROOT_PATH/euclid.json)
+    export ANSIBLE_MONITORING_DEPLOY_PLAYBOOK_FILE=$(jq -r .deploy.ansible.monitoring.playbooks.deploy $ROOT_PATH/euclid.json)
+    export ANSIBLE_MONITORING_START_PLAYBOOK_FILE=$(jq -r .deploy.ansible.monitoring.playbooks.start $ROOT_PATH/euclid.json)
 
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)

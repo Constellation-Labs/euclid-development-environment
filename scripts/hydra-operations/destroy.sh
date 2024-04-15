@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 function destroy_containers() {
-    echo_white "################################## DESTROY ##################################"
+    echo_title "################################## DESTROY ##################################"
     echo_white "Starting destroying containers ..."
     while IFS= read -r node; do
         name=$(jq -r '.name' <<<"$node")
@@ -51,5 +51,5 @@ function destroy_containers() {
 
     echo
     echo
-    echo_white "####################################################################"
+    
 }

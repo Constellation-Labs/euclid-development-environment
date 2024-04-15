@@ -21,7 +21,7 @@ function check_if_container_is_running() {
 }
 
 function status_containers() {
-  echo_white "################################## STATUS ##################################"
+  echo_title "################################## STATUS ##################################"
   check_docker_health
 
   ansible_vars_path=$INFRA_PATH/ansible/local/playbooks/vars.ansible.yml
