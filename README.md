@@ -67,20 +67,23 @@ you should see something like this:
 USAGE: hydra <COMMAND>
 
 COMMANDS:
-  install           Installs a local framework and detaches project
-  install-template  Installs a project from templates
-  build             Build containers
-  start-genesis     Start containers from the genesis snapshot (erasing history) [aliases: start_genesis]
-  start-rollback    Start containers from the last snapshot (maintaining history) [aliases: start_rollback]
-  stop              Stop containers
-  destroy           Destroy containers
-  purge             Destroy containers and images
-  status            Check the status of the containers
-  remote-deploy     Remotely deploy to cloud instances using Ansible [aliases: remote_deploy]
-  remote-start      Remotely start the metagraph on cloud instances using Ansible [aliases: remote_start]
-  remote-status     Check the status of the remote nodes
-  update            Update Euclid
-  logs              Get the logs from containers
+  install                           Installs a local framework and detaches project
+  install-template                  Installs a project from templates
+  build                             Build containers
+  start-genesis                     Start containers from the genesis snapshot (erasing history) [aliases: start_genesis]
+  start-rollback                    Start containers from the last snapshot (maintaining history) [aliases: start_rollback]
+  stop                              Stop containers
+  destroy                           Destroy containers
+  purge                             Destroy containers and images
+  status                            Check the status of the containers
+  remote-deploy                     Remotely deploy to cloud instances using Ansible [aliases: remote_deploy]
+  remote-start                      Remotely start the metagraph on cloud instances using Ansible [aliases: remote_start]
+  remote-status                     Check the status of the remote nodes
+  update                            Update Euclid
+  logs                              Get the logs from containers
+  install-monitoring-service        Download the metagraph-monitoring-service (https://github.com/Constellation-Labs/metagraph-monitoring-service) [aliases: install_monitoring_service]
+  remote-deploy-monitoring-service  Deploy the metagraph-monitoring-service to remote host [aliases: remote_deploy_monitoring_service]
+  remote-start-monitoring-service   Start the metagraph-monitoring-service on remote host [aliases: remote_start_monitoring_service]
 ```
 
 TIP: You can use the same `-h` in each command listed above to see the accepted parameters
@@ -223,8 +226,12 @@ You can also call the `hydra` option
 ./hydra status
 ```
 
-## Monitoring
-With the containers building/starting we also build a monitoring tool. You can access this tool at this URL: `http://localhost:3000/`. The initial login and password are:
+## Grafana
+We have a Grafana container that can monitor your nodes. To enable this feature, modify the following field in `euclid.json` to `true`:
+
+`start_grafana_container=true`
+
+After updating this field, a Grafana container will be constructed when you start the services. You can access this tool at the following URL: http://localhost:3000/. The initial login credentials are:
 ```
 username: admin
 password: admin
@@ -233,6 +240,7 @@ You'll be requested to update the password after your first login
 
 In this tool we have 2 dashboards, you can access them on `Dashboard` section
 
+**NOTE: This monitoring feature is distinct from remote monitoring. It displays data from your nodes on Dashboards, allowing you to check various metrics. However, it does not perform restarts or any other operations.**
 
 ## Deployment
 
@@ -413,3 +421,80 @@ P2P port: :your_port
 Peer id: :peerId
 ```
 
+## Remote Monitoring
+
+We have introduced a tool in version `v0.10.0` that can monitor your metagraph and restart it if necessary.
+
+### Introduction
+This service monitors your metagraph and performs restarts as necessary. It is deployed using Ansible on a remote Ubuntu host. Commands such as `install-monitoring-service`, `remote-deploy-monitoring-service`, and `remote-start-monitoring-service` will be further explained in subsequent sections.
+
+The service is developed using `NodeJS`, and all necessary dependencies are installed on your remote instance during deployment.
+
+Running in the background with PM2, the service initiates checks at intervals specified in the configuration under the field: `check_healthy_interval_in_minutes`. It evaluates the health of the metagraph based on predefined and customizable `restart-conditions`, detailed in the [metagraph-monitoring-service](https://github.com/Constellation-Labs/metagraph-monitoring-service) repository. For example, if an unhealthy node is detected, the service triggers a restart.
+
+To restart a node or layer, the service first attempts to stop any running processes (referring to the layer). This operation requires sudo privileges without a password requirement (refer [to this](https://gcore.com/learning/how-to-disable-password-for-sudo-command/) document for instructions on setting up password-less sudo). In addition to terminating processes, log files from the node are moved to the `code/restart_logs` directory, which may also require sudo privileges.
+
+After these steps, the service restarts the node or layer and reintegrates it into the cluster.
+
+### Installation
+This tool it's not default to Euclid, so you need to install this service. To do this you need to run the following:
+
+`hydra install-monitoring-service`
+
+this command to creates a monitoring project in your source directory, which will be named `metagraph-monitoring-service`
+
+To use this feature, we need to know the informations about the remote host that will be used as monitoring.
+So, you need to populate the file `infra/ansible/remote/hosts.ansible.yml` under the monitoring section.
+You should provide a user that has sudo privileges without requiring a password. Refer to [this document](https://gcore.com/learning/how-to-disable-password-for-sudo-command/) to learn how to enable password-less sudo for a user.
+
+
+### Monitoring Configuration
+
+Before deploying to remote instances, you need to configure your monitoring by editing the file `config/config.json`. When you run the install command, some fields will be auto-populated based on the `euclid.json` file, which includes:
+
+-   `metagraph.id`: The unique identifier for your metagraph.
+-   `metagraph.name`: The name of your metagraph.
+-   `metagraph.version`: The version of your metagraph.
+-   `metagraph.default_restart_conditions`: Specifies conditions under which your metagraph should restart. These conditions are located in `src/jobs/restart/conditions`, including:
+  -   `SnapshotStopped`: Triggers if your metagraph stops producing snapshots.
+  -   `UnhealthyNodes`: Triggers if your metagraph nodes become unhealthy.
+-   `metagraph.layers`:
+  -   `ignore_layer`: Set to `true` to disable a specific layer.
+  -   `ports`: Specifies public, P2P, and CLI ports.
+  -   `additional_env_variables`: Lists additional environment variables needed upon restart, formatted as `["TEST=MY_VARIABLE, TEST_2=MY_VARIABLE_2"]`.
+  -   `seedlist`: Provides information about the layer seedlist, e.g., `{ base_url: ":your_url", file_name: ":your_file_name"}`.
+-   `metagraph.nodes`:
+  -   `ip`: IP address of the node.
+  -   `username`: Username for SSH access.
+  -   `privateKeyPath`: Path to the private SSH key, relative to the service's root directory. Example: `config/your_key_file.pem`.
+  -   `key_file`: Details of the `.p12` key file used for node startup, including `name`, `alias`, and `password`.
+-   `network.name`: The network your metagraph is part of, such as `integrationnet` or `mainnet`.
+-   `network.nodes`: Information about the GL0s nodes.
+-   `check_healthy_interval_in_minutes`: The interval, in minutes, for running the health check.
+
+NOTE: You must provide your SSH key file that has access to each node. It is recommended to place this under the `config` directory. Ensure that this file has access to the node and that the user you've provided also has sudo privileges without a password.
+
+### Customize Monitoring
+
+Learn how to customize your monitoring by checking the repositories:
+
+-   [metagraph-monitoring-service-package](https://github.com/Constellation-Labs/metagraph-monitoring-service-package)
+-   [metagraph-monitoring-service](https://github.com/Constellation-Labs/metagraph-monitoring-service-package)
+
+### Deploying Monitoring
+
+Once you've configured your metagraph monitoring, deploy it to the remote host with:
+
+`hydra remote-deploy-monitoring-service`
+
+This command sends your current monitoring service from euclid to your remote instance and downloads all necessary dependencies.
+
+### Starting Monitoring
+
+After deployment, start your monitoring with:
+
+`hydra remote-start-monitoring-service`
+
+To force a complete restart of your metagraph, use:
+
+`hydra remote-start-monitoring-service --force-restart`

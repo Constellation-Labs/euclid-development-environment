@@ -23,9 +23,9 @@ function destroy_images() {
 }
 
 function purge_containers() {
-  echo_white "################################## PURGE ##################################"
+  echo_title "################################## PURGE ##################################"
   echo_white "Starting purging containers ..."
   destroy_containers
   destroy_images
-  echo_white "####################################################################"
+  
 }
