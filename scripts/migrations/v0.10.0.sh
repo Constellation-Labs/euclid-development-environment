@@ -17,4 +17,18 @@ function migrate_v_0_10_0() {
         }
       }
     }}' $ROOT_PATH/euclid.json >$ROOT_PATH/temp.json && mv $ROOT_PATH/temp.json $ROOT_PATH/euclid.json
+
+
+  echo_yellow "Updating ansible"
+  cd $INFRA_PATH
+  if [ ! -d "euclid-development-environment" ]; then
+    git clone --quiet https://github.com/Constellation-Labs/euclid-development-environment.git
+  fi
+  
+  rm -r $INFRA_PATH/ansible
+  mv $INFRA_PATH/euclid-development-environment/infra/ansible $INFRA_PATH
+  
+  cd $ROOT_PATH
+  
+  echo_green "Updated"
 }
