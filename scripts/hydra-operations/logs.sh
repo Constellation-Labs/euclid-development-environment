@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function logs_containers() {
-  echo_white "################################## LOGS ##################################"
+  echo_title "################################## LOGS ##################################"
   echo_yellow "NOTE: TO STOP LOGGING PRESS CTRL + C"
 
   echo_white

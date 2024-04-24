@@ -12,7 +12,7 @@
     ignore_errors: true
 
   - name: Kill metagraph-l0 process
-    shell: "kill -9 {{ l0_process_id.stdout }}"
+    shell: "sudo kill -9 {{ l0_process_id.stdout }}"
     ignore_errors: true
     when: l0_process_id.stdout is defined
 

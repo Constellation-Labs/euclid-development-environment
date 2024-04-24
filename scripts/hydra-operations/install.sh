@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function install_project() {
-  echo_white "################################## INSTALL ##################################"
+  echo_title "################################## INSTALL ##################################"
   echo_white "Installing hydra ..."
   echo_white "Installing Framework..."
   create_template project
@@ -13,5 +13,5 @@ function install_project() {
   fi
 
   echo_green "Installed"
-  echo_white "####################################################################"
+  
 }
