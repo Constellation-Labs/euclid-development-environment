@@ -6,30 +6,28 @@ function ensure_permissions_on_files_and_directories(){
 }
 
 function build_paths() {
-  BASEDIR=$(dirname "$0")
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
-
-  cd ../
+  local SCRIPT_PATH="${BASH_SOURCE[0]}"
+  while [ -h "$SCRIPT_PATH" ]; do
+    local DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$DIR/$SCRIPT_PATH"
+  done
+  SCRIPT_PATH="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+  
+  cd "$SCRIPT_PATH"
+  cd ..
   export ROOT_PATH=$(pwd)
-  cd scripts/
+  cd "scripts/"
   export SCRIPTS_PATH=$(pwd)
-  cd ../infra
+  cd "../infra"
   export INFRA_PATH=$(pwd)
-  cd ../source
+  cd "../source"
   export SOURCE_PATH=$(pwd)
   cd ..
 }
 
 function load_scripts() {
-  BASEDIR=$(dirname "$0")
-  cd $BASEDIR
-  if [ -d "scripts" ]; then
-    cd scripts/
-  fi
-
+  cd $SCRIPTS_PATH
   source ./docker/operations.sh
 
   source ./hydra-operations/install.sh
@@ -44,6 +42,9 @@ function load_scripts() {
   source ./hydra-operations/remote-start.sh
   source ./hydra-operations/remote-status.sh
   source ./hydra-operations/logs.sh
+  source ./hydra-operations/install-monitoring-service.sh
+  source ./hydra-operations/remote-deploy-monitoring-service.sh
+  source ./hydra-operations/remote-start-monitoring-service.sh
 
   source ./template/custom-template.sh
 
@@ -224,7 +225,7 @@ function status() {
 # @cmd Remotely deploy to cloud instances using Ansible
 # @alias remote_deploy
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
-# -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/playbooks/deploy.ansible.yml
+# -> DEFAULT_ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/deploy.ansible.yml
 # @flag   --force_genesis                      Force metagraph to deploy as genesis
 function remote-deploy() {
   check_if_should_run_update
@@ -241,7 +242,7 @@ function remote-deploy() {
 # @cmd Remotely start the metagraph on cloud instances using Ansible
 # @alias remote_start
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
-# -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/playbooks/start/start.ansible.yml
+# -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/start/start.ansible.yml
 # @flag   --force_genesis                      Force metagraph to run as genesis
 function remote-start() {
   check_if_should_run_update
@@ -275,10 +276,10 @@ function update() {
   if [ -d "$SCRIPTS_PATH/hydra-operations" ]; then
     load_scripts
   fi
-  if command -v run_migrations &>/dev/null; then
-    run_migrations $argc_version
-  fi
+  
   update_euclid
+  
+  ensure_permissions_on_files_and_directories
 
   exit 0
 }
@@ -295,6 +296,53 @@ function logs() {
   load_scripts
 
   logs_containers
+
+  exit 0
+}
+
+# @cmd Download the metagraph-monitoring-service (https://github.com/Constellation-Labs/metagraph-monitoring-service)
+# @alias install_monitoring_service
+function install-monitoring-service() {
+  check_if_should_run_update
+
+  build_paths
+  load_scripts
+  ensure_permissions_on_files_and_directories
+  
+  install_monitoring_service
+
+  exit 0
+}
+
+# @cmd Deploy the metagraph-monitoring-service to remote host
+# @alias remote_deploy_monitoring_service
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/monitoring/playbooks/deploy/deploy.ansible.yml
+function remote-deploy-monitoring-service() {
+  check_if_should_run_update
+
+  build_paths
+  load_scripts
+  ensure_permissions_on_files_and_directories
+  
+  remote_deploy_monitoring_service
+
+  exit 0
+}
+
+# @cmd Start the metagraph-monitoring-service on remote host
+# @alias remote_start_monitoring_service
+# -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
+# -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/monitoring/playbooks/start/start.ansible.yml
+# @flag   --force_restart                      Force metagraph restart
+function remote-start-monitoring-service() {
+  check_if_should_run_update
+
+  build_paths
+  load_scripts
+  ensure_permissions_on_files_and_directories
+  
+  remote_start_monitoring_service
 
   exit 0
 }
@@ -316,9 +364,16 @@ function check_if_should_run_update() {
     load_scripts
     run_migrations
   fi
+
+  local monitoring=$(jq -r '.deploy.ansible.monitoring // empty' "$ROOT_PATH/euclid.json")
+  if [ -z "$monitoring" ]; then
+    echo "$(tput setaf 3) Could not find the deploy.monitoring field on euclid.json file, the file is probably outdated. Running migrations..."
+    load_scripts
+    run_migrations
+  fi
 }
 
-function check_if_container_is_running() {
+function check_if_the_container_is_running() {
   if docker ps --format '{{.Names}}' | grep "$1"; then
     echo You should stop the container $1 before update
     exit 1
@@ -343,10 +398,11 @@ function check_if_should_update() {
   echo "Directory - infra/ansible/local/playbooks/start"
   echo "Directory - infra/ansible/local/playbooks/stop"
   echo "File - infra/ansible/local/playbooks/vars.ansible.yml"
-  echo "Directory - infra/ansible/remote/playbooks/deploy"
-  echo "Directory - infra/ansible/remote/playbooks/start"
+  echo "Directory - infra/ansible/remote/nodes/playbooks/deploy"
+  echo "Directory - infra/ansible/remote/nodes/playbooks/start"
+  echo "Directory - infra/ansible/remote/monitoring/playbooks/deploy"
+  echo "Directory - infra/ansible/remote/monitoring/playbooks/start"
   echo "File - infra/ansible/remote/hosts.ansible.yml"
-
   default="N"
   echo "Do you want to proceed? (Y/N, default: $default): "
   read -r input
@@ -373,12 +429,12 @@ function check_if_any_container_is_running() {
   echo "Checking if any container is running ..."
   while IFS= read -r node; do
     name=$(jq -r '.name' <<<"$node")
-    check_if_container_is_running $name
+    check_if_the_container_is_running $name
     echo
   done < <(jq -c '.[]' <<<"$NODES")
 
-  check_if_container_is_running grafana
-  check_if_container_is_running prometheus
+  check_if_the_container_is_running grafana
+  check_if_the_container_is_running prometheus
 }
 
 function update_infra_docker() {
@@ -411,11 +467,17 @@ function update_remote_ansible_files() {
     rm -r $ANSIBLE_DIRECTORY/hosts.ansible.yml
     cp $INFRA_PATH/euclid-development-environment/infra/ansible/remote/hosts.ansible.yml $ANSIBLE_DIRECTORY
 
-    rm -r $ANSIBLE_DIRECTORY/playbooks/deploy
-    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/deploy $ANSIBLE_DIRECTORY/playbooks
+    rm -r $ANSIBLE_DIRECTORY/nodes/playbooks/deploy
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/nodes/playbooks/deploy $ANSIBLE_DIRECTORY/nodes/playbooks
 
-    rm -r $ANSIBLE_DIRECTORY/playbooks/start
-    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/playbooks/start $ANSIBLE_DIRECTORY/playbooks
+    rm -r $ANSIBLE_DIRECTORY/nodes/playbooks/start
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/nodes/playbooks/start $ANSIBLE_DIRECTORY/nodes/playbooks
+
+    rm -r $ANSIBLE_DIRECTORY/monitoring/playbooks/deploy
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/monitoring/playbooks/deploy $ANSIBLE_DIRECTORY/monitoring/playbooks
+
+    rm -r $ANSIBLE_DIRECTORY/monitoring/playbooks/start
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/remote/monitoring/playbooks/start $ANSIBLE_DIRECTORY/monitoring/playbooks
 
   else
     mkdir -p "$INFRA_PATH/ansible"
@@ -464,6 +526,10 @@ function update_euclid() {
   update_scripts
   update_remote_ansible_files
   update_local_ansible_files
+  
+  if command -v run_migrations &>/dev/null; then
+    run_migrations
+  fi
 
   chmod -R +w $INFRA_PATH/euclid-development-environment
   rm -r $INFRA_PATH/euclid-development-environment

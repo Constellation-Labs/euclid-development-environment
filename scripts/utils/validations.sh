@@ -34,17 +34,71 @@ function check_ansible() {
     fi
 }
 
-function check_host_file() {
-    echo_white "Checking if host configuration is valid..."
+function check_nodes_host_file() {
+    echo_white "Checking if nodes hosts configuration is valid..."
     while IFS= read -r node; do
         ansible_host=$(jq -r '.ansible_host' <<<"$node")
         ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
         if ! check_ip "$ansible_host"; then
-            echo_red "Your hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
+            echo_red "Your nodes hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
             exit 1
         fi
+        if [ ! -f "$ssh_private_key_file" ]; then
+            echo "Error: The file '$ssh_private_key_file' does not exist."
+            exit 1
+        fi
+
         finger_print=$(ssh-keygen -lf $ssh_private_key_file | awk '{print $2}')
-        if ! ssh-add -l | grep -q $finger_print >/dev/null 2>&1; then
+        if [ $? -ne 0 ]; then
+            echo_yellow "Could not get finger-print of SSH Key file, be sure to add this file to ssh-agent"
+            echo_yellow "To add to the agent you need to run:"
+            echo
+            echo_white "eval \$(ssh-agent -s)"
+            echo_white "ssh-add $ssh_private_key_file"
+            echo
+            echo_yellow "If your file contains a password, you might need to install the library ssh-askpass if you don't have installed already"
+            echo_yellow "#################################"
+        elif ! ssh-add -l | grep -q $finger_print >/dev/null 2>&1; then
+            echo_red "#################################"
+            echo_red "The ssh_key is not added to the SSH agent, please add to the agent before process."
+            echo_red "To add to the agent you need to run:"
+            echo
+            echo_white "eval \$(ssh-agent -s) # Run this command only once. If you have multiple files, do not run this command again as it will reset the agent."
+            echo_white "ssh-add $ssh_private_key_file"
+            echo
+            echo_yellow "If your file contains a password, you might need to install the library ssh-askpass if you don't have installed already"
+            echo_red "#################################"
+            exit 1
+        fi
+    done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.nodes.hosts[]')
+}
+
+function check_monitoring_host_file() {
+    echo_white "Checking if monitoring host configuration is valid..."
+    while IFS= read -r node; do
+        ansible_host=$(jq -r '.ansible_host' <<<"$node")
+        ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
+        if ! check_ip "$ansible_host"; then
+            echo_red "Your monitoring hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
+            exit 1
+        fi
+
+        if [ ! -f "$ssh_private_key_file" ]; then
+            echo "Error: The file '$ssh_private_key_file' does not exist."
+            exit 1
+        fi
+
+        finger_print=$(ssh-keygen -lf $ssh_private_key_file | awk '{print $2}')
+        if [ $? -ne 0 ]; then
+            echo_yellow "Could not get finger-print of SSH Key file, be sure to add this file to ssh-agent"
+            echo_yellow "To add to the agent you need to run:"
+            echo
+            echo_white "eval \$(ssh-agent -s)"
+            echo_white "ssh-add $ssh_private_key_file"
+            echo
+            echo_yellow "If your file contains a password, you might need to install the library ssh-askpass if you don't have installed already"
+            echo_yellow "#################################"
+        elif ! ssh-add -l | grep -q $finger_print >/dev/null 2>&1; then
             echo_red "#################################"
             echo_red "The ssh_key is not added to the SSH agent, please add to the agent before process."
             echo_red "To add to the agent you need to run:"
@@ -56,7 +110,7 @@ function check_host_file() {
             echo_red "#################################"
             exit 1
         fi
-    done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.nodes.hosts[]')
+    done < <(yq eval -o=j $ANSIBLE_HOSTS_FILE | jq -cr '.monitoring.hosts[]')
 }
 
 function check_network() {
@@ -90,6 +144,7 @@ function check_if_tessellation_version_starts_with_v() {
         exit 1
     fi
 }
+
 function check_if_github_token_was_provided() {
     if [[ -z "$GITHUB_TOKEN" ]]; then
         echo_red "You should provide the GITHUB_TOKEN on euclid.json file"
@@ -140,6 +195,13 @@ function check_if_we_have_at_least_3_nodes() {
     nodes_number=$(echo "$NODES" | jq length)
     if ((nodes_number < 3)); then
         echo_red "You should provide at least 3 nodes in euclid.json"
+        exit 1
+    fi
+}
+
+function check_if_genesis_files_exists() {
+    if [[ ! -f "$INFRA_PATH/docker/shared/genesis/genesis.address" ]]; then
+        echo_red "Could not get metagraph information, be sure that genesis files exists on infra/docker/shared/genesis"
         exit 1
     fi
 }

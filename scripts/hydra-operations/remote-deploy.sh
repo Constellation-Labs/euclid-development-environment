@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 function remote_deploy_metagraph() {
-  echo_white "################################## REMOTE DEPLOY ##################################"
+  echo_title "################################## REMOTE DEPLOY ##################################"
   check_ansible
-  check_host_file
+  check_nodes_host_file
 
   echo_yellow "Deploying on remote hosts"
   echo_white ""
@@ -25,6 +25,6 @@ function remote_deploy_metagraph() {
     force_genesis=false
   fi
   
-  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_DEPLOY_PLAYBOOK_FILE
-  echo_white "####################################################################"
+  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE
+  
 }

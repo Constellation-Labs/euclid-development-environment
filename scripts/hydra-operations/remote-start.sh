@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 function remote_start_metagraph() {
-  echo_white "################################## REMOTE START ##################################"
+  echo_title "################################## REMOTE START ##################################"
   check_ansible
-  check_host_file
+  check_nodes_host_file
 
   check_network $DEPLOY_NETWORK_NAME
 
@@ -15,6 +15,6 @@ function remote_start_metagraph() {
     force_genesis=false
   fi
 
-  ansible-playbook -e "force_genesis=$force_genesis" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_START_PLAYBOOK_FILE
-  echo_white "####################################################################"
+  ansible-playbook -e "force_genesis=$force_genesis" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_START_PLAYBOOK_FILE
+  
 }

@@ -97,11 +97,16 @@ function build_metagraph_base_image() {
       --build-arg SHOULD_BUILD_DATA_L1=$should_build_data_l1
   fi
 
+  if [ $? -ne 0 ]; then
+    echo_red "Error building Metagraph base image. Check the Docker build output for details."
+    exit 1
+  fi
+
   echo_green "Metagraph base image built"
 }
 
 function build_containers() {
-  echo_white "################################## BUILD ##################################"
+  echo_title "################################## BUILD ##################################"
   check_if_tessellation_version_starts_with_v
   check_if_github_token_was_provided
   check_if_github_token_is_valid
@@ -117,5 +122,5 @@ function build_containers() {
   if [ ! -z "$argc_run" ]; then
     start_containers true
   fi
-  echo_white "####################################################################"
+
 }

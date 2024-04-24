@@ -5,7 +5,7 @@ function try_stop_global_l0() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Stopping global-l0 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/global-l0/cluster.ansible.yml
@@ -15,7 +15,7 @@ function try_stop_global_l0() {
             echo_red "Failing when stopping global-l0, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -24,7 +24,7 @@ function try_stop_dag_l1() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Stopping dag-l1 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/dag-l1/cluster.ansible.yml
@@ -34,7 +34,7 @@ function try_stop_dag_l1() {
             echo_red "Failing when stopping dag-l1, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -43,7 +43,7 @@ function try_stop_metagraph_l0() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Stopping metagraph l0 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/metagraph-l0/cluster.ansible.yml
@@ -53,7 +53,7 @@ function try_stop_metagraph_l0() {
             echo_red "Failing when stopped metagraph-l0, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -62,7 +62,7 @@ function try_stop_currency_l1() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Stopping currency l1 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/currency-l1/cluster.ansible.yml
@@ -72,7 +72,7 @@ function try_stop_currency_l1() {
             echo_red "Failing when stopping currency-l1, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -80,7 +80,7 @@ function try_stop_data_l1() {
     if [[ " ${LAYERS[*]} " =~ "data-l1" ]] || [[ " ${LAYERS[*]} " =~ "metagraph-l1-data" ]]; then
         echo_white
         echo_white
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Stopping data l1 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/data-l1/cluster.ansible.yml
@@ -90,16 +90,16 @@ function try_stop_data_l1() {
             echo_red "Failing when stopping data-l1, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
-function try_stop_monitoring() {
-    if [ "$START_MONITORING_CONTAINER" = "true" ]; then
+function try_stop_grafana() {
+    if [ "$START_GRAFANA_CONTAINER" = "true" ]; then
         echo_white
         echo_white
-        echo_white "################################################################"
-        echo_yellow "Stopping monitoring container"
+        echo_title "################################################################"
+        echo_yellow "Stopping grafana container"
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/containers/monitor.ansible.yml
 
@@ -109,12 +109,12 @@ function try_stop_monitoring() {
             echo_red "Failing when stopping monitor container, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
 function stop_containers() {
-    echo_white "################################## STOP ##################################"
+    echo_title "################################## STOP ##################################"
     check_ansible
     export ANSIBLE_LOCALHOST_WARNING=False
     export ANSIBLE_INVENTORY_UNPARSED_WARNING=False
@@ -124,7 +124,7 @@ function stop_containers() {
     try_stop_metagraph_l0
     try_stop_currency_l1
     try_stop_data_l1
-    try_stop_monitoring
+    try_stop_grafana
 
-    echo_white "####################################################################"
+    
 }

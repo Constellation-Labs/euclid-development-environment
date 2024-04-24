@@ -2,7 +2,7 @@
 function try_start_docker_nodes() {
     echo_white
     echo_white
-    echo_white "################################################################"
+    echo_title "################################################################"
     echo_yellow "Starting docker containers..."
 
     if pip3 --version &>/dev/null; then
@@ -20,7 +20,7 @@ function try_start_docker_nodes() {
         echo_red "Failing when starting nodes containers, take a look at the logs."
         exit 1
     fi
-    echo_white "################################################################"
+    echo_title "################################################################"
 }
 
 function try_start_global_l0() {
@@ -28,7 +28,7 @@ function try_start_global_l0() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Starting global-l0 layer..."
         echo_white ""
         ansible-playbook -e "force_genesis=$1" $INFRA_PATH/ansible/local/playbooks/start/global-l0/cluster.ansible.yml
@@ -38,7 +38,7 @@ function try_start_global_l0() {
             echo_red "Failing when starting global-l0, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -47,7 +47,7 @@ function try_start_dag_l1() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Starting dag-l1 layer..."
         echo_white ""
         ansible-playbook -e "force_genesis=$1" $INFRA_PATH/ansible/local/playbooks/start/dag-l1/cluster.ansible.yml
@@ -57,7 +57,7 @@ function try_start_dag_l1() {
             echo_red "Failing when starting dag-l1, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -66,7 +66,7 @@ function try_start_metagraph_l0() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Starting metagraph l0 layer..."
         echo_white ""
         ansible-playbook -e "force_genesis=$1" $INFRA_PATH/ansible/local/playbooks/start/metagraph-l0/cluster.ansible.yml
@@ -76,7 +76,7 @@ function try_start_metagraph_l0() {
             echo_red "Failing when starting metagraph-l0, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -85,7 +85,7 @@ function try_start_currency_l1() {
         echo_white
         echo_white
 
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Starting currency l1 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/currency-l1/cluster.ansible.yml
@@ -95,7 +95,7 @@ function try_start_currency_l1() {
             echo_red "Failing when starting currency-l1, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -103,7 +103,7 @@ function try_start_data_l1() {
     if [[ " ${LAYERS[*]} " =~ "data-l1" ]] || [[ " ${LAYERS[*]} " =~ "metagraph-l1-data" ]]; then
         echo_white
         echo_white
-        echo_white "################################################################"
+        echo_title "################################################################"
         echo_yellow "Starting data l1 layer..."
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/data-l1/cluster.ansible.yml
@@ -113,16 +113,16 @@ function try_start_data_l1() {
             echo_red "Failing when starting data-l1, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
-function try_start_monitoring() {
-    if [ "$START_MONITORING_CONTAINER" = "true" ]; then
+function try_start_grafana() {
+    if [ "$START_GRAFANA_CONTAINER" = "true" ]; then
         echo_white
         echo_white
-        echo_white "################################################################"
-        echo_yellow "Starting monitoring container"
+        echo_title "################################################################"
+        echo_yellow "Starting grafana container"
         echo_white ""
         ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/containers/monitor.ansible.yml
 
@@ -132,7 +132,7 @@ function try_start_monitoring() {
             echo_red "Failing when starting monitor container, take a look at the logs."
             exit 1
         fi
-        echo_white "################################################################"
+        echo_title "################################################################"
     fi
 }
 
@@ -214,7 +214,7 @@ function print_nodes_information() {
 }
 
 function start_containers() {
-    echo_white "################################## START ##################################"
+    echo_title "################################## START ##################################"
     check_ansible
     check_if_we_have_at_least_3_nodes
     check_p12_files
@@ -228,8 +228,8 @@ function start_containers() {
     try_start_metagraph_l0 $1
     try_start_currency_l1 $1
     try_start_data_l1 $1
-    try_start_monitoring
+    try_start_grafana
 
     print_nodes_information
-    echo_white "####################################################################"
+    
 }

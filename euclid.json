@@ -1,14 +1,14 @@
 {
   "github_token": "",
   "version": "0.10.0-SNAPSHOT",
-  "tessellation_version": "2.3.1",
+  "tessellation_version": "2.3.3",
   "project_name": "custom-project",
   "framework": {
     "name": "currency",
     "modules": [
       "data"
     ],
-    "version": "v2.3.1",
+    "version": "v2.3.3",
     "ref_type": "tag"
   },
   "layers": [
@@ -44,7 +44,7 @@
     }
   ],
   "docker": {
-    "start_monitoring_container": false
+    "start_grafana_container": false
   },
   "deploy": {
     "network": {
@@ -57,9 +57,17 @@
     },
     "ansible": {
       "hosts": "infra/ansible/remote/hosts.ansible.yml",
-      "playbooks": {
-        "deploy": "infra/ansible/remote/playbooks/deploy/deploy.ansible.yml",
-        "start": "infra/ansible/remote/playbooks/start/start.ansible.yml"
+      "nodes": {
+        "playbooks": {
+          "deploy": "infra/ansible/remote/nodes/playbooks/deploy/deploy.ansible.yml",
+          "start": "infra/ansible/remote/nodes/playbooks/start/start.ansible.yml"
+        }
+      },
+      "monitoring": {
+        "playbooks": {
+          "deploy": "infra/ansible/remote/monitoring/playbooks/deploy/deploy.ansible.yml",
+          "start": "infra/ansible/remote/monitoring/playbooks/start/start.ansible.yml"
+        }
       }
     }
   }
