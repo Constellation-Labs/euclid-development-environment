@@ -1,9 +1,10 @@
-infra/docker/monitoring/grafana/config/
-infra/docker/monitoring/prometheus/data/
-infra/docker/monitoring/prometheus/monitoring/
+infra/docker/grafana/grafana/config/
+infra/docker/grafana/prometheus/data/
+infra/docker/grafana/prometheus/monitoring/
 .idea
 infra/docker/shared/jars/**.jar
 .vscode
 source/project/*
 source/metagraph-l0/genesis/genesis.address
 source/metagraph-l0/genesis/genesis.snapshot
+source/*-monitoring-service

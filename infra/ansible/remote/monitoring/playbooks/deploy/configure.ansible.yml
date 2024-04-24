@@ -1,0 +1,66 @@
+---
+- name: Install monitoring dependencies
+  hosts: monitoring
+  become: true
+  gather_facts: false  
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Python and pip
+      ansible.builtin.apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install build essential tools
+      ansible.builtin.apt:
+        name: build-essential
+        state: present
+
+    - name: Install additional libraries
+      ansible.builtin.apt:
+        name:
+          - gcc
+          - g++
+          - make
+        state: present
+
+    - name: Download and run NodeSource Node.js 20.x setup script
+      ansible.builtin.get_url:
+        url: https://deb.nodesource.com/setup_20.x
+        dest: /tmp/setup_node_20.sh
+        mode: '0755'
+      register: download_nodesource_script
+
+    - name: Execute NodeSource setup script
+      ansible.builtin.shell: /tmp/setup_node_20.sh
+      when: download_nodesource_script is succeeded
+
+    - name: Install Node.js and npm
+      ansible.builtin.apt:
+        name:
+          - nodejs
+        state: present
+        update_cache: yes
+
+    - name: Install node-gyp globally
+      ansible.builtin.npm:
+        name: node-gyp
+        global: yes
+
+    - name: Check if Yarn is already installed
+      ansible.builtin.command: which yarn
+      register: yarn_installed
+      ignore_errors: true
+
+    - name: Install Yarn
+      ansible.builtin.shell:
+        cmd: npm install --global yarn
+      when: yarn_installed.rc != 0
+
+    - name: Install PM2
+      ansible.builtin.shell:
+        cmd: yarn global add pm2

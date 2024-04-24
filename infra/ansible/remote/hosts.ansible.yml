@@ -25,3 +25,12 @@ nodes:
     base_data_l1_public_port: 9300
     base_data_l1_p2p_port: 9301
     base_data_l1_cli_port: 9302
+
+monitoring:
+  hosts:
+    monitoring-1:
+      ansible_host: #Your host IP
+      ansible_user: #Your host User
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
