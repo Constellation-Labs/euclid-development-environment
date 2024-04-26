@@ -19,8 +19,8 @@ function logs_containers() {
     exit 1
   fi
 
-  if [ -z "$argc_retroactive_rows" ]; then
-    argc_retroactive_rows=10
+  if [ -z "$argc_n" ]; then
+    argc_n=10
   fi
 
   # Run the command inside the container to check if the directory exists
@@ -29,7 +29,7 @@ function logs_containers() {
     # Run the command inside the container to check if the log file exists
     docker exec "$container_name" bash -c "[ -f '$layer/$layer.log' ]"
     if [ $? -eq 0 ]; then
-      docker exec -it $container_name bash -c "cd $layer && tail -f $layer.log -n $argc_retroactive_rows"
+      docker exec -it $container_name bash -c "cd $layer && tail -f $layer.log -n $argc_n"
     else
       echo_red "Layer $layer does not exists in $container_name"
     fi
