@@ -84,7 +84,7 @@ function remote_start_metagraph() {
   else
     force_genesis=false
   fi
-exit 0
+
   ansible-playbook -e "force_genesis=$force_genesis" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_START_PLAYBOOK_FILE
   remove_ssh_key_from_agent nodes
 
