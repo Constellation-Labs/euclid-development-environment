@@ -5,6 +5,13 @@
   hosts: nodes
   gather_facts: false
   tasks:
+    - name: Create global-l0 directory
+      file:
+        path: /home/{{ ansible_user }}/code/global-l0
+        state: directory
+      async: 300
+      poll: 0
+
     - name: Create metagraph-l0 directory
       file:
         path: /home/{{ ansible_user }}/code/metagraph-l0
@@ -39,6 +46,11 @@
       copy:
         src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-wallet.jar"
         dest: /home/{{ ansible_user }}/code
+
+    - name: Copy cl-keytool.jar and cl-wallet.jar files to global-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/cl-keytool.jar /home/{{ ansible_user }}/code/global-l0
+        cp /home/{{ ansible_user }}/code/cl-wallet.jar /home/{{ ansible_user }}/code/global-l0
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to metagraph-l0
       shell: |
@@ -127,6 +139,10 @@
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[0].key_file.name }}"
         dest: /home/{{ ansible_user }}/code
 
+    - name: Copy p12 file to global-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/global-l0
+
     - name: Copy p12 file to metagraph-l0
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
@@ -153,6 +169,10 @@
       copy:
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[1].key_file.name }}"
         dest: /home/{{ ansible_user }}/code
+
+    - name: Copy p12 file to global-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[1].key_file.name }} /home/{{ ansible_user }}/code/global-l0
 
     - name: Copy p12 file to metagraph-l0
       shell: |
@@ -181,6 +201,10 @@
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ all_nodes[2].key_file.name }}"
         dest: /home/{{ ansible_user }}/code
 
+    - name: Copy p12 file to global-l0
+      shell: |
+        cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/global-l0
+
     - name: Copy p12 file to metagraph-l0
       shell: |
         cp /home/{{ ansible_user }}/code/{{ all_nodes[2].key_file.name }} /home/{{ ansible_user }}/code/metagraph-l0
@@ -196,3 +220,107 @@
     - name: Cleaning file
       shell: |
         rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+
+- name: Download nodectl
+  hosts: nodes
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: Check if nodectl_user is not provided
+      fail:
+        msg: "nodectl_user is not defined, please check your hosts file and fill the field"
+      when: not (skip_nodectl | bool) and (nodectl_user is not defined or nodectl_user | default('') | trim == '')
+
+    - name: Check if nodectl_user_password is not provided
+      fail:
+        msg: "nodectl_user_password is not defined, please check your hosts file and fill the field"
+      when: not (skip_nodectl | bool) and (nodectl_user_password is not defined or nodectl_user_password | trim == "")
+
+    - name: Check if nodectl is already installed
+      command: which nodectl
+      register: result
+      ignore_errors: true
+      when: not (skip_nodectl | bool)
+
+    - name: Filling nodectl_already_installed
+      set_fact:
+        nodectl_already_installed: "{{ result.rc == 0 }}"
+      when: not (skip_nodectl | bool)
+        
+    - name: Download nodectl from GitHub
+      get_url:
+        url: https://github.com/stardustcollective/nodectl/releases/download/v2.13.0/nodectl_x86_64
+        dest: /usr/local/bin/nodectl
+        mode: '0755'
+        force: yes
+      when: not (skip_nodectl | bool) and not nodectl_already_installed 
+
+    - name: Check if nodectl is available
+      shell: which nodectl
+      when: not (skip_nodectl | bool) and not nodectl_already_installed
+
+- name: Install nodectl node 1
+  hosts: node-1
+  become: yes
+  gather_facts: false
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+    network_name: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
+  tasks:
+    - name: Run quick-install on node-1
+      shell: >
+        sudo nodectl install --quick-install \
+        --user {{ nodectl_user }} \
+        --user-password {{ nodectl_user_password }} \
+        --cluster-config {{ network_name }} \
+        --p12-passphrase {{ all_nodes[0].key_file.password }} \
+        --p12-alias {{ all_nodes[0].key_file.alias }} \
+        --p12-migration-path /home/{{ ansible_user }}/code/global-l0/{{ all_nodes[0].key_file.name }} \
+        --confirm
+      async: 900
+      poll: 30
+      when: not (skip_nodectl | bool) and not nodectl_already_installed
+
+- name: Install nodectl node 2
+  hosts: node-2
+  become: yes
+  gather_facts: false
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+    network_name: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
+  tasks:
+    - name: Run quick-install on node-2
+      shell: >
+        sudo nodectl install --quick-install \
+        --user {{ nodectl_user }} \
+        --user-password {{ nodectl_user_password }} \
+        --cluster-config {{ network_name }} \
+        --p12-passphrase {{ all_nodes[1].key_file.password }} \
+        --p12-alias {{ all_nodes[1].key_file.alias }} \
+        --p12-migration-path /home/{{ ansible_user }}/code/global-l0/{{ all_nodes[1].key_file.name }} \
+        --confirm
+      async: 900
+      poll: 30
+      when: not (skip_nodectl | bool) and not nodectl_already_installed
+
+- name: Install nodectl node 3
+  hosts: node-3
+  become: yes
+  gather_facts: false
+  vars:
+    all_nodes: "{{ lookup('env', 'NODES') }}"
+    network_name: "{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}"
+  tasks:
+    - name: Run quick-install on node-3
+      shell: >
+        sudo nodectl install --quick-install \
+        --user {{ nodectl_user }} \
+        --user-password {{ nodectl_user_password }} \
+        --cluster-config {{ network_name }} \
+        --p12-passphrase {{ all_nodes[2].key_file.password }} \
+        --p12-alias {{ all_nodes[2].key_file.alias }} \
+        --p12-migration-path /home/{{ ansible_user }}/code/global-l0/{{ all_nodes[2].key_file.name }} \
+        --confirm
+      async: 900
+      poll: 30
+      when: not (skip_nodectl | bool) and not nodectl_already_installed

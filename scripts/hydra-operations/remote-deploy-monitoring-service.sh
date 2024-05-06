@@ -72,6 +72,7 @@ function remote_deploy_monitoring_service() {
   echo_title "################################## REMOTE DEPLOY ##################################"
   check_ansible
   check_monitoring_host_file
+  add_ssh_key_to_agent monitoring
 
   check_if_config_json_is_valid
   check_private_key_paths
@@ -82,5 +83,5 @@ function remote_deploy_monitoring_service() {
   export ANSIBLE_DEPRECATION_WARNINGS=False
 
   ansible-playbook -i $ANSIBLE_HOSTS_FILE $ANSIBLE_MONITORING_DEPLOY_PLAYBOOK_FILE
-  
+  remove_ssh_key_from_agent monitoring
 }
