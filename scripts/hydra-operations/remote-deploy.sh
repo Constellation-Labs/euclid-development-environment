@@ -4,6 +4,7 @@ function remote_deploy_metagraph() {
   echo_title "################################## REMOTE DEPLOY ##################################"
   check_ansible
   check_nodes_host_file
+  add_ssh_key_to_agent nodes
 
   echo_yellow "Deploying on remote hosts"
   echo_white ""
@@ -25,6 +26,16 @@ function remote_deploy_metagraph() {
     force_genesis=false
   fi
   
-  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE
+  if [ ! -z "$argc_skip_nodectl" ]; then
+    skip_nodectl=true
+  else
+    skip_nodectl=false
+  fi
   
+  ansible-playbook -e "force_genesis=$force_genesis" -e "skip_nodectl=$skip_nodectl" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE
+  remove_ssh_key_from_agent nodes
+  echo_title "#####################################################################################"
+  echo_title "NOTE: BE SURE TO HAVE YOUR GLOBAL L0 NODES READY AND HEALTHY BEFORE USING THE remote-start COMMAND, OTHERWISE THE COMMAND WILL FAIL"
+  echo_title "TAKE A LOOK AT YOUR NODES BEFORE STARTING, IF YOU'RE USING NODECTL YOU CAN CHECK THE STATUS BY TYPING: sudo nodectl status"
+  echo_title "#####################################################################################"
 }

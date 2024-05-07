@@ -51,6 +51,7 @@ function load_scripts() {
   source ./utils/echo-colors.sh
   source ./utils/get-information.sh
   source ./utils/validations.sh
+  source ./utils/ssh-key-operations.sh
 
   source ./migrations/migrations.sh
 
@@ -227,6 +228,7 @@ function status() {
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/deploy.ansible.yml
 # @flag   --force_genesis                      Force metagraph to deploy as genesis
+# @flag   --skip_nodectl                       Skip nodectl installation
 function remote-deploy() {
   check_if_should_run_update
 
@@ -244,6 +246,7 @@ function remote-deploy() {
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/start/start.ansible.yml
 # @flag   --force_genesis                      Force metagraph to run as genesis
+# @flag   --skip_nodectl                       Skip nodectl validation
 function remote-start() {
   check_if_should_run_update
 

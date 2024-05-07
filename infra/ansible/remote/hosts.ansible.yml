@@ -5,14 +5,31 @@ nodes:
       ansible_host: #Your host IP
       ansible_user: #Your host User
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
+      ansible_ssh_private_key_password: #Your private key password. Empty in case of a non-password private key
+      
+      #The parameters below it's for NodeCTL installation, if you already have it installed, just put your current information.
+      nodectl_user: nodeadmin #Nodectl user, default nodeadmin. It will create this user if you need to install nodectl
+      nodectl_user_password: #Nodectl user password. It will create the user above with this password
+
     node-2:
       ansible_host: #Your host IP
       ansible_user: #Your host User
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
+      ansible_ssh_private_key_password: #Your private key password. Empty in case of a non-password private key
+
+      #The parameters below it's for NodeCTL installation, if you already have it installed, just put your current information.
+      nodectl_user: nodeadmin #Nodectl user, default nodeadmin. It will create this user if you need to install nodectl
+      nodectl_user_password: #Nodectl user password. It will create the user above with this password
+
     node-3:
       ansible_host: #Your host IP
       ansible_user: #Your host User
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
+      ansible_ssh_private_key_password: #Your private key password. Empty in case of a non-password private key
+
+      #The parameters below it's for NodeCTL installation, if you already have it installed, just put your current information.
+      nodectl_user: nodeadmin #Nodectl user, default nodeadmin. It will create this user if you need to install nodectl
+      nodectl_user_password: #Nodectl user password. It will create the user above with this password
 
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
@@ -32,5 +49,6 @@ monitoring:
       ansible_host: #Your host IP
       ansible_user: #Your host User
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
+      ansible_ssh_private_key_password: #Your private key password. Empty in case of a non-password private key
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
