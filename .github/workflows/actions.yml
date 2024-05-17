@@ -10,7 +10,7 @@ jobs:
         run: |
           sudo apt-get remove -y docker docker-engine docker.io containerd runc
 
-      - name: Install Docker 26.1.1
+      - name: Install Docker
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -24,7 +24,7 @@ jobs:
             "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
             $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
           sudo apt-get update
-          sudo apt-get install -y docker-ce=5:26.1.1~3-0~ubuntu-focal docker-ce-cli=5:26.1.1~3-0~ubuntu-focal containerd.io
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
       - name: Verify Docker installation
         run: docker --version
