@@ -41,6 +41,7 @@ function load_scripts() {
   source ./hydra-operations/remote-deploy.sh
   source ./hydra-operations/remote-start.sh
   source ./hydra-operations/remote-status.sh
+  source ./hydra-operations/remote-logs.sh
   source ./hydra-operations/logs.sh
   source ./hydra-operations/install-monitoring-service.sh
   source ./hydra-operations/remote-deploy-monitoring-service.sh
@@ -268,6 +269,23 @@ function remote-status() {
 
   exit 0
 }
+
+# @cmd Get the logs from the remote hosts
+# @arg host_name!             Host name (node-1, node-2, node-3, monitoring)
+# @arg layer!                 Layer name (global-l0, dag-l1, metagraph-l0, currency-l1, data-l1, monitoring)
+# @option -n                  Retroactive rows from logs file (default 10)
+function remote-logs() {
+  check_if_should_run_update
+
+  build_paths
+  ensure_permissions_on_files_and_directories
+  load_scripts
+
+  remote_logs
+
+  exit 0
+}
+
 # @cmd Update Euclid
 # @option --version!  The Euclid version (https://github.com/Constellation-Labs/euclid-development-environment/releases)
 function update() {
