@@ -61,9 +61,9 @@ function load_scripts() {
 
 # @cmd Installs a local framework and detaches project
 function install() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -78,9 +78,9 @@ function install() {
 # @option --path   Template path on repository (default examples)
 # @flag   --list   List available templates
 function install-template() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -101,9 +101,9 @@ function install-template() {
 # @flag   --no_cache                      Build docker containers with no cache
 # @flag   --run                           Run containers after build
 function build() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -118,9 +118,9 @@ function build() {
 # @cmd Start containers from the genesis snapshot (erasing history)
 # @alias start_genesis
 function start-genesis() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -135,9 +135,9 @@ function start-genesis() {
 # @cmd Start containers from the last snapshot (maintaining history)
 # @alias start_rollback
 function start-rollback() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -151,9 +151,9 @@ function start-rollback() {
 
 # @cmd Stop containers
 function stop() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -170,12 +170,12 @@ function stop() {
 # @cmd Destroy containers
 # @flag   --delete_project            Delete custom project
 function destroy() {
+  build_paths
   check_if_should_run_update
 
   export FORCE_ROLLBACK=""
   export METAGRAPH_ID=""
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -190,12 +190,12 @@ function destroy() {
 # @cmd Destroy containers and images
 # @flag   --delete_project            Delete custom project
 function purge() {
+  build_paths
   check_if_should_run_update
 
   export FORCE_ROLLBACK=""
   export METAGRAPH_ID=""
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -209,9 +209,9 @@ function purge() {
 
 # @cmd Check the status of the containers
 function status() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -229,9 +229,9 @@ function status() {
 # -> DEFAULT_ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/deploy.ansible.yml
 # @flag   --force_genesis                      Force metagraph to deploy as genesis
 function remote-deploy() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -246,9 +246,9 @@ function remote-deploy() {
 # -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/start/start.ansible.yml
 # @flag   --force_genesis                      Force metagraph to run as genesis
 function remote-start() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -259,9 +259,9 @@ function remote-start() {
 
 # @cmd Check the status of the remote nodes
 function remote-status() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -307,9 +307,9 @@ function update() {
 # @arg layer!                 Layer name (global-l0, dag-l1, metagraph-l0, currency-l1, data-l1)
 # @option -n                  Retroactive rows from logs file (default 10)
 function logs() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   ensure_permissions_on_files_and_directories
   load_scripts
 
@@ -321,9 +321,9 @@ function logs() {
 # @cmd Download the metagraph-monitoring-service (https://github.com/Constellation-Labs/metagraph-monitoring-service)
 # @alias install_monitoring_service
 function install-monitoring-service() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   load_scripts
   ensure_permissions_on_files_and_directories
   
@@ -337,9 +337,9 @@ function install-monitoring-service() {
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/monitoring/playbooks/deploy/deploy.ansible.yml
 function remote-deploy-monitoring-service() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   load_scripts
   ensure_permissions_on_files_and_directories
   
@@ -354,9 +354,9 @@ function remote-deploy-monitoring-service() {
 # -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/monitoring/playbooks/start/start.ansible.yml
 # @flag   --force_restart                      Force metagraph restart
 function remote-start-monitoring-service() {
+  build_paths
   check_if_should_run_update
 
-  build_paths
   load_scripts
   ensure_permissions_on_files_and_directories
   
@@ -367,7 +367,6 @@ function remote-start-monitoring-service() {
 
 # The functions below are made for backward compatibility, they will be moved to scripts/hydra-operations/update in the next releases
 function check_if_should_run_update() {
-  build_paths
   ensure_permissions_on_files_and_directories
   DIRECTORY="$SCRIPTS_PATH/hydra-operations"
 

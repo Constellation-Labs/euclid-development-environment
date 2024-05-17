@@ -28,6 +28,19 @@ function check_if_docker_is_running() {
         exit 1
     fi
 
+    required_version="26.0.0"
+    installed_version=$(docker --version | awk '{print $3}' | sed 's/,//')
+
+    if [[ -z "$installed_version" ]]; then
+        echo_red "Docker is not installed or not found in the PATH."
+        exit 1
+    fi
+
+    if [[ "$(printf '%s\n' "$required_version" "$installed_version" | sort -V | head -n1)" != "$required_version" ]]; then
+        echo_red "Docker version is lower than $required_version. Installed version: $installed_version"
+        exit 1
+    fi
+
     if [[ $(uname) == "Darwin" ]]; then
         DOCKER_SOCKET="/var/run/docker.sock"
         if [ ! -e "$DOCKER_SOCKET" ]; then
