@@ -1,5 +1,14 @@
 FROM ubuntu:22.04
 
+# Define versions in ARGs for easy updates
+ARG DOCKER_COMPOSE_VERSION=v2.27.0 # Check new versions at: https://github.com/docker/compose/releases
+ARG COURSIER_VERSION=v2.1.9 # Check new versions at: https://github.com/coursier/coursier/releases
+ARG SCALA_VERSION=2.13.14 # Check new versions at: https://github.com/scala/scala/releases
+ARG NODE_VERSION=v20.12.2 # Check new versions at: https://github.com/nodejs/node/releases
+ARG YQ_VERSION=v4.43.1 # Check new versions at: https://github.com/mikefarah/yq/releases
+ARG NVM_INSTALL_SCRIPT_VERSION=v0.39.7 # Check new versions at: https://github.com/nvm-sh/nvm/releases
+ARG ZSH_VERSION=v1.1.5 # Check new versions at: https://github.com/deluan/zsh-in-docker/releases
+
 WORKDIR /home/
 
 RUN apt-get update && \
@@ -32,17 +41,17 @@ RUN apt-get update && \
     apt-get install -y docker-ce-cli
 
 # Install Docker Compose
-RUN curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+RUN curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
     chmod +x /usr/local/bin/docker-compose
 
 # Install Coursier
-RUN curl -fL https://github.com/coursier/coursier/releases/download/v2.1.9/cs-x86_64-pc-linux.gz | gzip -d > cs && \
+RUN curl -fL https://github.com/coursier/coursier/releases/download/${COURSIER_VERSION}/cs-x86_64-pc-linux.gz | gzip -d > cs && \
     chmod +x cs && \
     mv cs /usr/local/bin/cs
 
 # Install Scala using Coursier
 RUN cs install cs && \
-    cs setup --yes --apps scala:2.13.14
+    cs setup --yes --apps scala:${SCALA_VERSION}
 
 # Install Giter8 using Coursier
 RUN cs install giter8
@@ -60,8 +69,8 @@ RUN cargo install argc
 RUN mkdir -p /usr/local/nvm
 ENV NVM_DIR /usr/local/nvm
 # IMPORTANT: set the exact version
-ENV NODE_VERSION v20.12.2
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+ENV NODE_VERSION ${NODE_VERSION}
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_INSTALL_SCRIPT_VERSION}/install.sh | bash
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use --delete-prefix $NODE_VERSION"
 # Add node and npm to the PATH
 ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin
@@ -71,7 +80,6 @@ ENV PATH $NODE_PATH:$PATH
 RUN npm install -g yarn
 
 # Install yq
-ENV YQ_VERSION=v4.43.1
 ENV YQ_BINARY=yq_linux_amd64
 RUN wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | \
     tar xz && \
@@ -99,7 +107,7 @@ RUN ansible --version
 RUN git --version
 
 # Installs zsh with some plugins
-RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" -- \
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/${ZSH_VERSION}/zsh-in-docker.sh)" -- \
     -p git \
     -p ssh-agent \
     -p https://github.com/zsh-users/zsh-autosuggestions \
