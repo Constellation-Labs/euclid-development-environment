@@ -25,7 +25,9 @@
 
 Experience a streamlined Euclid setup with DevContainers. Activate a fully configured development environment without manually installing each dependency.
 
-To open this repository in a DevContainer, open the cloned repository in VS Code and run the command: _Dev Containers: Reopen in Container_.
+To open this repository in a DevContainer, open the cloned repository in [Visual Studio Code](https://code.visualstudio.com/) and run the command: _Dev Containers: Reopen in Container_.
+
+This requires the [_Dev Containers_ extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) and [_Docker_](https://docs.docker.com/engine/install/) to be installed.
 
 # First Steps
 
