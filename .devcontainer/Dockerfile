@@ -7,7 +7,7 @@ ARG SCALA_VERSION=2.13.14 # Check new versions at: https://github.com/scala/scal
 ARG NODE_VERSION=v20.14.0 # Check new versions at: https://github.com/nodejs/node/releases
 ARG YQ_VERSION=v4.44.1 # Check new versions at: https://github.com/mikefarah/yq/releases
 ARG NVM_INSTALL_SCRIPT_VERSION=v0.39.7 # Check new versions at: https://github.com/nvm-sh/nvm/releases
-ARG ZSH_VERSION=v1.2.0 # Check new versions at: https://github.com/deluan/zsh-in-docker/releases
+ARG ZSH_IN_DOCKER_VERSION=v1.2.0 # Check new versions at: https://github.com/deluan/zsh-in-docker/releases
 
 WORKDIR /home/
 
@@ -107,7 +107,7 @@ RUN ansible --version
 RUN git --version
 
 # Installs zsh with some plugins
-RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/${ZSH_VERSION}/zsh-in-docker.sh)" -- \
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
     -p git \
     -p ssh-agent \
     -p https://github.com/zsh-users/zsh-autosuggestions \
