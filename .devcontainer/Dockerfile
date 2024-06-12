@@ -5,8 +5,8 @@ ARG DOCKER_COMPOSE_VERSION=v2.27.1 # Check new versions at: https://github.com/d
 ARG COURSIER_VERSION=v2.1.10 # Check new versions at: https://github.com/coursier/coursier/releases
 ARG SCALA_VERSION=2.13.14 # Check new versions at: https://github.com/scala/scala/releases
 ARG NODE_VERSION=v20.14.0 # Check new versions at: https://github.com/nodejs/node/releases
-ARG YQ_VERSION=v4.44.1 # Check new versions at: https://github.com/mikefarah/yq/releases
 ARG NVM_INSTALL_SCRIPT_VERSION=v0.39.7 # Check new versions at: https://github.com/nvm-sh/nvm/releases
+ARG YQ_VERSION=v4.44.1 # Check new versions at: https://github.com/mikefarah/yq/releases
 ARG ZSH_IN_DOCKER_VERSION=v1.2.0 # Check new versions at: https://github.com/deluan/zsh-in-docker/releases
 
 WORKDIR /home/
