@@ -1,6 +1,11 @@
 {
     "name": "Euclid SDK",
-    "dockerFile": "Dockerfile",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "ARCH": "${localEnv:PROCESSOR_ARCHITECTURE}"
+        }
+    },
     "runArgs": ["--network=host"],
     "mounts": [
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"

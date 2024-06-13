@@ -9,6 +9,9 @@ ARG NVM_INSTALL_SCRIPT_VERSION=v0.39.7 # Check new versions at: https://github.c
 ARG YQ_VERSION=v4.44.1 # Check new versions at: https://github.com/mikefarah/yq/releases
 ARG ZSH_IN_DOCKER_VERSION=v1.2.0 # Check new versions at: https://github.com/deluan/zsh-in-docker/releases
 
+# Set by devcontainer.json configuration
+ARG ARCH
+
 WORKDIR /home/
 
 RUN apt-get update && \
@@ -33,10 +36,11 @@ RUN apt-get update && \
     libudev-dev
 
 # Install Docker CLI (client only, assuming hosts docker.sock is mounted)
-RUN apt-get update && \
+RUN LOWERCASE_ARCH=$(echo ${ARCH} | tr '[:upper:]' '[:lower:]') && \
+    apt-get update && \
     apt-get install -y apt-transport-https ca-certificates curl software-properties-common lsb-release && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - && \
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
+    add-apt-repository "deb [arch=${LOWERCASE_ARCH}] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
     apt-get update && \
     apt-get install -y docker-ce-cli
 
@@ -80,8 +84,9 @@ ENV PATH $NODE_PATH:$PATH
 RUN npm install -g yarn
 
 # Install yq
-ENV YQ_BINARY=yq_linux_amd64
-RUN wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | \
+RUN LOWERCASE_ARCH=$(echo ${ARCH} | tr '[:upper:]' '[:lower:]') && \
+    YQ_BINARY=yq_linux_${LOWERCASE_ARCH} && \
+    wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | \
     tar xz && \
     mv ${YQ_BINARY} /usr/bin/yq
 
