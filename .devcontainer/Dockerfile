@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # Define versions in ARGs for easy updates
 ARG DOCKER_COMPOSE_VERSION=v2.27.1 # Check new versions at: https://github.com/docker/compose/releases
-ARG COURSIER_VERSION=v2.1.10 # Check new versions at: https://github.com/coursier/coursier/releases
+ARG COURSIER_VERSION=v2.1.10 # Check new versions at: https://github.com/coursier/coursier/releases and https://github.com/VirtusLab/coursier-m1/releases
 ARG SCALA_VERSION=2.13.14 # Check new versions at: https://github.com/scala/scala/releases
 ARG NODE_VERSION=v20.14.0 # Check new versions at: https://github.com/nodejs/node/releases
 ARG NVM_INSTALL_SCRIPT_VERSION=v0.39.7 # Check new versions at: https://github.com/nvm-sh/nvm/releases
@@ -49,7 +49,11 @@ RUN curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOS
     chmod +x /usr/local/bin/docker-compose
 
 # Install Coursier
-RUN curl -fL https://github.com/coursier/coursier/releases/download/${COURSIER_VERSION}/cs-x86_64-pc-linux.gz | gzip -d > cs && \
+RUN if [ "${ARCH}" = "ARM64" ]; then \
+        curl -fL "https://github.com/VirtusLab/coursier-m1/releases/download/${COURSIER_VERSION}/cs-aarch64-pc-linux.gz" | gzip -d > cs; \
+    else \
+        curl -fL "https://github.com/coursier/coursier/releases/download/${COURSIER_VERSION}/cs-x86_64-pc-linux.gz" | gzip -d > cs; \
+    fi && \
     chmod +x cs && \
     mv cs /usr/local/bin/cs
 
