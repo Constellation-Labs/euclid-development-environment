@@ -21,6 +21,14 @@
 * yq is a powerful command-line YAML processor and parser, similar to jq but for YAML data. It allows you to query, filter, and manipulate YAML documents easily from the command line, making it a handy tool for tasks such as extracting specific data, updating YAML files, and formatting output.
 * [Here](https://github.com/mikefarah/yq) you can check how to install yq
 
+## DevContainer
+
+Experience a streamlined Euclid setup with DevContainers. Activate a fully configured development environment without manually installing each dependency.
+
+To open this repository in a DevContainer, open the cloned repository in [Visual Studio Code](https://code.visualstudio.com/) and run the command: _Dev Containers: Reopen in Container_.
+
+This requires the [_Dev Containers_ extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) and [_Docker_](https://docs.docker.com/engine/install/) to be installed.
+
 # First Steps
 
 ## Understanding the folder structure
