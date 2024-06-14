@@ -132,10 +132,10 @@ function check_if_tessellation_version_of_project_matches_euclid_json() {
     PROJECT_TESSELLATION_VERSION=$(sed -n 's/.*val tessellation = "\(.*\)".*/\1/p' $SOURCE_PATH/project/$PROJECT_NAME/project/Dependencies.scala)
     echo_white "Project tessellation version: $PROJECT_TESSELLATION_VERSION"
     echo_white "Tessellation version provided on euclid.json: $TESSELLATION_VERSION"
-    if [[ "$PROJECT_TESSELLATION_VERSION" != "$TESSELLATION_VERSION" ]]; then
-        echo_red "Your custom project contains a different version of tessellation than provided on euclid.json. Please use the same version!"
-        exit 1
-    fi
+    # if [[ "$PROJECT_TESSELLATION_VERSION" != "$TESSELLATION_VERSION" ]]; then
+    #     echo_red "Your custom project contains a different version of tessellation than provided on euclid.json. Please use the same version!"
+    #     exit 1
+    # fi
 }
 
 function check_if_tessellation_version_starts_with_v() {

@@ -1,6 +1,6 @@
 ARG TESSELLATION_VERSION
 
-FROM --platform=linux/amd64 metagraph-ubuntu-${TESSELLATION_VERSION}
+FROM --platform=linux/amd64 metagraph-ubuntu-david
 
 ARG SHOULD_BUILD_GLOBAL_L0
 ARG SHOULD_BUILD_DAG_L1

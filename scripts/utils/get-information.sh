@@ -7,16 +7,20 @@ function get_env_variables_from_json_config_file() {
 
     export GITHUB_TOKEN=$(jq -r .github_token $ROOT_PATH/euclid.json)
     export METAGRAPH_ID=$(jq -r .metagraph_id $ROOT_PATH/euclid.json)
+
     export TESSELLATION_VERSION=$(jq -r .tessellation_version $ROOT_PATH/euclid.json)
+    export TESSELLATION_VERSION_IS_TAG_OR_BRANCH=$(jq -r .ref_type $ROOT_PATH/euclid.json)
+
     export TEMPLATE_VERSION=$(jq -r .framework.version $ROOT_PATH/euclid.json)
     export TEMPLATE_VERSION_IS_TAG_OR_BRANCH=$(jq -r .framework.ref_type $ROOT_PATH/euclid.json)
+
     export PROJECT_NAME=$(jq -r .project_name $ROOT_PATH/euclid.json)
     export FRAMEWORK_NAME=$(jq -r .framework.name $ROOT_PATH/euclid.json)
     export FRAMEWORK_MODULES=$(jq -r .framework.modules $ROOT_PATH/euclid.json)
 
     export NODES=$(jq -r .nodes $ROOT_PATH/euclid.json)
-    
-    export START_GRAFANA_CONTAINER=$(jq -r .docker.start_grafana_container $ROOT_PATH/euclid.json)   
+
+    export START_GRAFANA_CONTAINER=$(jq -r .docker.start_grafana_container $ROOT_PATH/euclid.json)
 
     export LAYERS=$(jq -r .layers $ROOT_PATH/euclid.json)
 
@@ -54,7 +58,7 @@ function get_metagraph_id_from_metagraph_l0_genesis() {
             echo_url "METAGRAPH_ID: " $METAGRAPH_ID
             echo_white "Filling the euclid.json file"
             contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' $ROOT_PATH/euclid.json)" &&
-                echo -E "${contents}" > $ROOT_PATH/euclid.json
+                echo -E "${contents}" >$ROOT_PATH/euclid.json
 
             get_env_variables_from_json_config_file
             break
@@ -63,13 +67,18 @@ function get_metagraph_id_from_metagraph_l0_genesis() {
 }
 
 function get_checkout_tessellation_version() {
-    local version=$1
-    local semver_regex='^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
-    if [[ $version =~ $semver_regex ]]; then
-        echo "v$version"
-    else
+    if [[ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" == "branch" ]]; then
         echo "$version"
+    else
+        local version=$1
+        local semver_regex='^([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+        if [[ $version =~ $semver_regex ]]; then
+            echo "v$version"
+        else
+            echo "$version"
+        fi
     fi
+
 }
 
 function get_should_use_updated_modules() {

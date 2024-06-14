@@ -27,7 +27,7 @@ RUN git clone https://github.com/Constellation-Labs/tessellation.git && \
     cd tessellation && \
     git checkout $CHECKOUT_TESSELLATION_VERSION && \
     rm -r version.sbt && \
-    echo "ThisBuild / version := \"$TESSELLATION_VERSION\"" > version.sbt
+    echo "ThisBuild / version := \"david\"" > version.sbt
     
 RUN cd tessellation && \
     if [ "$SHOULD_USE_UPDATED_MODULES" = "true" ]; then \

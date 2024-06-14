@@ -1,7 +1,8 @@
 {
   "github_token": "",
   "version": "0.10.0",
-  "tessellation_version": "2.3.3",
+  "tessellation_version": "feature/fee-transaction",
+  "ref_type": "branch",
   "project_name": "custom-project",
   "framework": {
     "name": "currency",
