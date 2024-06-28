@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-function ensure_permissions_on_files_and_directories(){
+function ensure_permissions_on_files_and_directories() {
   chmod -R a+rwx $INFRA_PATH 2>/dev/null
   chmod -R a+rwx $SCRIPTS_PATH 2>/dev/null
   chmod -R a+rwx $SOURCE_PATH 2>/dev/null
@@ -13,7 +13,7 @@ function build_paths() {
     [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$DIR/$SCRIPT_PATH"
   done
   SCRIPT_PATH="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
-  
+
   cd "$SCRIPT_PATH"
   cd ..
   export ROOT_PATH=$(pwd)
@@ -46,6 +46,7 @@ function load_scripts() {
   source ./hydra-operations/install-monitoring-service.sh
   source ./hydra-operations/remote-deploy-monitoring-service.sh
   source ./hydra-operations/remote-start-monitoring-service.sh
+  source ./hydra-operations/remote-snapshot-fee-config.sh
 
   source ./template/custom-template.sh
 
@@ -227,13 +228,19 @@ function status() {
 # @alias remote_deploy
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/deploy.ansible.yml
-# @flag   --force_genesis                      Force metagraph to deploy as genesis
+# @flag   --force_genesis                Force metagraph to deploy as genesis
 function remote-deploy() {
   build_paths
   check_if_should_run_update
 
   ensure_permissions_on_files_and_directories
   load_scripts
+
+  check_if_owner_and_staking_address_are_equal
+  confirm_force_genesis
+
+  check_metagraph_owner_fees_file_exists $SNAPSHOT_FEES_OWNER_FILE_NAME
+  check_metagraph_staking_fees_file_exists $SNAPSHOT_FEES_STAKING_FILE_NAME
 
   remote_deploy_metagraph
 
@@ -244,13 +251,21 @@ function remote-deploy() {
 # @alias remote_start
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_START_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/start/start.ansible.yml
-# @flag   --force_genesis                      Force metagraph to run as genesis
+# @flag   --force_genesis                Force metagraph to run as genesis
+# @flag   --force_owner_message          Force to send owner message
+# @flag   --force_staking_message        Force to send owner message
 function remote-start() {
   build_paths
   check_if_should_run_update
 
   ensure_permissions_on_files_and_directories
   load_scripts
+  
+  check_if_owner_and_staking_address_are_equal
+  confirm_force_genesis
+
+  check_metagraph_owner_fees_information $SNAPSHOT_FEES_OWNER_FILE_NAME $SNAPSHOT_FEES_OWNER_ALIAS $SNAPSHOT_FEES_OWNER_PASSWORD
+  check_metagraph_staking_fees_information $SNAPSHOT_FEES_STAKING_FILE_NAME $SNAPSHOT_FEES_STAKING_ALIAS $SNAPSHOT_FEES_STAKING_PASSWORD
 
   remote_start_metagraph
 
@@ -275,13 +290,26 @@ function remote-status() {
 # @arg layer!                 Layer name (global-l0, dag-l1, metagraph-l0, currency-l1, data-l1, monitoring)
 # @option -n                  Retroactive rows from logs file (default 10)
 function remote-logs() {
-  check_if_should_run_update
-
   build_paths
+  
+  check_if_should_run_update
   ensure_permissions_on_files_and_directories
   load_scripts
 
   remote_logs
+
+  exit 0
+}
+
+# @cmd Get the remote snapshot fee config
+function remote-snapshot-fee-config() {
+  build_paths
+  
+  check_if_should_run_update
+  ensure_permissions_on_files_and_directories
+  load_scripts
+
+  remote_snapshot_fee_config
 
   exit 0
 }
@@ -294,9 +322,9 @@ function update() {
   if [ -d "$SCRIPTS_PATH/hydra-operations" ]; then
     load_scripts
   fi
-  
+
   update_euclid
-  
+
   ensure_permissions_on_files_and_directories
 
   exit 0
@@ -326,7 +354,7 @@ function install-monitoring-service() {
 
   load_scripts
   ensure_permissions_on_files_and_directories
-  
+
   install_monitoring_service
 
   exit 0
@@ -342,7 +370,7 @@ function remote-deploy-monitoring-service() {
 
   load_scripts
   ensure_permissions_on_files_and_directories
-  
+
   remote_deploy_monitoring_service
 
   exit 0
@@ -359,7 +387,7 @@ function remote-start-monitoring-service() {
 
   load_scripts
   ensure_permissions_on_files_and_directories
-  
+
   remote_start_monitoring_service
 
   exit 0
@@ -385,6 +413,13 @@ function check_if_should_run_update() {
   local monitoring=$(jq -r '.deploy.ansible.monitoring // empty' "$ROOT_PATH/euclid.json")
   if [ -z "$monitoring" ]; then
     echo "$(tput setaf 3) Could not find the deploy.monitoring field on euclid.json file, the file is probably outdated. Running migrations..."
+    load_scripts
+    run_migrations
+  fi
+
+  local snapshot_fees=$(jq -r '.snapshot_fees // empty' "$ROOT_PATH/euclid.json")
+  if [ -z "$snapshot_fees" ]; then
+    echo "$(tput setaf 3) Could not find the snapshot_fees field on euclid.json file, the file is probably outdated. Running migrations..."
     load_scripts
     run_migrations
   fi
@@ -543,7 +578,7 @@ function update_euclid() {
   update_scripts
   update_remote_ansible_files
   update_local_ansible_files
-  
+
   if command -v run_migrations &>/dev/null; then
     run_migrations
   fi
