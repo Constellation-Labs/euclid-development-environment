@@ -29,10 +29,14 @@ function remote_start_metagraph() {
 
   if [ -z "$argc_owner_parent_ordinal" ]; then
     owner_parent_ordinal=0
+  else
+    owner_parent_ordinal=$argc_owner_parent_ordinal
   fi
 
   if [ -z "$argc_staking_parent_ordinal" ]; then
     staking_parent_ordinal=0
+  else
+    staking_parent_ordinal=$argc_staking_parent_ordinal
   fi
 
   # Validate owner parameters
