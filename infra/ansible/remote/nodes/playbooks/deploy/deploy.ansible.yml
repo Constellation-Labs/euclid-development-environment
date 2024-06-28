@@ -196,3 +196,36 @@
     - name: Cleaning file
       shell: |
         rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
+
+- name: Send fees p12 files to nodes
+  hosts: nodes
+  gather_facts: false
+  vars:
+     owner_p12_file_name: "{{ owner_p12_file_name }}"
+     staking_p12_file_name: "{{ staking_p12_file_name }}"
+  tasks:
+    - name: Check if owner file exists
+      stat:
+        path: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ owner_p12_file_name }}"
+      register: owner_p12_file
+      delegate_to: localhost
+      when: not (owner_p12_file_name is undefined or owner_p12_file_name == "")
+
+    - name: Copy owner file to remote node
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ owner_p12_file_name }}"
+        dest: "/home/{{ ansible_user }}/code/metagraph-l0/{{ owner_p12_file_name }}"
+      when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") and owner_p12_file.stat.exists
+
+    - name: Check if staking file exists
+      stat:
+        path: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ staking_p12_file_name }}"
+      register: staking_p12_file
+      when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+      delegate_to: localhost
+
+    - name: Copy staking file to remote node if it exists
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ staking_p12_file_name }}"
+        dest: "/home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }}"
+      when: not (staking_p12_file_name is undefined or staking_p12_file_name == "") and staking_p12_file.stat.exists
