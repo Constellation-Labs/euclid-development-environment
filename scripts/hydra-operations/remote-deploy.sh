@@ -25,6 +25,6 @@ function remote_deploy_metagraph() {
     force_genesis=false
   fi
   
-  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE
+  ansible-playbook -e "force_genesis=$force_genesis" -e "deploy_cl1=$deploy_cl1" -e "deploy_dl1=$deploy_dl1" -e "owner_p12_file_name"=$argc_owner_p12_file_name" -e "staking_p12_file_name"=$argc_staking_p12_file_name" -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE
   
 }

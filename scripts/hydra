@@ -227,7 +227,9 @@ function status() {
 # @alias remote_deploy
 # -> DEFAULT_ANSIBLE_HOSTS_FILE: infra/ansible/remote/hosts.ansible.yml
 # -> DEFAULT_ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE: infra/ansible/remote/nodes/playbooks/deploy.ansible.yml
-# @flag   --force_genesis                      Force metagraph to deploy as genesis
+# @flag   --force_genesis                Force metagraph to deploy as genesis
+# @option --owner_p12_file_name!         Metagraph owner p12 file name (File to deduct fees). Be sure to have the p12 file under `source/p12-files` directory
+# @option --staking_p12_file_name        Metagraph staking p12 file name (File to reduce fees based on balance). Be sure to have the p12 file under `source/p12-files` directory
 function remote-deploy() {
   build_paths
   check_if_should_run_update
@@ -235,6 +237,9 @@ function remote-deploy() {
   ensure_permissions_on_files_and_directories
   load_scripts
 
+  check_metagraph_owner_fees_file_exists $argc_owner_p12_file_name
+  check_metagraph_staking_fees_file_exists $argc_staking_p12_file_name
+  
   remote_deploy_metagraph
 
   exit 0
