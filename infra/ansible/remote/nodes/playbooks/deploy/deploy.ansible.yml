@@ -209,17 +209,13 @@
         path: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ owner_p12_file_name }}"
       register: owner_p12_file
       delegate_to: localhost
-
-    - name: Fail if owner file does not exist
-      fail:
-        msg: "owner p12 file does not exist: {{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ owner_p12_file_name }}"
-      when: not owner_p12_file.stat.exists
-      delegate_to: localhost
+      when: not (owner_p12_file_name is undefined or owner_p12_file_name == "")
 
     - name: Copy owner file to remote node
       copy:
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ owner_p12_file_name }}"
         dest: "/home/{{ ansible_user }}/code/metagraph-l0/{{ owner_p12_file_name }}"
+      when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") and owner_p12_file.stat.exists
 
     - name: Check if staking file exists
       stat:

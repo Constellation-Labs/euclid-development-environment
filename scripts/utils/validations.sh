@@ -207,6 +207,9 @@ function check_if_genesis_files_exists() {
 }
 
 function check_metagraph_owner_fees_file_exists() {
+    if [ "$#" -eq 0 ]; then
+        return
+    fi
     local owner_file_path=$SOURCE_PATH/p12-files/$1
     if [ -f "$owner_file_path" ]; then
         if [[ "$owner_file_path" == *.p12 ]]; then
@@ -239,6 +242,15 @@ function check_metagraph_staking_fees_file_exists() {
     fi
 }
 
+function check_metagraph_owner_fees_information() {
+    if [ "$#" -eq 0 ]; then
+        return
+    elif [ "$#" -ne 3 ]; then
+        echo_red "You should provide all 3 parameters to owner wallet validation"
+        exit 1
+    fi
+}
+
 function check_metagraph_staking_fees_information() {
     if [ "$#" -eq 0 ]; then
         return
@@ -246,6 +258,4 @@ function check_metagraph_staking_fees_information() {
         echo_red "You should provide all 3 parameters to staking wallet validation"
         exit 1
     fi
-
-    check_metagraph_owner_fees_file_exists $1
 }
