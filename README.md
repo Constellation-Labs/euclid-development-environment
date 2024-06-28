@@ -305,7 +305,26 @@ Each directory will be created with `cl-keytool.jar`, `cl-wallet.jar`, and a P12
 **In `code/data-l1`:**
 -   data-l1.jar     // The executable for the dL1 layer
 
+#### Parameters
+If you run the command `./hydra remote-deploy -h` you should see something like
 
+```
+Remotely deploy to cloud instances using Ansible
+
+USAGE: hydra remote-deploy [OPTIONS]
+
+OPTIONS:
+      --force_genesis                                  Force metagraph to deploy as genesis
+      --owner_p12_file_name <OWNER-P12-FILE-NAME>      Metagraph owner p12 file name (File to deduct fees). Be sure to have the p12 file under `source/p12-files` directory
+      --staking_p12_file_name <STAKING-P12-FILE-NAME>  Metagraph staking p12 file name (File to reduce fees based on balance). Be sure to have the p12 file under `source/p12-files` directory
+  -h, --help   
+```
+* --force_genesis: Use this flag when you want your metagraph to start from genesis. If you have already started a metagraph and need to execute from genesis again, use this command.
+
+* --owner_p12_file_name: This parameter specifies the wallet to charge fees on snapshots. Ensure this file is in the `p12-files` directory. We will validate if the file exists in the directory and, if so, send it to the remote `metagraph-l0` directory.
+
+* --staking_p12_file_name: This parameter specifies the wallet to check the balance to reduce fees according to the amount of DAG in the balance. Ensure this file is in the `p12-files` directory. We will validate if the file exists in the directory and, if so, send it to the remote `metagraph-l0` directory.
+ 
 ### `hydra remote-start`
 
 This method initiates the remote startup of your metagraph in one of the available networks: integrationnet or mainnet. The network should be set in `euclid.json` under `deploy` -> `network`
@@ -339,6 +358,42 @@ Each layer directory on every node contains a folder named `logs`. You can monit
 `tail -f logs/app.log`
 
 **NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/remote/hosts.ansible.yml` file.
+
+#### Parameters
+If you run the command `./hydra remote-start -h` you should see something like
+
+```
+Remotely start the metagraph on cloud instances using Ansible
+
+USAGE: hydra remote-start [OPTIONS]
+
+OPTIONS:
+      --force_genesis                                    Force metagraph to run as genesis
+      --force_owner_message                              Force to send owner message
+      --force_staking_message                            Force to send owner message
+      --owner_p12_file_name <OWNER-P12-FILE-NAME>        Metagraph owner p12 file name (File to deduct fees). This file should be in metagraph-l0 directory on the remote node. The remote-deploy command sends the file to nodes
+      --owner_p12_alias <OWNER-P12-ALIAS>                Metagraph owner p12 alias
+      --owner_p12_password <OWNER-P12-PASSWORD>          Metagraph owner p12 password
+      --owner_parent_ordinal <OWNER-PARENT-ORDINAL>      Metagraph owner parent ordinal message (default = 0)
+      --staking_p12_file_name <STAKING-P12-FILE-NAME>    Metagraph staking p12 file name (File to reduce fees based on balance). This file should be in metagraph-l0 directory on the remote node. The remote-deploy command sends the file to nodes
+      --staking_p12_alias <STAKING-P12-ALIAS>            Metagraph staking p12 alias
+      --staking_p12_password <STAKING-P12-PASSWORD>      Metagraph staking p12 password
+      --staking_parent_ordinal <STAKING-PARENT-ORDINAL>  Metagraph staking parent ordinal message (default = 0)
+  -h, --help    
+```
+* --force_genesis: Use this flag when you want your metagraph to start from genesis. If you have already started a metagraph and need to execute from genesis again, use this command.
+* --force_owner_message: Use this flag when you want your metagraph to force sending the owner message. For example, if you want to change the owner address, provide this flag.
+* --force_staking_message: Use this flag when you want your metagraph to force sending the staking message. For example, if you want to change the staking address, provide this flag.
+* --owner_p12_file_name: This parameter specifies the wallet to charge fees on snapshots. Ensure this file was sent during `remote-deploy`. We will check if the file exists on the node.
+* --owner_p12_alias: This parameter specifies the alias of the owner p12 file.
+* --owner_p12_password: This parameter specifies the password of the owner p12 file.
+* --staking_p12_file_name: This parameter specifies the wallet to check the balance to reduce fees according to the amount of DAG in the balance. Ensure this file was sent during `remote-deploy`. We will check if the file exists on the node.
+* --staking_p12_alias: This parameter specifies the alias of the staking p12 file.
+* --staking_p12_password: This parameter specifies the password of the staking p12 file.
+* --owner_parent_ordinal: When sending an owner message, you should provide the parent ordinal. The default value is 0 because it’s the first ordinal. If you need to change the owner, you should increase the lastParentOrdinal in the snapshot messages by 1. For example, if the lastParentOrdinal is 0 and you want to change the owner, provide owner_parent_ordinal as 1 (0 + 1).
+* --staking_parent_ordinal: This parameter follows the same logic as owner_parent_ordinal but applies to staking.
+
+**NOTE:** When you provide any of the owner or staking parameters, you must provide all the parameters, otherwise, it will fail.
 
 ### `hydra remote-status`
 This method will return the status of your remote hosts. You should see the following:

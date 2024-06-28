@@ -205,3 +205,57 @@ function check_if_genesis_files_exists() {
         exit 1
     fi
 }
+
+function check_metagraph_owner_fees_file_exists() {
+    if [ "$#" -eq 0 ]; then
+        return
+    fi
+    local owner_file_path=$SOURCE_PATH/p12-files/$1
+    if [ -f "$owner_file_path" ]; then
+        if [[ "$owner_file_path" == *.p12 ]]; then
+            echo_green "Owner file exists"
+        else
+            echo_red "Invalid owner file extension, it should be .p12"
+            exit 1
+        fi
+    else
+        echo_red "Owner file does not exist."
+        exit 1
+    fi
+}
+
+function check_metagraph_staking_fees_file_exists() {
+    if [ "$#" -eq 0 ]; then
+        return
+    fi
+    local staking_file_path=$SOURCE_PATH/p12-files/$1
+    if [ -f "$staking_file_path" ]; then
+        if [[ "$staking_file_path" == *.p12 ]]; then
+            echo_green "Staking file exists"
+        else
+            echo_red "Invalid staking file extension, it should be .p12"
+            exit 1
+        fi
+    else
+        echo_red "Staking file does not exist."
+        exit 1
+    fi
+}
+
+function check_metagraph_owner_fees_information() {
+    if [ "$#" -eq 0 ]; then
+        return
+    elif [ "$#" -ne 3 ]; then
+        echo_red "You should provide all 3 parameters to owner wallet validation"
+        exit 1
+    fi
+}
+
+function check_metagraph_staking_fees_information() {
+    if [ "$#" -eq 0 ]; then
+        return
+    elif [ "$#" -ne 3 ]; then
+        echo_red "You should provide all 3 parameters to staking wallet validation"
+        exit 1
+    fi
+}
