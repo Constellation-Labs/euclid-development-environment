@@ -320,10 +320,6 @@ OPTIONS:
   -h, --help   
 ```
 * --force_genesis: Use this flag when you want your metagraph to start from genesis. If you have already started a metagraph and need to execute from genesis again, use this command.
-
-* --owner_p12_file_name: This parameter specifies the wallet to charge fees on snapshots. Ensure this file is in the `p12-files` directory. We will validate if the file exists in the directory and, if so, send it to the remote `metagraph-l0` directory.
-
-* --staking_p12_file_name: This parameter specifies the wallet to check the balance to reduce fees according to the amount of DAG in the balance. Ensure this file is in the `p12-files` directory. We will validate if the file exists in the directory and, if so, send it to the remote `metagraph-l0` directory.
  
 ### `hydra remote-start`
 
