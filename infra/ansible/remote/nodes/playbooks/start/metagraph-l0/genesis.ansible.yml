@@ -80,7 +80,7 @@
     msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }} does not exist"
   when: not (staking_p12_file_name is undefined or staking_p12_file_name == "") and not staking_file.stat.exists
 
-- name: Fetch the latest combined snapshot
+- name: Fetch the latest combined snapshot from global network
   uri:
     url: "http://{{ gl0_ip }}:{{ gl0_port }}/global-snapshots/latest/combined"
     method: GET
@@ -90,17 +90,17 @@
   register: latest_combined_snapshot_response
   when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
 
-- name: Check if the fetch was successful
+- name: Check if the snapshot fetch was successful
   fail:
     msg: "Error fetching the latest combined snapshot."
   when: (should_run_genesis or force_owner_message_bool or force_staking_message_bool) and latest_combined_snapshot_response.status != 200
 
-- name: Convert JSON response content to a fact
+- name: Convert response to JSON
   set_fact:
     json_response: "{{ latest_combined_snapshot_response.content | from_json }}"
   when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
 
-- name: Parse the response to extract the last messages
+- name: Parse the response to extract the metagraph last messages
   set_fact:
     snapshot_fees_messages: "{{ json_response | json_query('[1].lastCurrencySnapshots.' ~ metagraph_id ~ '.Right[1].lastMessages') }}"
   when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
