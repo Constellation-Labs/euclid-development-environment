@@ -12,15 +12,41 @@ function fetch_latest_global_snapshot_metagraph_messages() {
   if [ "$http_code" -ne 200 ]; then
     echo_red "Failed to fetch data. HTTP Status Code: $http_code"
     exit 1
-  else  
+  else
     last_messages=$(echo "$response" | jq -r ".[1].lastCurrencySnapshots.\"$metagraph_id\".Right[1].lastMessages")
 
-    if [ -z "$last_messages" ]; then
-      echo_red "Failed when extracting the fee configuration from global snapshot"
+    if [ -z "$last_messages" ] || [ "$last_messages" = "null" ]; then
+      echo_red "Failed when extracting the fee configuration from global snapshot. Be sure your metagraph have the fees messages configured"
       exit 1
     else
       echo_green "Last messages extracted successfully:"
-      echo "$last_messages" | jq .
+
+      owner_address=$(echo "$last_messages" | jq -r .Owner.value.address)
+      owner_parent_ordinal=$(echo "$last_messages" | jq -r .Owner.value.parentOrdinal)
+      staking_address=$(echo "$last_messages" | jq -r .Staking.value.address)
+      staking_parent_ordinal=$(echo "$last_messages" | jq -r .Staking.value.parentOrdinal)
+
+      # Check if fields are empty or null and handle accordingly
+      if [ -z "$owner_address" ] || [ "$owner_address" = "null" ]; then
+        owner_address="N/A"
+      fi
+      if [ -z "$owner_parent_ordinal" ] || [ "$owner_parent_ordinal" = "null" ]; then
+        owner_parent_ordinal="N/A"
+      fi
+      if [ -z "$staking_address" ] || [ "$staking_address" = "null" ]; then
+        staking_address="N/A"
+      fi
+      if [ -z "$staking_parent_ordinal" ] || [ "$staking_parent_ordinal" = "null" ]; then
+        staking_parent_ordinal="N/A"
+      fi
+
+      echo_white "OWNER"
+      echo_url "Owner Address" "$owner_address"
+      echo_url "Owner Parent Ordinal" "$owner_parent_ordinal"
+      echo
+      echo_white "STAKING"
+      echo_url "Staking Address" "$staking_address"
+      echo_url "Staking Parent Ordinal" "$staking_parent_ordinal"
     fi
   fi
 
