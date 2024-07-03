@@ -321,6 +321,7 @@ OPTIONS:
 ```
 * --force_genesis: Use this flag when you want your metagraph to start from genesis. If you have already started a metagraph and need to execute from genesis again, use this command.
  
+**NOTE: You'll be prompted to proceed with force_genesis since it will delete all the previous data**
 ### `hydra remote-start`
 
 This method initiates the remote startup of your metagraph in one of the available networks: integrationnet or mainnet. The network should be set in `euclid.json` under `deploy` -> `network`
@@ -373,7 +374,7 @@ OPTIONS:
 * --force_owner_message: Use this flag when you want your metagraph to force sending the owner message. For example, if you want to change the owner address, provide this flag.
 * --force_staking_message: Use this flag when you want your metagraph to force sending the staking message. For example, if you want to change the staking address, provide this flag.
 
-**NOTE:** When you provide any of the owner or staking parameters, you must provide all the parameters, otherwise, it will fail.
+**NOTE: You'll be prompted to proceed with force_genesis since it will delete all the previous data**
 
 ### `hydra remote-status`
 This method will return the status of your remote hosts. You should see the following:
