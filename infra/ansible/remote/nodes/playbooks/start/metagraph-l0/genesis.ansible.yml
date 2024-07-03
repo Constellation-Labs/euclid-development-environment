@@ -228,6 +228,14 @@
     retries: 0
   when: should_run_genesis
 
+- name: Wait 2 minutes before stopping current execution
+  pause:
+    minutes: 2
+  when: >
+      owner_p12_file_name is defined and 
+      owner_p12_file_name != "" and 
+      should_run_genesis or force_owner_message_bool
+
 - name: Find metagraph-l0 process ID by port
   shell: "lsof -t -i:{{ base_metagraph_l0_public_port }}"
   register: l0_process_id
