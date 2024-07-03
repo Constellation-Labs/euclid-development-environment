@@ -32,6 +32,14 @@ function get_env_variables_from_json_config_file() {
     export ANSIBLE_MONITORING_DEPLOY_PLAYBOOK_FILE=$(jq -r .deploy.ansible.monitoring.playbooks.deploy $ROOT_PATH/euclid.json)
     export ANSIBLE_MONITORING_START_PLAYBOOK_FILE=$(jq -r .deploy.ansible.monitoring.playbooks.start $ROOT_PATH/euclid.json)
 
+    export SNAPSHOT_FEES_OWNER_FILE_NAME=$(jq -r .snapshot_fees.owner.key_file.name $ROOT_PATH/euclid.json)
+    export SNAPSHOT_FEES_OWNER_ALIAS=$(jq -r .snapshot_fees.owner.key_file.alias $ROOT_PATH/euclid.json)
+    export SNAPSHOT_FEES_OWNER_PASSWORD=$(jq -r .snapshot_fees.owner.key_file.password $ROOT_PATH/euclid.json)
+
+    export SNAPSHOT_FEES_STAKING_FILE_NAME=$(jq -r .snapshot_fees.staking.key_file.name $ROOT_PATH/euclid.json)
+    export SNAPSHOT_FEES_STAKING_ALIAS=$(jq -r .snapshot_fees.staking.key_file.alias $ROOT_PATH/euclid.json)
+    export SNAPSHOT_FEES_STAKING_PASSWORD=$(jq -r .snapshot_fees.staking.key_file.password $ROOT_PATH/euclid.json)
+
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
     export OUTPUT_GREEN=$(tput setaf 2)

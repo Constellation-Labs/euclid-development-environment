@@ -1,25 +1,42 @@
 ---
-- name: Check execution type
+- name: Check if we already have incremental snapshots
+  stat:
+    path: "/home/{{ ansible_user }}/code/metagraph-l0/data/incremental_snapshot"
+  register: folder_exists
+
+- name: Set default values for variables if not defined
   set_fact:
-    force_genesis_bool: "{{ force_genesis | default(true) | bool }}"
+    force_genesis: "{{ force_genesis | default(false) }}"
+    force_owner_message: "{{ force_owner_message | default(false) }}"
+    force_staking_message: "{{ force_staking_message | default(false) }}"
+
+- name: Convert execution type variables to boolean
+  set_fact:
+    force_genesis_bool: "{{ force_genesis | bool }}"
+    force_owner_message_bool: "{{ force_owner_message | bool }}"
+    force_staking_message_bool: "{{ force_staking_message | bool }}"
+
+- name: Determine if should run genesis
+  set_fact:
+    should_run_genesis: "{{ not folder_exists.stat.exists or force_genesis_bool }}"
 
 - name: Get current timestamp
   set_fact:
     current_time: "{{ lookup('pipe', 'date +%Y-%m-%dT%H:%M:%S%z') }}"
-  when: force_genesis_bool
+  when: should_run_genesis
 
 - name: Ensure archived-data directory exists
   ansible.builtin.file:
     path: /home/{{ ansible_user }}/code/metagraph-l0/archived-data
     state: directory
-  when: force_genesis_bool
+  when: should_run_genesis
 
 - name: Save previous data directory
   shell: |
     cd "/home/{{ ansible_user }}/code/metagraph-l0"
     mv data archived-data/data_{{ current_time }}
   ignore_errors: true
-  when: force_genesis_bool
+  when: should_run_genesis
 
 - name: Check if metagraph-l0.jar exists
   stat:
@@ -41,10 +58,202 @@
     msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ cl_keystore }} does not exist"
   when: not token_file.stat.exists
 
-- name: Check if we already have incremental snapshots
+- name: Check if owner file exists
   stat:
-    path: "/home/{{ ansible_user }}/code/metagraph-l0/data/incremental_snapshot"
-  register: folder_exists
+    path: "/home/{{ ansible_user }}/code/metagraph-l0/{{ owner_p12_file_name }}"
+  register: owner_file
+  when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") 
+
+- name: Throw an error if the owner file doesn't exist
+  fail:
+    msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ owner_p12_file_name }} does not exist"
+  when: not (owner_p12_file_name is undefined or owner_p12_file_name == "")  and not owner_file.stat.exists
+
+- name: Check if staking file exists
+  stat:
+    path: "/home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }}"
+  register: staking_file
+  when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Throw an error if the staking file doesn't exist
+  fail:
+    msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }} does not exist"
+  when: not (staking_p12_file_name is undefined or staking_p12_file_name == "") and not staking_file.stat.exists
+
+- name: Fetch the latest combined snapshot from global network
+  uri:
+    url: "http://{{ gl0_ip }}:{{ gl0_port }}/global-snapshots/latest/combined"
+    method: GET
+    return_content: yes
+    headers:
+      Accept: "application/json"
+  register: latest_combined_snapshot_response
+  when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
+
+- name: Check if the snapshot fetch was successful
+  fail:
+    msg: "Error fetching the latest combined snapshot."
+  when: (should_run_genesis or force_owner_message_bool or force_staking_message_bool) and latest_combined_snapshot_response.status != 200
+
+- name: Convert response to JSON
+  set_fact:
+    json_response: "{{ latest_combined_snapshot_response.content | from_json }}"
+  when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
+
+- name: Parse the response to extract the metagraph last messages
+  set_fact:
+    snapshot_fees_messages: "{{ json_response | json_query('[1].lastCurrencySnapshots.' ~ metagraph_id ~ '.Right[1].lastMessages') }}"
+  when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
+    
+- name: Ensure snapshot_fees_messages is defined
+  set_fact:
+    snapshot_fees_messages: {}
+  when: snapshot_fees_messages is not defined or snapshot_fees_messages is none
+
+- name: Extract Owner parentOrdinal or default to none
+  set_fact:
+    owner_parent_ordinal_raw: "{{ snapshot_fees_messages['Owner']['value']['parentOrdinal'] | default(None) }}"
+  when: (should_run_genesis or force_owner_message_bool) and not (owner_p12_file_name is undefined or owner_p12_file_name == "")
+
+- name: Extract Staking parentOrdinal or default to none
+  set_fact:
+    staking_parent_ordinal_raw: "{{ snapshot_fees_messages['Staking']['value']['parentOrdinal'] | default(None) }}"
+  when: (should_run_genesis or force_staking_message_bool) and not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Calculate owner_parent_ordinal
+  set_fact:
+    owner_parent_ordinal: >-
+      {% if owner_parent_ordinal_raw is not none and owner_parent_ordinal_raw != "" %}
+        {{ (owner_parent_ordinal_raw | int) + 1 }}
+      {% else %}
+        0
+      {% endif %}
+  when: (should_run_genesis or force_owner_message_bool) and not (owner_p12_file_name is undefined or owner_p12_file_name == "")
+
+- name: Calculate staking_parent_ordinal
+  set_fact:
+    staking_parent_ordinal: >-
+      {% if staking_parent_ordinal_raw is not none and staking_parent_ordinal_raw != "" %}
+        {{ (staking_parent_ordinal_raw | int) + 1 }}
+      {% else %}
+        0
+      {% endif %}
+  when: (should_run_genesis or force_staking_message_bool) and not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Trim owner_parent_ordinal
+  set_fact:
+    owner_parent_ordinal: "{{ owner_parent_ordinal | trim }}"
+  when: (should_run_genesis or force_owner_message_bool) and not (owner_p12_file_name is undefined or owner_p12_file_name == "")
+
+- name: Trim staking_parent_ordinal
+  set_fact:
+    staking_parent_ordinal: "{{ staking_parent_ordinal | trim }}"
+  when: (should_run_genesis or force_staking_message_bool) and not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Get owner address
+  environment:
+    CL_KEYSTORE: "{{ owner_p12_file_name }}"
+    CL_KEYALIAS: "{{ owner_p12_alias }}"
+    CL_PASSWORD: "{{ owner_p12_password }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/metagraph-l0"
+    java -jar cl-wallet.jar show-address
+  register: owner_address_output 
+  when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") 
+
+- name: Get owner message
+  environment:
+    CL_KEYSTORE: "{{ owner_p12_file_name }}"
+    CL_KEYALIAS: "{{ owner_p12_alias }}"
+    CL_PASSWORD: "{{ owner_p12_password }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/metagraph-l0"
+    java -jar cl-wallet.jar create-owner-signing-message --address {{ owner_address_output.stdout }} --parentOrdinal {{ owner_parent_ordinal }} --metagraphId {{ metagraph_id }}
+  register: owner_message_output 
+  when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") 
+
+- name: Get staking address
+  environment:
+    CL_KEYSTORE: "{{ staking_p12_file_name }}"
+    CL_KEYALIAS: "{{ staking_p12_alias }}"
+    CL_PASSWORD: "{{ staking_p12_password }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/metagraph-l0"
+    java -jar cl-wallet.jar show-address
+  register: staking_address_output 
+  when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Get staking message
+  environment:
+    CL_KEYSTORE: "{{ staking_p12_file_name }}"
+    CL_KEYALIAS: "{{ staking_p12_alias }}"
+    CL_PASSWORD: "{{ staking_p12_password }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/metagraph-l0"
+    java -jar cl-wallet.jar create-staking-signing-message --address {{ staking_address_output.stdout }} --parentOrdinal {{ staking_parent_ordinal }}  --metagraphId {{ metagraph_id }}
+  register: staking_message_output
+  when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Start as genesis
+  environment:
+    CL_PUBLIC_HTTP_PORT: "{{ base_metagraph_l0_public_port }}"
+    CL_P2P_HTTP_PORT: "{{ base_metagraph_l0_p2p_port }}"
+    CL_CLI_HTTP_PORT: "{{ base_metagraph_l0_cli_port }}"
+
+    CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ gl0_ip }}"
+    CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port }}"
+    CL_GLOBAL_L0_PEER_ID: "{{ gl0_id }}"
+
+    CL_KEYSTORE: "{{ cl_keystore }}"
+    CL_KEYALIAS: "{{ cl_keyalias }}"
+    CL_PASSWORD: "{{ cl_password }}"
+    
+    CL_APP_ENV: "{{ network }}"
+    CL_COLLATERAL: 0
+  shell: |
+    cd /home/{{ ansible_user }}/code/metagraph-l0
+    nohup java -jar metagraph-l0.jar run-genesis genesis.snapshot --ip {{ ansible_host }} > metagraph-l0.log 2>&1 &
+  when: should_run_genesis
+
+- name: Check if node is Ready
+  uri:
+    url: "http://localhost:{{ base_metagraph_l0_public_port }}/node/info"
+    method: GET
+    return_content: yes
+  register: response
+  until: response.status == 200 and ("Ready" in response.content | string or retries >= 100)
+  retries: 120
+  delay: 1
+  vars:
+    retries: 0
+  when: should_run_genesis
+
+- name: Wait 2 minutes before stopping current execution
+  pause:
+    minutes: 2
+  when: >
+      owner_p12_file_name is defined and 
+      owner_p12_file_name != "" and 
+      should_run_genesis or force_owner_message_bool
+
+- name: Find metagraph-l0 process ID by port
+  shell: "lsof -t -i:{{ base_metagraph_l0_public_port }}"
+  register: l0_process_id
+  ignore_errors: true
+  when: should_run_genesis
+
+- name: Kill metagraph-l0 process
+  shell: "sudo kill -9 {{ l0_process_id.stdout }}"
+  ignore_errors: true
+  when: should_run_genesis
+
+- name: Wait 2 minutes before starting the metagraph
+  pause:
+    minutes: 2
+  when: >
+      owner_p12_file_name is defined and 
+      owner_p12_file_name != "" and 
+      should_run_genesis or force_owner_message_bool
 
 - name: Start as rollback
   environment:
@@ -66,29 +275,42 @@
   shell: |
     cd "/home/{{ ansible_user }}/code/metagraph-l0"
     nohup java -jar metagraph-l0.jar run-rollback --ip {{ ansible_host }} > metagraph-l0.log 2>&1 &
-  when: folder_exists.stat.exists and not force_genesis_bool
 
-- name: Start as genesis
-  environment:
-    CL_PUBLIC_HTTP_PORT: "{{ base_metagraph_l0_public_port }}"
-    CL_P2P_HTTP_PORT: "{{ base_metagraph_l0_p2p_port }}"
-    CL_CLI_HTTP_PORT: "{{ base_metagraph_l0_cli_port }}"
+- name: Check if node is online
+  uri:
+    url: "http://localhost:{{ base_metagraph_l0_public_port }}/node/info"
+    method: GET
+    return_content: yes
+  register: response
+  until: response.status == 200
+  retries: 120
+  delay: 1
+  vars:
+    retries: 0
 
-    CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ gl0_ip }}"
-    CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port }}"
-    CL_GLOBAL_L0_PEER_ID: "{{ gl0_id }}"
+- name: Send owner message
+  uri:
+    url: "http://localhost:{{ base_metagraph_l0_public_port }}/currency/message"
+    method: POST
+    body: "{{ owner_message_output.stdout }}"
+    body_format: json
+    status_code: 204, 200
+  register: owner_response
+  when: >
+    owner_p12_file_name is defined and 
+    owner_p12_file_name != "" and 
+    should_run_genesis or force_owner_message_bool
 
-    CL_KEYSTORE: "{{ cl_keystore }}"
-    CL_KEYALIAS: "{{ cl_keyalias }}"
-    CL_PASSWORD: "{{ cl_password }}"
-    
-    CL_APP_ENV: "{{ network }}"
-    CL_COLLATERAL: 0
-  shell: |
-    cd /home/{{ ansible_user }}/code/metagraph-l0
-    nohup java -jar metagraph-l0.jar run-genesis genesis.snapshot --ip {{ ansible_host }} > metagraph-l0.log 2>&1 &
-  when: not folder_exists.stat.exists or force_genesis_bool
-
+- name: Send staking message
+  uri:
+    url: "http://localhost:{{ base_metagraph_l0_public_port }}/currency/message"
+    method: POST
+    body: "{{ staking_message_output.stdout }}"
+    body_format: json
+    status_code: 204, 200
+  register: staking_response
+  when: not (staking_p12_file_name is undefined or staking_p12_file_name == "") or force_staking_message_bool
+  
 - name: Check if node is Ready
   uri:
     url: "http://localhost:{{ base_metagraph_l0_public_port }}/node/info"
