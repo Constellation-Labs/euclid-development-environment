@@ -79,6 +79,8 @@ COMMANDS:
   remote-deploy                     Remotely deploy to cloud instances using Ansible [aliases: remote_deploy]
   remote-start                      Remotely start the metagraph on cloud instances using Ansible [aliases: remote_start]
   remote-status                     Check the status of the remote nodes
+  remote-logs                       Get the logs from the remote hosts
+  remote-snapshot-fee-config        Get the remote snapshot fee config
   update                            Update Euclid
   logs                              Get the logs from containers
   install-monitoring-service        Download the metagraph-monitoring-service (https://github.com/Constellation-Labs/metagraph-monitoring-service) [aliases: install_monitoring_service]
@@ -305,7 +307,21 @@ Each directory will be created with `cl-keytool.jar`, `cl-wallet.jar`, and a P12
 **In `code/data-l1`:**
 -   data-l1.jar     // The executable for the dL1 layer
 
+#### Parameters
+If you run the command `./hydra remote-deploy -h` you should see something like
 
+```
+Remotely deploy to cloud instances using Ansible
+
+USAGE: hydra remote-deploy [OPTIONS]
+
+OPTIONS:
+      --force_genesis                                  Force metagraph to deploy as genesis
+  -h, --help   
+```
+* --force_genesis: Use this flag when you want your metagraph to start from genesis. If you have already started a metagraph and need to execute from genesis again, use this command.
+ 
+**NOTE: You'll be prompted to proceed with force_genesis since it will delete all the previous data**
 ### `hydra remote-start`
 
 This method initiates the remote startup of your metagraph in one of the available networks: integrationnet or mainnet. The network should be set in `euclid.json` under `deploy` -> `network`
@@ -339,6 +355,26 @@ Each layer directory on every node contains a folder named `logs`. You can monit
 `tail -f logs/app.log`
 
 **NOTE:** Don't forget to add your hosts' information, such as host, user, and SSH key file, to your `infra/ansible/remote/hosts.ansible.yml` file.
+
+#### Parameters
+If you run the command `./hydra remote-start -h` you should see something like
+
+```
+Remotely start the metagraph on cloud instances using Ansible
+
+USAGE: hydra remote-start [OPTIONS]
+
+OPTIONS:
+      --force_genesis                                    Force metagraph to run as genesis
+      --force_owner_message                              Force to send owner message
+      --force_staking_message                            Force to send staking message
+  -h, --help    
+```
+* --force_genesis: Use this flag when you want your metagraph to start from genesis. If you have already started a metagraph and need to execute from genesis again, use this command.
+* --force_owner_message: Use this flag when you want your metagraph to force sending the owner message. For example, if you want to change the owner address, provide this flag.
+* --force_staking_message: Use this flag when you want your metagraph to force sending the staking message. For example, if you want to change the staking address, provide this flag.
+
+**NOTE: You'll be prompted to proceed with force_genesis since it will delete all the previous data**
 
 ### `hydra remote-status`
 This method will return the status of your remote hosts. You should see the following:
