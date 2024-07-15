@@ -8,5 +8,5 @@
   tasks:
     - name: (Monitoring) Starting monitoring container
       shell: |
-       cd {{ lookup('env', 'INFRA_PATH') }}/docker/monitoring
+       cd {{ lookup('env', 'INFRA_PATH') }}/docker/grafana
        {{ lookup('env', 'DOCKER_COMPOSE') }} up -d --no-recreate
