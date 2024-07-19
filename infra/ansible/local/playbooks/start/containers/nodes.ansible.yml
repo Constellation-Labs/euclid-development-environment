@@ -24,6 +24,7 @@
         name: "{{ node_info.name }}"
         image: metagraph-base-image:latest
         state: started
+        platform: linux/amd64
         networks:
         - name: custom-network
           ipv4_address: "{{ base_prefix_ip }}{{ (index + 1) * offset }}"
@@ -54,3 +55,4 @@
       loop_control:
         loop_var: node_info
         index_var: index
+      no_log: true
