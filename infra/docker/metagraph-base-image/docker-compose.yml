@@ -1,7 +1,6 @@
 version: '3'
 services:
   metagraph-base-image:
-    platform: linux/amd64
     image: "metagraph-base-image"
     build:
       context: ../../../source

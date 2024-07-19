@@ -18,7 +18,7 @@ function destroy_containers() {
 
     echo_white "Trying to destroy container grafana ..."
     if docker inspect grafana &>/dev/null; then
-        docker rm -f $name
+        docker rm -f grafana
         echo_green "Container grafana removed successfully."
     else
         echo_yellow "Container grafana does not exist."
@@ -29,7 +29,7 @@ function destroy_containers() {
 
     echo_white "Trying to destroy container prometheus ..."
     if docker inspect prometheus &>/dev/null; then
-        docker rm -f $name
+        docker rm -f prometheus
         echo_green "Container prometheus removed successfully."
     else
         echo_yellow "Container prometheus does not exist."
