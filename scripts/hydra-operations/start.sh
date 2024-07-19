@@ -184,6 +184,12 @@ function print_nodes_information() {
         ((index++))
     done < <(jq -c '.[]' <<<"$NODES")
 
+    if [[ "$START_GRAFANA_CONTAINER" == "true" ]]; then
+        echo_green "Telemetry"
+        echo_url "Grafana:" "http://localhost:3000"
+        echo
+    fi
+
     echo_green "Clusters URLs"
     if [[ " ${LAYERS[*]} " =~ "global-l0" ]]; then
         raw_port=$(yq eval '.base_global_l0_public_port' $ansible_vars_path)

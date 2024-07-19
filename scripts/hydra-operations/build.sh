@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 
 function build_metagraph_ubuntu() {
-  if [[ -z "$(docker images -q metagraph-ubuntu-${TESSELLATION_VERSION})" ]]; then
+  if [[ -z "$(docker images -q metagraph-ubuntu-${TESSELLATION_VERSION_NAME})" ]]; then
     echo
     echo
-    echo_white "Building metagraph ubuntu for tessellation $TESSELLATION_VERSION"
+    echo_white "Building metagraph ubuntu for tessellation $TESSELLATION_VERSION in image name metagraph-ubuntu-$TESSELLATION_VERSION_NAME"
     cd $INFRA_PATH/docker/metagraph-ubuntu
 
     CHECKOUT_TESSELLATION_VERSION=$(get_checkout_tessellation_version "$TESSELLATION_VERSION")
     SHOULD_USE_UPDATED_MODULES=$(get_should_use_updated_modules "$TESSELLATION_VERSION")
+
     if [ ! -z "$argc_no_cache" ]; then
       $DOCKER_COMPOSE build \
         --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN \
         --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
+        --build-arg TESSELLATION_VERSION_SEMVER=$TESSELLATION_VERSION_SEMVER \
         --build-arg CHECKOUT_TESSELLATION_VERSION=$CHECKOUT_TESSELLATION_VERSION \
         --build-arg SHOULD_USE_UPDATED_MODULES=$SHOULD_USE_UPDATED_MODULES \
         --no-cache
@@ -20,9 +22,11 @@ function build_metagraph_ubuntu() {
       $DOCKER_COMPOSE build \
         --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN \
         --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
+        --build-arg TESSELLATION_VERSION_SEMVER=$TESSELLATION_VERSION_SEMVER \
         --build-arg CHECKOUT_TESSELLATION_VERSION=$CHECKOUT_TESSELLATION_VERSION \
         --build-arg SHOULD_USE_UPDATED_MODULES=$SHOULD_USE_UPDATED_MODULES
     fi
+    
     echo_green "Ubuntu for tessellation $TESSELLATION_VERSION built"
   else
     echo_green "Ubuntu for tessellation $TESSELLATION_VERSION already built, skipping..."
@@ -78,7 +82,7 @@ function build_metagraph_base_image() {
 
   if [ ! -z "$argc_no_cache" ]; then
     $DOCKER_COMPOSE build \
-      --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
+      --build-arg TESSELLATION_VERSION_NAME=$TESSELLATION_VERSION_NAME \
       --build-arg TEMPLATE_NAME=$PROJECT_NAME \
       --build-arg SHOULD_BUILD_GLOBAL_L0=$should_build_global_l0 \
       --build-arg SHOULD_BUILD_DAG_L1=$should_build_dag_l1 \
@@ -88,7 +92,7 @@ function build_metagraph_base_image() {
       --no-cache
   else
     $DOCKER_COMPOSE build \
-      --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
+      --build-arg TESSELLATION_VERSION_NAME=$TESSELLATION_VERSION_NAME \
       --build-arg TEMPLATE_NAME=$PROJECT_NAME \
       --build-arg SHOULD_BUILD_GLOBAL_L0=$should_build_global_l0 \
       --build-arg SHOULD_BUILD_DAG_L1=$should_build_dag_l1 \
