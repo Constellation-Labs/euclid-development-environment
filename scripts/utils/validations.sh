@@ -129,12 +129,21 @@ function check_network() {
 function check_if_tessellation_version_of_project_matches_euclid_json() {
     echo
     echo_yellow "Checking the project tessellation version and tessellation version provided on euclid.json"
-    PROJECT_TESSELLATION_VERSION=$(sed -n 's/.*val tessellation = "\(.*\)".*/\1/p' $SOURCE_PATH/project/$PROJECT_NAME/project/Dependencies.scala)
-    echo_white "Project tessellation version: $PROJECT_TESSELLATION_VERSION"
-    echo_white "Tessellation version provided on euclid.json: $TESSELLATION_VERSION"
-    if [[ "$PROJECT_TESSELLATION_VERSION" != "$TESSELLATION_VERSION" ]]; then
-        echo_red "Your custom project contains a different version of tessellation than provided on euclid.json. Please use the same version!"
-        exit 1
+
+    PROJECT_TESSELLATION_VERSION=$(sed -n 's/.*val tessellation = "\(.*\)".*/\1/p' "$SOURCE_PATH/project/$PROJECT_NAME/project/Dependencies.scala")
+
+    if [[ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" == "branch" ]]; then
+        if [[ "$PROJECT_TESSELLATION_VERSION" != "99.99.99" ]]; then
+            echo_red "You're running using tessellation branch as base. Please update your Dependencies.scala file tessellation version to 99.99.99"
+            exit 1
+        fi
+    else
+        echo_white "Project tessellation version: $PROJECT_TESSELLATION_VERSION"
+        echo_white "Tessellation version provided on euclid.json: $TESSELLATION_VERSION"
+        if [[ "$PROJECT_TESSELLATION_VERSION" != "$TESSELLATION_VERSION" ]]; then
+            echo_red "Your custom project contains a different version of tessellation than provided on euclid.json. Please use the same version!"
+            exit 1
+        fi
     fi
 }
 
@@ -264,6 +273,30 @@ function check_if_owner_and_staking_address_are_equal() {
     if [[ "$SNAPSHOT_FEES_OWNER_FILE_NAME" == "$SNAPSHOT_FEES_STAKING_FILE_NAME" ]]; then
         echo_red "Owner and Staking address should be different"
         exit 1
+    fi
+}
+
+function check_git_ref_exists() {
+    local ref=$1
+    local repo_url="https://github.com/Constellation-Labs/tessellation.git"
+    if [[ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" == "branch" ]]; then
+        echo_white "Checking if branch exists..."
+        if git ls-remote --exit-code --heads "$repo_url" "$ref" >/dev/null; then
+            echo_green "Branch '$ref' exists."
+            echo
+        else
+            echo_red "Branch '$ref' not exists."
+            exit 1
+        fi
+    else
+        echo_white "Checking if tag exists..."
+        if git ls-remote --exit-code --tags "$repo_url" "v$ref" >/dev/null; then
+            echo_green "Tag '$ref' exists."
+            echo
+        else
+            echo_red "Tag '$ref' not exists."
+            exit 1
+        fi
     fi
 }
 

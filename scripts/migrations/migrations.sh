@@ -44,6 +44,15 @@ function run_migrations() {
     jq --arg current_version "$current_version" '.version = $current_version' $ROOT_PATH/euclid.json > $ROOT_PATH/temp.json && mv $ROOT_PATH/temp.json $ROOT_PATH/euclid.json
   fi
 
+  if version_greater_than "0.12.0" $CURRENT_VERSION_WITHOUT_V; then
+    echo "Running migration v0.12.0"
+    cd $SCRIPTS_PATH
+    source ./migrations/v0.12.0.sh
+    migrate_v_0_12_0
+    current_version="0.12.0"
+    jq --arg current_version "$current_version" '.version = $current_version' $ROOT_PATH/euclid.json > $ROOT_PATH/temp.json && mv $ROOT_PATH/temp.json $ROOT_PATH/euclid.json
+  fi
+
   echo "migrations finished..."
   echo
 }
