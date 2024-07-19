@@ -7,16 +7,22 @@ function get_env_variables_from_json_config_file() {
 
     export GITHUB_TOKEN=$(jq -r .github_token $ROOT_PATH/euclid.json)
     export METAGRAPH_ID=$(jq -r .metagraph_id $ROOT_PATH/euclid.json)
+
     export TESSELLATION_VERSION=$(jq -r .tessellation_version $ROOT_PATH/euclid.json)
+    export TESSELLATION_VERSION_IS_TAG_OR_BRANCH=$(jq -r .ref_type $ROOT_PATH/euclid.json)
+    export TESSELLATION_VERSION_NAME=$(get_tessellation_version_name $TESSELLATION_VERSION)
+    export TESSELLATION_VERSION_SEMVER=$(get_tessellation_version_semver $TESSELLATION_VERSION)
+
     export TEMPLATE_VERSION=$(jq -r .framework.version $ROOT_PATH/euclid.json)
     export TEMPLATE_VERSION_IS_TAG_OR_BRANCH=$(jq -r .framework.ref_type $ROOT_PATH/euclid.json)
+
     export PROJECT_NAME=$(jq -r .project_name $ROOT_PATH/euclid.json)
     export FRAMEWORK_NAME=$(jq -r .framework.name $ROOT_PATH/euclid.json)
     export FRAMEWORK_MODULES=$(jq -r .framework.modules $ROOT_PATH/euclid.json)
 
     export NODES=$(jq -r .nodes $ROOT_PATH/euclid.json)
-    
-    export START_GRAFANA_CONTAINER=$(jq -r .docker.start_grafana_container $ROOT_PATH/euclid.json)   
+
+    export START_GRAFANA_CONTAINER=$(jq -r .docker.start_grafana_container $ROOT_PATH/euclid.json)
 
     export LAYERS=$(jq -r .layers $ROOT_PATH/euclid.json)
 
@@ -48,6 +54,31 @@ function get_env_variables_from_json_config_file() {
     export OUTPUT_WHITE=$(tput setaf 7)
 }
 
+function get_tessellation_version_name() {
+    local input="$1"
+    if [[ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" == "branch" ]]; then
+        # Remove special characters
+        local cleaned=$(echo "$input" | tr -cd '[:alnum:][:space:]')
+        # Convert to lowercase
+        cleaned=$(echo "$cleaned" | tr '[:upper:]' '[:lower:]')
+        # Replace spaces with underscores
+        cleaned=$(echo "$cleaned" | tr ' ' '_')
+        echo "$cleaned"
+    else
+        echo "$input"
+    fi
+}
+
+function get_tessellation_version_semver() {
+    local input="$1"
+    if [[ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" == "branch" ]]; then
+        #Mocked version when it's a branch
+        echo "99.99.99"
+    else
+        echo "$input"
+    fi
+}
+
 function get_metagraph_id_from_metagraph_l0_genesis() {
     for ((i = 1; i <= 51; i++)); do
         METAGRAPH_ID=$(cat $SOURCE_PATH/metagraph-l0/genesis/genesis.address)
@@ -62,7 +93,7 @@ function get_metagraph_id_from_metagraph_l0_genesis() {
             echo_url "METAGRAPH_ID: " $METAGRAPH_ID
             echo_white "Filling the euclid.json file"
             contents="$(jq --arg METAGRAPH_ID "$METAGRAPH_ID" '.metagraph_id = $METAGRAPH_ID' $ROOT_PATH/euclid.json)" &&
-                echo -E "${contents}" > $ROOT_PATH/euclid.json
+                echo -E "${contents}" >$ROOT_PATH/euclid.json
 
             get_env_variables_from_json_config_file
             break
