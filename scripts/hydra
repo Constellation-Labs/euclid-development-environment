@@ -110,6 +110,7 @@ function build() {
 
   set_docker_compose
   check_if_docker_is_running
+  check_git_ref_exists $TESSELLATION_VERSION
 
   build_containers
 
@@ -420,6 +421,13 @@ function check_if_should_run_update() {
   local snapshot_fees=$(jq -r '.snapshot_fees // empty' "$ROOT_PATH/euclid.json")
   if [ -z "$snapshot_fees" ]; then
     echo "$(tput setaf 3) Could not find the snapshot_fees field on euclid.json file, the file is probably outdated. Running migrations..."
+    load_scripts
+    run_migrations
+  fi
+
+  local ref_type=$(jq -r '.ref_type // empty' "$ROOT_PATH/euclid.json")
+  if [ -z "$ref_type" ]; then
+    echo "$(tput setaf 3) Could not find the ref_type field on euclid.json file, the file is probably outdated. Running migrations..."
     load_scripts
     run_migrations
   fi
