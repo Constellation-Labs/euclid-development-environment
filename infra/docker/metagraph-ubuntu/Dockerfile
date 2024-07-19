@@ -1,9 +1,10 @@
-FROM --platform=linux/amd64 ubuntu:20.04
+FROM ubuntu:20.04
 
 WORKDIR "/code"
 
 ARG GIT_PERSONAL_ACCESS_TOKEN
 ARG TESSELLATION_VERSION
+ARG TESSELLATION_VERSION_SEMVER
 ARG CHECKOUT_TESSELLATION_VERSION
 ARG SHOULD_USE_UPDATED_MODULES
 
@@ -27,7 +28,7 @@ RUN git clone https://github.com/Constellation-Labs/tessellation.git && \
     cd tessellation && \
     git checkout $CHECKOUT_TESSELLATION_VERSION && \
     rm -r version.sbt && \
-    echo "ThisBuild / version := \"$TESSELLATION_VERSION\"" > version.sbt
+    echo "ThisBuild / version := \"$TESSELLATION_VERSION_SEMVER\"" > version.sbt
     
 RUN cd tessellation && \
     if [ "$SHOULD_USE_UPDATED_MODULES" = "true" ]; then \
