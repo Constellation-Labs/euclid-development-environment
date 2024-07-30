@@ -1,0 +1,33 @@
+---
+- name: Stop Containers
+  hosts: localhost
+  vars:
+    nodes: "{{ nodes | from_json }}"
+    infra_path: "{{ infra_path }}"
+  
+  tasks:
+    - name: Stop Nodes
+      block:
+        - name: Stop Nodes
+          docker_container:
+            name: "{{ item.name }}"
+            state: stopped
+          loop: "{{ nodes }}"
+          loop_control:
+            label: "{{ item.name }}"
+
+    - name: Stop Container Grafana
+      block:
+        - name: Stop container grafana
+          docker_container:
+            name: grafana
+            state: stopped
+          ignore_errors: true
+
+    - name: Stop Container Prometheus
+      block:
+        - name: Stop container prometheus
+          docker_container:
+            name: prometheus
+            state: stopped
+          ignore_errors: true
