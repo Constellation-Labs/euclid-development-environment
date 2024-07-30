@@ -73,6 +73,15 @@ function build_metagraph_base_image() {
   echo_white "Building metagraph base image..."
   cd $INFRA_PATH/docker/metagraph-base-image
 
+  CUSTOM_METAGRAPH_BASE_IMAGE="$INFRA_PATH/docker/custom/metagraph-base-image/Dockerfile"
+
+  if [ -f "$CUSTOM_METAGRAPH_BASE_IMAGE" ]; then
+    echo_yellow "Custom Dockerfile detected..."
+    export METAGRAPH_BASE_IMAGE_DOCKERFILE=$CUSTOM_METAGRAPH_BASE_IMAGE
+  else
+    export METAGRAPH_BASE_IMAGE_DOCKERFILE="$INFRA_PATH/docker/metagraph-base-image/Dockerfile"
+  fi
+
   output=$(get_layers_to_run)
   should_build_global_l0=$(echo "$output" | grep '^SHOULD_BUILD_GLOBAL_L0=' | cut -d'=' -f2)
   should_build_dag_l1=$(echo "$output" | grep '^SHOULD_BUILD_DAG_L1=' | cut -d'=' -f2)
@@ -89,6 +98,7 @@ function build_metagraph_base_image() {
       --build-arg SHOULD_BUILD_METAGRAPH_L0=$should_build_metagraph_l0 \
       --build-arg SHOULD_BUILD_CURRENCY_L1=$should_build_currency_l1 \
       --build-arg SHOULD_BUILD_DATA_L1=$should_build_data_l1 \
+      --build-arg METAGRAPH_BASE_IMAGE_DOCKERFILE=$METAGRAPH_BASE_IMAGE_DOCKERFILE \
       --no-cache
   else
     $DOCKER_COMPOSE build \
@@ -98,7 +108,8 @@ function build_metagraph_base_image() {
       --build-arg SHOULD_BUILD_DAG_L1=$should_build_dag_l1 \
       --build-arg SHOULD_BUILD_METAGRAPH_L0=$should_build_metagraph_l0 \
       --build-arg SHOULD_BUILD_CURRENCY_L1=$should_build_currency_l1 \
-      --build-arg SHOULD_BUILD_DATA_L1=$should_build_data_l1
+      --build-arg SHOULD_BUILD_DATA_L1=$should_build_data_l1 \
+      --build-arg METAGRAPH_BASE_IMAGE_DOCKERFILE=$METAGRAPH_BASE_IMAGE_DOCKERFILE
   fi
 
   if [ $? -ne 0 ]; then
