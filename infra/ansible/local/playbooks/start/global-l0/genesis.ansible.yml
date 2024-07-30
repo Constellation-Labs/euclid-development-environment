@@ -9,6 +9,17 @@
     cl_cli_http_port: "{{ (base_global_l0_cli_port | int ) }}"
     node_ip: "{{ base_prefix_ip }}{{ offset }}"
 
+- name: (Global L0) Cleaning older directories if exists
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: |
+      /bin/bash -c '
+      cd global-l0 &&
+      if [ -d "data" ]; then rm -r data; fi &&
+      if [ -d "logs" ]; then rm -r logs; fi
+      '
+  when: force_genesis_bool
+
 - name: (Global L0) Start Global L0 - Genesis
   community.docker.docker_container_exec:
     container: "{{ node_info.name }}"

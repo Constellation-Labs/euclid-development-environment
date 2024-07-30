@@ -46,6 +46,23 @@ function get_env_variables_from_json_config_file() {
     export SNAPSHOT_FEES_STAKING_ALIAS=$(jq -r .snapshot_fees.staking.key_file.alias $ROOT_PATH/euclid.json)
     export SNAPSHOT_FEES_STAKING_PASSWORD=$(jq -r .snapshot_fees.staking.key_file.password $ROOT_PATH/euclid.json)
 
+    export ANSIBLE_LOCAL_VARS="$INFRA_PATH/ansible/local/playbooks/vars.ansible.yml"
+    export ANSIBLE_LOCAL_CONTAINERS_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/containers/nodes.ansible.yml"
+    export ANSIBLE_LOCAL_CONTAINERS_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/containers/nodes.ansible.yml"
+    export ANSIBLE_LOCAL_CONTAINERS_DESTROY_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/destroy/containers/nodes.ansible.yml"
+    export ANSIBLE_LOCAL_GRAFANA_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/containers/grafana.ansible.yml"
+    export ANSIBLE_LOCAL_GRAFANA_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/containers/grafana.ansible.yml"
+    export ANSIBLE_LOCAL_GLOBAL_L0_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/global-l0/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_GLOBAL_L0_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/global-l0/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_DAG_L1_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/dag-l1/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_DAG_L1_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/dag-l1/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_METAGRAPH_L0_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/metagraph-l0/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_METAGRAPH_L0_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/metagraph-l0/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_CURRENCY_L1_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/currency-l1/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_CURRENCY_L1_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/currency-l1/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_DATA_L1_START_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/start/data-l1/cluster.ansible.yml"
+    export ANSIBLE_LOCAL_DATA_L1_STOP_PLAYBOOK_FILE="$INFRA_PATH/ansible/local/playbooks/stop/data-l1/cluster.ansible.yml"
+    
     ## Colors
     export OUTPUT_RED=$(tput setaf 1)
     export OUTPUT_GREEN=$(tput setaf 2)
