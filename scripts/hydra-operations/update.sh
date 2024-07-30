@@ -69,9 +69,15 @@ function update_infra_docker() {
   cd $INFRA_PATH
   echo "Updating docker folder ..."
   chmod -R +x docker
-  rm -r docker
+  rm -r docker/grafana
+  rm -r docker/metagraph-base-image
+  rm -r docker/metagraph-ubuntu
+  rm -r docker/shared
 
-  cp -r euclid-development-environment/infra/docker .
+  cp -r euclid-development-environment/infra/docker/grafana .
+  cp -r euclid-development-environment/infra/docker/metagraph-base-image .
+  cp -r euclid-development-environment/infra/docker/metagraph-ubuntu .
+  cp -r euclid-development-environment/infra/docker/shared .
   echo "Updated"
 }
 

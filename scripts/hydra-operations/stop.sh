@@ -8,7 +8,7 @@ function try_stop_global_l0() {
         echo_title "################################################################"
         echo_yellow "Stopping global-l0 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/global-l0/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_GLOBAL_L0_STOP_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "global-l0 stopped successfully"
         else
@@ -27,7 +27,7 @@ function try_stop_dag_l1() {
         echo_title "################################################################"
         echo_yellow "Stopping dag-l1 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/dag-l1/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_DAG_L1_STOP_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "dag-l1 stopped successfully"
         else
@@ -46,7 +46,7 @@ function try_stop_metagraph_l0() {
         echo_title "################################################################"
         echo_yellow "Stopping metagraph l0 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/metagraph-l0/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_METAGRAPH_L0_STOP_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "metagraph-l0 stopped successfully"
         else
@@ -65,7 +65,7 @@ function try_stop_currency_l1() {
         echo_title "################################################################"
         echo_yellow "Stopping currency l1 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/currency-l1/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_CURRENCY_L1_STOP_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "currency-l1 stopped successfully"
         else
@@ -83,7 +83,7 @@ function try_stop_data_l1() {
         echo_title "################################################################"
         echo_yellow "Stopping data l1 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/data-l1/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_DATA_L1_STOP_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "data-l1 stopped successfully"
         else
@@ -94,6 +94,27 @@ function try_stop_data_l1() {
     fi
 }
 
+function try_stop_containers() {
+    echo_white
+    echo_white
+
+    echo_title "################################################################"
+    echo_yellow "Stopping containers ..."
+    echo_white ""
+    
+    NODES_JSON=$(echo "$NODES" | jq -c '.')
+    ansible-playbook -e "nodes=${NODES_JSON}" -e "infra_path=${INFRA_PATH}" $ANSIBLE_LOCAL_CONTAINERS_STOP_PLAYBOOK_FILE
+    
+    if [ $? -eq 0 ]; then
+        echo_green "Containers stopped successfully"
+    else
+        echo_red "Failing when stopping containers, take a look at the logs."
+        exit 1
+    fi
+    echo_title "################################################################"
+
+}
+
 function try_stop_grafana() {
     if [ "$START_GRAFANA_CONTAINER" = "true" ]; then
         echo_white
@@ -101,7 +122,7 @@ function try_stop_grafana() {
         echo_title "################################################################"
         echo_yellow "Stopping grafana container"
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/stop/containers/monitor.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_GRAFANA_STOP_PLAYBOOK_FILE
 
         if [ $? -eq 0 ]; then
             echo_green "Monitor container stopped successfully."
@@ -124,7 +145,7 @@ function stop_containers() {
     try_stop_metagraph_l0
     try_stop_currency_l1
     try_stop_data_l1
+    try_stop_containers
     try_stop_grafana
 
-    
 }
