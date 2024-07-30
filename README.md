@@ -41,6 +41,11 @@ This directory contains infrastructure related to the running of Euclid.
   - **local**: Used for start and stop the nodes locally.
   - **remote**: Used for configuring and deploying to remote hosts
 
+#### Custom Metagraph Base Image Dockerfile
+You can customize your `metagraph-base-image` Dockerfile by creating a new file called `Dockerfile` under the `infra/docker/custom/metagraph-base-image` directory. This allows the build process to load and use your custom Dockerfile, enabling you to add additional features, such as external databases or tools.
+
+This customization feature allows you to tailor your base image to include the specific features you require. Ensure that your custom Dockerfile continues to meet the primary goals of the original file: creating directories, building JARs, and moving the necessary files for execution, such as `genesis.snapshot`.
+
 ### Scripts
 Thats the "home" of hydra script, here you'll find the `hydra` and `hydra-update (deprecated)` scripts.
 
