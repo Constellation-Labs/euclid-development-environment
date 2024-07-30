@@ -6,12 +6,12 @@ function try_start_docker_nodes() {
     echo_yellow "Starting docker containers..."
 
     if pip3 --version &>/dev/null; then
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/containers/nodes.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_CONTAINERS_START_PLAYBOOK_FILE
     else
         echo_white ""
         echo_yellow "Ansible requires BECOME to install dependencies, please provide your sudo password"
         echo_white
-        ansible-playbook -K $INFRA_PATH/ansible/local/playbooks/start/containers/nodes.ansible.yml
+        ansible-playbook -K $ANSIBLE_LOCAL_CONTAINERS_START_PLAYBOOK_FILE
     fi
 
     if [ $? -eq 0 ]; then
@@ -31,7 +31,7 @@ function try_start_global_l0() {
         echo_title "################################################################"
         echo_yellow "Starting global-l0 layer..."
         echo_white ""
-        ansible-playbook -e "force_genesis=$1" $INFRA_PATH/ansible/local/playbooks/start/global-l0/cluster.ansible.yml
+        ansible-playbook -e "force_genesis=$1" $ANSIBLE_LOCAL_GLOBAL_L0_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "global-l0 started successfully"
         else
@@ -50,7 +50,7 @@ function try_start_dag_l1() {
         echo_title "################################################################"
         echo_yellow "Starting dag-l1 layer..."
         echo_white ""
-        ansible-playbook -e "force_genesis=$1" $INFRA_PATH/ansible/local/playbooks/start/dag-l1/cluster.ansible.yml
+        ansible-playbook -e "force_genesis=$1" $ANSIBLE_LOCAL_DAG_L1_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "dag-l1 started successfully"
         else
@@ -69,7 +69,7 @@ function try_start_metagraph_l0() {
         echo_title "################################################################"
         echo_yellow "Starting metagraph l0 layer..."
         echo_white ""
-        ansible-playbook -e "force_genesis=$1" $INFRA_PATH/ansible/local/playbooks/start/metagraph-l0/cluster.ansible.yml
+        ansible-playbook -e "force_genesis=$1" $ANSIBLE_LOCAL_METAGRAPH_L0_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "metagraph-l0 started successfully"
         else
@@ -88,7 +88,7 @@ function try_start_currency_l1() {
         echo_title "################################################################"
         echo_yellow "Starting currency l1 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/currency-l1/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_CURRENCY_L1_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "currency-l1 started successfully"
         else
@@ -106,7 +106,7 @@ function try_start_data_l1() {
         echo_title "################################################################"
         echo_yellow "Starting data l1 layer..."
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/data-l1/cluster.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_DATA_L1_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "data-l1 started successfully"
         else
@@ -124,7 +124,7 @@ function try_start_grafana() {
         echo_title "################################################################"
         echo_yellow "Starting grafana container"
         echo_white ""
-        ansible-playbook $INFRA_PATH/ansible/local/playbooks/start/containers/monitor.ansible.yml
+        ansible-playbook $ANSIBLE_LOCAL_GRAFANA_START_PLAYBOOK_FILE
 
         if [ $? -eq 0 ]; then
             echo_green "Monitor container started successfully."
@@ -137,7 +137,7 @@ function try_start_grafana() {
 }
 
 function print_nodes_information() {
-    ansible_vars_path=$INFRA_PATH/ansible/local/playbooks/vars.ansible.yml
+    ansible_vars_path=$ANSIBLE_LOCAL_VARS
     offset=$(yq eval '.offset' $ansible_vars_path)
     index=0
 

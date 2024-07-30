@@ -1,0 +1,46 @@
+---
+- name: Destroy Containers and Network
+  hosts: localhost
+  vars:
+    nodes: "{{ nodes | from_json }}"
+    infra_path: "{{ infra_path }}"
+  
+  tasks:
+    - name: Destroy Containers
+      block:
+        - name: Destroy Containers
+          docker_container:
+            name: "{{ item.name }}"
+            state: absent
+          loop: "{{ nodes }}"
+          loop_control:
+            label: "{{ item.name }}"
+
+    - name: Destroy Container Grafana
+      block:
+        - name: Destroy container grafana
+          docker_container:
+            name: grafana
+            state: absent
+
+    - name: Destroy Container Prometheus
+      block:
+        - name: Destroy container prometheus
+          docker_container:
+            name: prometheus
+            state: absent
+        
+    - name: Remove Genesis Files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ infra_path }}/docker/shared/genesis/genesis.address"
+        - "{{ infra_path }}/docker/shared/genesis/genesis.snapshot"
+        
+    - name: Destroy Network custom-network
+      block:
+        - name: Remove network custom-network
+          docker_network:
+            name: custom-network
+            state: absent

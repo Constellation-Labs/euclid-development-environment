@@ -11,6 +11,16 @@
     lead_node_ip: "{{ base_prefix_ip }}{{ offset }}"
     gl0_lead_node_public_port: "{{ base_global_l0_public_port | int }}"
 
+- name: (Metagraph-L0) Cleaning older directories if exists
+  community.docker.docker_container_exec:
+    container: "{{ node_info.name }}"
+    command: |
+      /bin/bash -c '
+      cd metagraph-l0 &&
+      if [ -d "data" ]; then rm -r data; fi &&
+      if [ -d "logs" ]; then rm -r logs; fi
+      '
+
 - name: (Metagraph-L0) Create genesis files
   community.docker.docker_container_exec:
     container: "{{ node_info.name }}"
