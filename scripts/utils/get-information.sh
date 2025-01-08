@@ -136,3 +136,15 @@ function get_should_use_updated_modules() {
         echo false
     fi
 }
+
+function get_additonal_file_info_to_sign_message() {
+  first_different_key_file=$(echo "$NODES" | jq -r --arg ext_name "$1" '
+  .[] | select(.key_file.name != $ext_name) | .key_file | @json' | head -n 1)
+
+  if [ -n "$first_different_key_file" ]; then
+    echo "$first_different_key_file"
+  else
+    echo_red "Could not find second file to sign messages"
+    exit 1
+  fi
+}

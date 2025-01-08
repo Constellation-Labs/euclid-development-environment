@@ -69,6 +69,17 @@
     msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ owner_p12_file_name }} does not exist"
   when: not (owner_p12_file_name is undefined or owner_p12_file_name == "")  and not owner_file.stat.exists
 
+- name: Check if second signer owner file exists - owner
+  stat:
+    path: "/home/{{ ansible_user }}/code/metagraph-l0/{{ second_signer_p12_file_name_owner }}"
+  register: owner_file
+  when: not (second_signer_p12_file_name_owner is undefined or second_signer_p12_file_name_owner == "") 
+
+- name: Throw an error if the second signer file doesn't exist - owner
+  fail:
+    msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ second_signer_p12_file_name_owner }} does not exist"
+  when: not (second_signer_p12_file_name_owner is undefined or second_signer_p12_file_name_owner == "")  and not owner_file.stat.exists
+
 - name: Check if staking file exists
   stat:
     path: "/home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }}"
@@ -79,6 +90,17 @@
   fail:
     msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }} does not exist"
   when: not (staking_p12_file_name is undefined or staking_p12_file_name == "") and not staking_file.stat.exists
+
+- name: Check if second signer file exists - staking
+  stat:
+    path: "/home/{{ ansible_user }}/code/metagraph-l0/{{ second_signer_p12_file_name_staking }}"
+  register: staking_file
+  when: not (second_signer_p12_file_name_staking is undefined or second_signer_p12_file_name_staking == "")
+
+- name: Throw an error if the second signer file doesn't exist - staking
+  fail:
+    msg: "File /home/{{ ansible_user }}/code/metagraph-l0/{{ second_signer_p12_file_name_staking }} does not exist"
+  when: not (second_signer_p12_file_name_staking is undefined or second_signer_p12_file_name_staking == "") and not staking_file.stat.exists
 
 - name: Fetch the latest combined snapshot from global network
   uri:
@@ -161,7 +183,7 @@
   register: owner_address_output 
   when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") 
 
-- name: Get owner message
+- name: Get owner message first signer
   environment:
     CL_KEYSTORE: "{{ owner_p12_file_name }}"
     CL_KEYALIAS: "{{ owner_p12_alias }}"
@@ -169,8 +191,40 @@
   shell: |
     cd "/home/{{ ansible_user }}/code/metagraph-l0"
     java -jar cl-wallet.jar create-owner-signing-message --address {{ owner_address_output.stdout }} --parentOrdinal {{ owner_parent_ordinal }} --metagraphId {{ metagraph_id }}
-  register: owner_message_output 
+  register: owner_message_first_signer_output 
   when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") 
+
+- name: Get owner message second signer
+  environment:
+    CL_KEYSTORE: "{{ second_signer_p12_file_name_owner }}"
+    CL_KEYALIAS: "{{ second_signer_p12_alias_owner }}"
+    CL_PASSWORD: "{{ second_signer_p12_password_owner }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/metagraph-l0"
+    java -jar cl-wallet.jar create-owner-signing-message --address {{ owner_address_output.stdout }} --parentOrdinal {{ owner_parent_ordinal }} --metagraphId {{ metagraph_id }}
+  register: owner_message_second_signer_output 
+  when: not (owner_p12_file_name is undefined or owner_p12_file_name == "") 
+
+- name: Get owner message with 2 signers
+  set_fact:
+    owner_message_output: >-
+      {{
+        owner_message_first_signer_output.stdout | from_json |
+        combine({
+          "proofs": (
+            (owner_message_first_signer_output.stdout | from_json).proofs +
+            [(owner_message_second_signer_output.stdout | from_json).proofs[0]]
+          )
+        })
+      }}
+  when: 
+    - not (owner_p12_file_name is undefined or owner_p12_file_name == "")
+    - owner_message_first_signer_output is defined
+    - owner_message_second_signer_output is defined
+
+- name: Print owner message
+  debug:
+    var: owner_message_output
 
 - name: Get staking address
   environment:
@@ -183,7 +237,7 @@
   register: staking_address_output 
   when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
 
-- name: Get staking message
+- name: Get staking message first signer
   environment:
     CL_KEYSTORE: "{{ staking_p12_file_name }}"
     CL_KEYALIAS: "{{ staking_p12_alias }}"
@@ -191,8 +245,40 @@
   shell: |
     cd "/home/{{ ansible_user }}/code/metagraph-l0"
     java -jar cl-wallet.jar create-staking-signing-message --address {{ staking_address_output.stdout }} --parentOrdinal {{ staking_parent_ordinal }}  --metagraphId {{ metagraph_id }}
-  register: staking_message_output
+  register: staking_message_first_signer_output
   when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Get staking message second signer
+  environment:
+    CL_KEYSTORE: "{{ second_signer_p12_file_name_staking }}"
+    CL_KEYALIAS: "{{ second_signer_p12_alias_staking }}"
+    CL_PASSWORD: "{{ second_signer_p12_password_staking }}"
+  shell: |
+    cd "/home/{{ ansible_user }}/code/metagraph-l0"
+    java -jar cl-wallet.jar create-staking-signing-message --address {{ staking_address_output.stdout }} --parentOrdinal {{ staking_parent_ordinal }}  --metagraphId {{ metagraph_id }}
+  register: staking_message_second_signer_output
+  when: not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+
+- name: Get staking message with 2 signers
+  set_fact:
+    staking_message_output: >-
+      {{
+        staking_message_first_signer_output.stdout | from_json |
+        combine({
+          "proofs": (
+            (staking_message_first_signer_output.stdout | from_json).proofs +
+            [(staking_message_second_signer_output.stdout | from_json).proofs[0]]
+          )
+        })
+      }}
+  when: 
+    - not (staking_p12_file_name is undefined or staking_p12_file_name == "")
+    - staking_message_first_signer_output is defined
+    - staking_message_second_signer_output is defined
+
+- name: Print staking message
+  debug:
+    var: staking_message_output
 
 - name: Start as genesis
   environment:
@@ -228,14 +314,6 @@
     retries: 0
   when: should_run_genesis
 
-- name: Wait 2 minutes before stopping current execution
-  pause:
-    minutes: 2
-  when: >
-      owner_p12_file_name is defined and 
-      owner_p12_file_name != "" and 
-      should_run_genesis or force_owner_message_bool
-
 - name: Find metagraph-l0 process ID by port
   shell: "lsof -t -i:{{ base_metagraph_l0_public_port }}"
   register: l0_process_id
@@ -247,9 +325,9 @@
   ignore_errors: true
   when: should_run_genesis
 
-- name: Wait 2 minutes before starting the metagraph
+- name: Wait 5 minutes before starting the metagraph
   pause:
-    minutes: 2
+    minutes: 5
   when: >
       owner_p12_file_name is defined and 
       owner_p12_file_name != "" and 
@@ -288,11 +366,19 @@
   vars:
     retries: 0
 
+- name: Wait 7 seconds before sending messages
+  pause:
+    seconds: 7
+  when: >
+      owner_p12_file_name is defined and 
+      owner_p12_file_name != "" and 
+      should_run_genesis or force_owner_message_bool
+
 - name: Send owner message
   uri:
     url: "http://localhost:{{ base_metagraph_l0_public_port }}/currency/message"
     method: POST
-    body: "{{ owner_message_output.stdout }}"
+    body: "{{ owner_message_output }}"
     body_format: json
     status_code: 204, 200
   register: owner_response
@@ -305,7 +391,7 @@
   uri:
     url: "http://localhost:{{ base_metagraph_l0_public_port }}/currency/message"
     method: POST
-    body: "{{ staking_message_output.stdout }}"
+    body: "{{ staking_message_output }}"
     body_format: json
     status_code: 204, 200
   register: staking_response

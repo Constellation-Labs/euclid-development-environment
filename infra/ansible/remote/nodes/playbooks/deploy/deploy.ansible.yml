@@ -197,7 +197,7 @@
       shell: |
         rm -f /home/{{ ansible_user }}/code/{{ all_nodes[0].key_file.name }}
 
-- name: Send fees p12 files to nodes
+- name: Send primary snapshot fee p12 file to nodes
   hosts: nodes
   gather_facts: false
   vars:
@@ -229,3 +229,36 @@
         src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ staking_p12_file_name }}"
         dest: "/home/{{ ansible_user }}/code/metagraph-l0/{{ staking_p12_file_name }}"
       when: not (staking_p12_file_name is undefined or staking_p12_file_name == "") and staking_p12_file.stat.exists
+
+- name: Send the second signer .p12 file for snapshot fee to nodes
+  hosts: nodes
+  gather_facts: false
+  vars:
+     second_signer_p12_file_name_owner: "{{ second_signer_p12_file_name_owner }}"
+     second_signer_p12_file_name_staking: "{{ second_signer_p12_file_name_staking }}"
+  tasks:
+    - name: Check if second signer file exists - owner
+      stat:
+        path: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ second_signer_p12_file_name_owner }}"
+      register: owner_p12_file
+      delegate_to: localhost
+      when: not (second_signer_p12_file_name_owner is undefined or second_signer_p12_file_name_owner == "")
+
+    - name: Copy second signer file to remote node - owner
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ second_signer_p12_file_name_owner }}"
+        dest: "/home/{{ ansible_user }}/code/metagraph-l0/{{ second_signer_p12_file_name_owner }}"
+      when: not (second_signer_p12_file_name_owner is undefined or second_signer_p12_file_name_owner == "") and owner_p12_file.stat.exists
+
+    - name: Check if second signer file exists - staking
+      stat:
+        path: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ second_signer_p12_file_name_staking }}"
+      register: staking_p12_file
+      when: not (second_signer_p12_file_name_staking is undefined or second_signer_p12_file_name_staking == "")
+      delegate_to: localhost
+
+    - name: Copy second signer file to remote node if it exists - staking
+      copy:
+        src: "{{ lookup('env', 'SOURCE_PATH') }}/p12-files/{{ second_signer_p12_file_name_staking }}"
+        dest: "/home/{{ ansible_user }}/code/metagraph-l0/{{ second_signer_p12_file_name_staking }}"
+      when: not (second_signer_p12_file_name_staking is undefined or second_signer_p12_file_name_staking == "") and staking_p12_file.stat.exists
