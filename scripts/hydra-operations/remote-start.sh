@@ -43,6 +43,8 @@ function remote_start_metagraph() {
     fi
   fi
 
+  owner_second_signer_info=$(get_additonal_file_info_to_sign_message $SNAPSHOT_FEES_OWNER_FILE_NAME)
+  staking_second_signer_info=$(get_additonal_file_info_to_sign_message $SNAPSHOT_FEES_STAKING_FILE_NAME)
 
   ansible-playbook \
     -e "force_genesis=$force_genesis" \
@@ -51,8 +53,14 @@ function remote_start_metagraph() {
     -e "owner_p12_file_name=$SNAPSHOT_FEES_OWNER_FILE_NAME" \
     -e "owner_p12_alias=$SNAPSHOT_FEES_OWNER_ALIAS" \
     -e "owner_p12_password=$SNAPSHOT_FEES_OWNER_PASSWORD" \
+    -e "second_signer_p12_file_name_owner=$(echo "$owner_second_signer_info" | jq -r '.name')" \
+    -e "second_signer_p12_alias_owner=$(echo "$owner_second_signer_info" | jq -r '.alias')" \
+    -e "second_signer_p12_password_owner=$(echo "$owner_second_signer_info" | jq -r '.password')" \
     -e "staking_p12_file_name=$SNAPSHOT_FEES_STAKING_FILE_NAME" \
     -e "staking_p12_alias=$SNAPSHOT_FEES_STAKING_ALIAS" \
     -e "staking_p12_password=$SNAPSHOT_FEES_STAKING_PASSWORD" \
+    -e "second_signer_p12_file_name_staking=$(echo "$staking_second_signer_info" | jq -r '.name')" \
+    -e "second_signer_p12_alias_staking=$(echo "$staking_second_signer_info" | jq -r '.alias')" \
+    -e "second_signer_p12_password_staking=$(echo "$staking_second_signer_info" | jq -r '.password')" \
     -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_START_PLAYBOOK_FILE
 }
