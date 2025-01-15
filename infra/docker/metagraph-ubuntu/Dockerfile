@@ -26,15 +26,13 @@ RUN apt-get update && \
 
 RUN git clone https://github.com/Constellation-Labs/tessellation.git && \
     cd tessellation && \
-    git checkout $CHECKOUT_TESSELLATION_VERSION && \
-    rm -r version.sbt && \
-    echo "ThisBuild / version := \"$TESSELLATION_VERSION_SEMVER\"" > version.sbt
+    git checkout $CHECKOUT_TESSELLATION_VERSION
     
 RUN cd tessellation && \
     if [ "$SHOULD_USE_UPDATED_MODULES" = "true" ]; then \
-        sbt kernel/publishM2 shared/publishM2 keytool/publishM2 nodeShared/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2; \
+        sbt -Dversion.override=$TESSELLATION_VERSION_SEMVER publishM2; \
     else \
-        sbt kernel/publishM2 shared/publishM2 keytool/publishM2 sdk/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2; \
+        sbt -Dversion.override=$TESSELLATION_VERSION_SEMVER kernel/publishM2 shared/publishM2 keytool/publishM2 sdk/publishM2 dagL1/publishM2 currencyL0/publishM2 currencyL1/publishM2; \
     fi
 
 RUN cd tessellation && \
