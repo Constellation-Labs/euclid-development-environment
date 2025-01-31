@@ -27,7 +27,7 @@ RUN apt-get update && \
 RUN git clone https://github.com/Constellation-Labs/tessellation.git && \
     cd tessellation && \
     git checkout $CHECKOUT_TESSELLATION_VERSION && \
-    rm -r version.sbt && \
+    rm -rf version.sbt && \
     echo "ThisBuild / version := \"$TESSELLATION_VERSION_SEMVER\"" > version.sbt
     
 RUN cd tessellation && \

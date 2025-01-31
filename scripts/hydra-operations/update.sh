@@ -24,6 +24,7 @@ function check_if_should_update() {
   echo "Directory - scripts"
   echo "Directory - infra/ansible/local/playbooks/start"
   echo "Directory - infra/ansible/local/playbooks/stop"
+  echo "Directory - infra/ansible/local/playbooks/destroy"
   echo "File - infra/ansible/local/playbooks/vars.ansible.yml"
   echo "Directory - infra/ansible/remote/nodes/playbooks/deploy"
   echo "Directory - infra/ansible/remote/nodes/playbooks/start"
@@ -135,6 +136,9 @@ function update_local_ansible_files() {
 
     rm -r $ANSIBLE_DIRECTORY/playbooks/stop
     cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/stop $ANSIBLE_DIRECTORY/playbooks
+
+    rm -r $ANSIBLE_DIRECTORY/playbooks/destroy
+    cp -r $INFRA_PATH/euclid-development-environment/infra/ansible/local/playbooks/destroy $ANSIBLE_DIRECTORY/playbooks
 
   else
     mkdir -p "$INFRA_PATH/ansible"

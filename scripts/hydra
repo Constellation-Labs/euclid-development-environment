@@ -76,7 +76,8 @@ function install() {
 
 # @cmd Installs a project from templates
 # @arg name        Project name
-# @option --repo   Project repositor (default https://github.com/Constellation-Labs/metagraph-examples.git)
+# @option --repo   Project repository (default https://github.com/Constellation-Labs/metagraph-examples.git)
+# @option --branch Repository branch (default default_branch)
 # @option --path   Template path on repository (default examples)
 # @flag   --list   List available templates
 function install-template() {
