@@ -8,7 +8,6 @@ function build_metagraph_ubuntu() {
     cd $INFRA_PATH/docker/metagraph-ubuntu
 
     CHECKOUT_TESSELLATION_VERSION=$(get_checkout_tessellation_version "$TESSELLATION_VERSION")
-    SHOULD_USE_UPDATED_MODULES=$(get_should_use_updated_modules "$TESSELLATION_VERSION")
 
     if [ ! -z "$argc_no_cache" ]; then
       $DOCKER_COMPOSE build \
@@ -16,7 +15,7 @@ function build_metagraph_ubuntu() {
         --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
         --build-arg TESSELLATION_VERSION_SEMVER=$TESSELLATION_VERSION_SEMVER \
         --build-arg CHECKOUT_TESSELLATION_VERSION=$CHECKOUT_TESSELLATION_VERSION \
-        --build-arg SHOULD_USE_UPDATED_MODULES=$SHOULD_USE_UPDATED_MODULES \
+        --build-arg TESSELLATION_VERSION_IS_TAG_OR_BRANCH=$TESSELLATION_VERSION_IS_TAG_OR_BRANCH \
         --no-cache
     else
       $DOCKER_COMPOSE build \
@@ -24,7 +23,7 @@ function build_metagraph_ubuntu() {
         --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
         --build-arg TESSELLATION_VERSION_SEMVER=$TESSELLATION_VERSION_SEMVER \
         --build-arg CHECKOUT_TESSELLATION_VERSION=$CHECKOUT_TESSELLATION_VERSION \
-        --build-arg SHOULD_USE_UPDATED_MODULES=$SHOULD_USE_UPDATED_MODULES
+        --build-arg TESSELLATION_VERSION_IS_TAG_OR_BRANCH=$TESSELLATION_VERSION_IS_TAG_OR_BRANCH
     fi
     
     echo_green "Ubuntu for tessellation $TESSELLATION_VERSION built"

@@ -69,7 +69,7 @@ function try_start_metagraph_l0() {
         echo_title "################################################################"
         echo_yellow "Starting metagraph l0 layer..."
         echo_white ""
-        ansible-playbook -e "force_genesis=$1" $ANSIBLE_LOCAL_METAGRAPH_L0_START_PLAYBOOK_FILE
+        ansible-playbook -e "force_genesis=$1" -e "network_host_ip=$NETWORK_HOST_IP" -e "network_host_id=$NETWORK_HOST_ID" -e "network_host_public_port=$NETWORK_HOST_PUBLIC_PORT" $ANSIBLE_LOCAL_METAGRAPH_L0_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "metagraph-l0 started successfully"
         else
@@ -227,6 +227,43 @@ function start_containers() {
 
     export ANSIBLE_LOCALHOST_WARNING=False
     export ANSIBLE_INVENTORY_UNPARSED_WARNING=False
+
+    echo_title
+    local         
+    echo "Where is this build intended to run?"
+    echo "1) Local environment"
+    echo "2) Remote environment"
+    read -rp "Enter choice [1-2]: " choice
+
+    echo_white
+    case "$choice" in
+    1)
+        echo "Building for LOCAL environment. Using local hypergraph"
+        # Local build logic here
+        ;;
+    2)
+        echo "Building for REMOTE environment..."
+        # Validate that variables are not defaults
+        if [[ "$DEPLOY_NETWORK_NAME" == "integrationnet|mainnet" ]] || \
+        [[ "$DEPLOY_NETWORK_HOST_IP" == ":gl0_node_ip" ]] || \
+        [[ "$DEPLOY_NETWORK_HOST_ID" == ":gl0_node_id" ]] || \
+        [[ "$DEPLOY_NETWORK_HOST_PUBLIC_PORT" == ":gl0_node_public_port" ]]; then
+            echo_red "❌ ERROR: euclid.json contains default placeholder values."
+            echo_white "Please update $ROOT_PATH/euclid.json with real network configuration."
+            exit 1
+        fi
+
+        export NETWORK_HOST_IP=$DEPLOY_NETWORK_HOST_IP
+        export NETWORK_HOST_ID=$DEPLOY_NETWORK_HOST_ID
+        export NETWORK_HOST_PUBLIC_PORT=$DEPLOY_NETWORK_HOST_PUBLIC_PORT
+
+        echo "✅ Network configuration validated. Using network $DEPLOY_NETWORK_NAME"
+        ;;
+    *)
+        echo "Invalid choice. Please choose 1 or 2."
+        exit 1
+        ;;
+    esac
 
     try_start_docker_nodes
     try_start_global_l0 $1
