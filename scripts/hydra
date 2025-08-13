@@ -48,6 +48,7 @@ function load_scripts() {
   source ./hydra-operations/remote-start-monitoring-service.sh
   source ./hydra-operations/remote-snapshot-fee-config.sh
   source ./hydra-operations/update.sh
+  source ./hydra-operations/create-remote-genesis.sh
 
   source ./template/custom-template.sh
 
@@ -392,6 +393,23 @@ function remote-start-monitoring-service() {
   ensure_permissions_on_files_and_directories
 
   remote_start_monitoring_service
+
+  exit 0
+}
+
+# @cmd Create remote genesis files to be sent to the remote hosts
+# @alias create_remote_genesis
+function create-remote-genesis() {
+  build_paths
+  check_if_should_run_update
+
+  ensure_permissions_on_files_and_directories
+  load_scripts
+
+  set_docker_compose
+  check_if_docker_is_running
+
+  start_containers_remote_genesis true
 
   exit 0
 }
