@@ -228,6 +228,43 @@ function start_containers() {
     export ANSIBLE_LOCALHOST_WARNING=False
     export ANSIBLE_INVENTORY_UNPARSED_WARNING=False
 
+    echo_title
+    local         
+    echo "Where is this build intended to run?"
+    echo "1) Local environment"
+    echo "2) Remote environment"
+    read -rp "Enter choice [1-2]: " choice
+
+    echo_white
+    case "$choice" in
+    1)
+        echo "Building for LOCAL environment. Using local hypergraph"
+        # Local build logic here
+        ;;
+    2)
+        echo "Building for REMOTE environment..."
+        # Validate that variables are not defaults
+        if [[ "$DEPLOY_NETWORK_NAME" == "integrationnet|mainnet" ]] || \
+        [[ "$DEPLOY_NETWORK_HOST_IP" == ":gl0_node_ip" ]] || \
+        [[ "$DEPLOY_NETWORK_HOST_ID" == ":gl0_node_id" ]] || \
+        [[ "$DEPLOY_NETWORK_HOST_PUBLIC_PORT" == ":gl0_node_public_port" ]]; then
+            echo_red "❌ ERROR: euclid.json contains default placeholder values."
+            echo_white "Please update $ROOT_PATH/euclid.json with real network configuration."
+            exit 1
+        fi
+
+        export NETWORK_HOST_IP=$DEPLOY_NETWORK_HOST_IP
+        export NETWORK_HOST_ID=$DEPLOY_NETWORK_HOST_ID
+        export NETWORK_HOST_PUBLIC_PORT=$DEPLOY_NETWORK_HOST_PUBLIC_PORT
+
+        echo "✅ Network configuration validated. Using network $DEPLOY_NETWORK_NAME"
+        ;;
+    *)
+        echo "Invalid choice. Please choose 1 or 2."
+        exit 1
+        ;;
+    esac
+
     try_start_docker_nodes
     try_start_global_l0 $1
     try_start_dag_l1 $1
