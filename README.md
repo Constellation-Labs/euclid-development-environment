@@ -76,6 +76,7 @@ COMMANDS:
   install-template                  Installs a project from templates
   build                             Build containers
   start-genesis                     Start containers from the genesis snapshot (erasing history) [aliases: start_genesis]
+  create-remote-genesis             Create genesis files to deploy on remote instances [aliases: create_remote_genesis]
   start-rollback                    Start containers from the last snapshot (maintaining history) [aliases: start_rollback]
   stop                              Stop containers
   destroy                           Destroy containers
