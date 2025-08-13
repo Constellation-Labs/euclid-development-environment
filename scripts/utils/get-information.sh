@@ -128,15 +128,6 @@ function get_checkout_tessellation_version() {
     fi
 }
 
-function get_should_use_updated_modules() {
-    local version=$1
-    if [[ "$(printf "%s\n%s" "$version" "2.3.0" | sort -V | tail -n1)" == "$version" ]]; then
-        echo true
-    else
-        echo false
-    fi
-}
-
 function get_additonal_file_info_to_sign_message() {
   first_different_key_file=$(echo "$NODES" | jq -r --arg ext_name "$1" '
   .[] | select(.key_file.name != $ext_name) | .key_file | @json' | head -n 1)
