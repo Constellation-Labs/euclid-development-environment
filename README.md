@@ -291,6 +291,27 @@ The deploy script does not deploy the `gl0` node. It's recommended to use `nodec
 
 **NOTE:** Your GL0 node must be up and running before deploying your metagraph. You can use the same host to run all four layers: `gl0`, `ml0`, `cl1`, and `dl1`.
 
+### `hydra create-remote-genesis`
+The hydra create-remote-genesis command is responsible for generating the genesis files that will be deployed to remote network instances.
+
+**Purpose**
+
+These files define the initial state of the Metagraph-L0 chain and are required to bootstrap the network on remote nodes.
+
+Generated Files
+	•	`genesis.address` – contains the initial ledger address information.
+	•	`genesis.snapshot` – contains the initial snapshot of the network state.
+
+**Output Location**
+
+All generated files are stored in:
+`infra/docker/shared/genesis`
+
+**Usage Notes**
+	•	This command must be executed before deploying the Metagraph-L0 to remote nodes, so those nodes start with a consistent and valid genesis state.
+	•	Ensure that the environment variables and configuration (euclid.json, key files, peer settings) are properly set before running the command.
+	•	Running this command will overwrite any existing genesis files in the target directory.
+
 ### `hydra remote-deploy`
 This method configures remote instances with all the necessary dependencies to run a metagraph, including Java, Scala, and required build tools. The Ansible playbook used for this process can be found and edited in `infra/ansible/playbooks/deploy.ansible.yml`. It also creates all required directories on the remote hosts, and creates or updates metagraph files to match your local Euclid environment. Specifically, it creates the following directories:
 
@@ -539,4 +560,50 @@ After deployment, start your monitoring with:
 
 To force a complete restart of your metagraph, use:
 
-`hydra remote-start-monitoring-service --force-restart`
+`hydra remote-start-monitoring-service --force-restart` 
+
+### Deploying and Running the Metagraph from Genesis
+
+If you need to start your metagraph from **genesis** (wiping all previous state and starting from the very first snapshot), follow these steps in order:
+
+#### 1. Create Remote Genesis Files
+Run `./hydra create-remote-genesis` to generate the required genesis files (**genesis.address** and **genesis.snapshot**) under:
+
+`infra/docker/shared/genesis`
+
+These files define the initial state of your Metagraph-L0 and will be deployed to your remote instances.
+
+> **Tip:** Ensure your `euclid.json` and key files are correctly configured before running this step.
+
+---
+
+#### 2. Deploy to Remote Instances
+Run `./hydra remote-deploy --force_genesis` to install all dependencies, create the necessary directory structure on each remote instance, and copy over the genesis files and executable JARs.  
+
+The `--force_genesis` flag ensures that any existing state on the remote instances is deleted so the metagraph will start fresh from genesis.
+
+> **Warning:** This action will remove all existing data on the remote metagraph directories.
+
+---
+
+#### 3. Start the Metagraph from Genesis
+Run `./hydra remote-start --force_genesis` to:
+
+1. Terminate any processes on metagraph ports.
+2. Archive existing logs and data directories.
+3. Start the `metagraph-l0` layer as the **genesis node**.
+4. Start the L1 layers (`currency-l1` and/or `data-l1`) if they exist in your project.
+
+After the startup:
+- Verify snapshot generation using the block explorer for your network.
+- Check the cluster info endpoint: `http://{your_host_ip}:{your_layer_port}/cluster/info`
+- Follow logs with `tail -f logs/app.log`
+
+---
+
+#### Quick Command Sequence
+1. `./hydra create-remote-genesis`  
+2. `./hydra remote-deploy --force_genesis`  
+3. `./hydra remote-start --force_genesis`
+
+> **Note:** You’ll be prompted for confirmation when using `--force_genesis` since it deletes all existing data.
