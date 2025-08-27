@@ -27,7 +27,8 @@ RUN set -eux; \
     cd tessellation; \
     git checkout "$CHECKOUT_TESSELLATION_VERSION"; \
     if [ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" = "branch" ]; then \
-      sbt sdk/publishM2; \
+      export RELEASE_TAG=99.99.99; \
+      sbt -Dversion.override=99.99.99 sdk/publishM2; \
     fi; \
     sbt wallet/assembly dagL1/assembly keytool/assembly dagL0/assembly; \
     mv modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* /code/cl-wallet.jar; \
