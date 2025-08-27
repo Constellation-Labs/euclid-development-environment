@@ -6,17 +6,43 @@
     force_owner_message: "{{ force_owner_message | default(false) | bool }}"
     force_staking_message: "{{ force_staking_message | default(false) | bool }}"
 
+- name: Display execution flags
+  debug:
+    msg:
+      - "Force Genesis: {{ force_genesis }}"
+      - "Force Owner Message: {{ force_owner_message }}"
+      - "Force Staking Message: {{ force_staking_message }}"
+
 - name: Check for existing incremental snapshots
   stat:
     path: "/home/{{ ansible_user }}/code/metagraph-l0/data/incremental_snapshot"
   register: incremental_snapshots
+
+- name: Display incremental snapshots status
+  debug:
+    msg: "Incremental snapshots exist: {{ incremental_snapshots.stat.exists }}"
 
 - name: Determine execution mode
   set_fact:
     should_run_genesis: "{{ not incremental_snapshots.stat.exists or force_genesis }}"
     should_run_rollback: "{{ incremental_snapshots.stat.exists and not force_genesis }}"
 
+- name: Display execution mode
+  debug:
+    msg:
+      - "Should run Genesis: {{ should_run_genesis }}"
+      - "Should run Rollback: {{ should_run_rollback }}"
+
 # Validate required files exist
+- name: Display file validation parameters
+  debug:
+    msg:
+      - "CL Keystore: {{ cl_keystore }}"
+      - "Owner P12: {{ owner_p12_file_name | default('not provided') }}"
+      - "Staking P12: {{ staking_p12_file_name | default('not provided') }}"
+      - "Second Signer Owner P12: {{ second_signer_p12_file_name_owner | default('not provided') }}"
+      - "Second Signer Staking P12: {{ second_signer_p12_file_name_staking | default('not provided') }}"
+
 - name: Validate required files
   stat:
     path: "/home/{{ ansible_user }}/code/metagraph-l0/{{ item }}"
@@ -35,8 +61,12 @@
 - name: Prepare for genesis
   block:
     - name: Get current timestamp
+      shell: date +%Y%m%dT%H%M%S
+      register: timestamp_result
+      
+    - name: Set current time variable
       set_fact:
-        current_time: "{{ ansible_date_time.iso8601_basic_short }}"
+        current_time: "{{ timestamp_result.stdout }}"
 
     - name: Create archived-data directory
       file:
@@ -74,6 +104,11 @@
       }}
   when: snapshot_response is defined
 
+- name: Display metagraph messages from snapshot
+  debug:
+    msg: "Metagraph messages: {{ metagraph_messages }}"
+  when: metagraph_messages is defined
+
 - name: Calculate parent ordinals
   set_fact:
     owner_parent_ordinal: >-
@@ -85,6 +120,12 @@
         (metagraph_messages.Staking.value.parentOrdinal | default(-1) | int) + 1
       }}
   when: metagraph_messages is defined
+
+- name: Display calculated parent ordinals
+  debug:
+    msg:
+      - "Owner parent ordinal: {{ owner_parent_ordinal | default('not calculated') }}"
+      - "Staking parent ordinal: {{ staking_parent_ordinal | default('not calculated') }}"
 
 # Generate signing messages
 - name: Generate owner signing message
@@ -98,6 +139,10 @@
         CL_KEYALIAS: "{{ owner_p12_alias }}"
         CL_PASSWORD: "{{ owner_p12_password }}"
       register: owner_address
+
+    - name: Display owner address
+      debug:
+        msg: "Owner address: {{ owner_address.stdout }}"
 
     - name: Create owner message (first signer)
       shell: |
@@ -141,6 +186,11 @@
           }}
       when: should_run_rollback and force_owner_message
 
+    - name: Display combined owner message
+      debug:
+        msg: "Combined owner message: {{ owner_message }}"
+      when: owner_message is defined
+
     - name: Create owner message for genesis (single signature to file)
       shell: |
         cd "/home/{{ ansible_user }}/code/metagraph-l0"
@@ -149,9 +199,9 @@
           --metagraphId "{{ metagraph_id }}" \
           --parentOrdinal "{{ owner_parent_ordinal | default(0) }}" > owner-message
       environment:
-        CL_KEYSTORE: "{{ cl_keystore }}"
-        CL_KEYALIAS: "{{ cl_keyalias }}"
-        CL_PASSWORD: "{{ cl_password }}"
+        CL_KEYSTORE: "{{ owner_p12_file_name }}"
+        CL_KEYALIAS: "{{ owner_p12_alias }}"
+        CL_PASSWORD: "{{ owner_p12_password }}"
       when: should_run_genesis
   when: 
     - owner_p12_file_name is defined and owner_p12_file_name != ""
@@ -168,6 +218,10 @@
         CL_KEYALIAS: "{{ staking_p12_alias }}"
         CL_PASSWORD: "{{ staking_p12_password }}"
       register: staking_address
+
+    - name: Display staking address
+      debug:
+        msg: "Staking address: {{ staking_address.stdout }}"
 
     - name: Create staking message (first signer)
       shell: |
@@ -251,7 +305,7 @@
 
 - name: Wait before sending messages
   pause:
-    seconds: 7
+    seconds: 10
   when: 
     - owner_p12_file_name is defined and owner_p12_file_name != ""
     - should_run_genesis or force_owner_message
@@ -278,13 +332,14 @@
     - owner_message is defined
     - should_run_rollback and force_owner_message
 
-- name: Wait for node to be Ready
+- name: Check if node is Ready
   uri:
     url: "http://localhost:{{ base_metagraph_l0_public_port }}/node/info"
     method: GET
-  register: final_status
-  until: 
-    - final_status.status == 200
-    - '"Ready" in final_status.content'
+    return_content: yes
+  register: response
+  until: response.status == 200 and ("Ready" in response.content | string or retries >= 100)
   retries: 120
   delay: 1
+  vars:
+    retries: 0
