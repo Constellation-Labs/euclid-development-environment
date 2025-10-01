@@ -11,7 +11,6 @@ function build_metagraph_ubuntu() {
 
     if [ ! -z "$argc_no_cache" ]; then
       $DOCKER_COMPOSE build \
-        --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN \
         --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
         --build-arg TESSELLATION_VERSION_SEMVER=$TESSELLATION_VERSION_SEMVER \
         --build-arg CHECKOUT_TESSELLATION_VERSION=$CHECKOUT_TESSELLATION_VERSION \
@@ -19,7 +18,6 @@ function build_metagraph_ubuntu() {
         --no-cache
     else
       $DOCKER_COMPOSE build \
-        --build-arg GIT_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN \
         --build-arg TESSELLATION_VERSION=$TESSELLATION_VERSION \
         --build-arg TESSELLATION_VERSION_SEMVER=$TESSELLATION_VERSION_SEMVER \
         --build-arg CHECKOUT_TESSELLATION_VERSION=$CHECKOUT_TESSELLATION_VERSION \
@@ -122,8 +120,6 @@ function build_metagraph_base_image() {
 function build_containers() {
   echo_title "################################## BUILD ##################################"
   check_if_tessellation_version_starts_with_v
-  check_if_github_token_was_provided
-  check_if_github_token_is_valid
   check_p12_files
   check_if_project_name_is_set
   check_if_project_directory_exists

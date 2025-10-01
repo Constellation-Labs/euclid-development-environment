@@ -5,7 +5,6 @@ function get_env_variables_from_json_config_file() {
     check_if_package_is_installed yq
     check_if_config_file_is_the_new_format
 
-    export GITHUB_TOKEN=$(jq -r .github_token $ROOT_PATH/euclid.json)
     export METAGRAPH_ID=$(jq -r .metagraph_id $ROOT_PATH/euclid.json)
 
     export TESSELLATION_VERSION=$(jq -r .tessellation_version $ROOT_PATH/euclid.json)

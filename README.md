@@ -57,7 +57,7 @@ Here is the home of the local codebase and required files for each layer.
 - `project`: This directory contains all of your custom project code. Projects can be installed here via `hydra install` or `hydra install-template`. 
  
 ### euclid.json
-Here is the hydra configuration file, there you can set the `p12` file names and your GITHUB_TOKEN. It's required to fill the GitHub token here to run the `hydra` script
+Here is the hydra configuration file, there you can set the `p12` file names. 
 
 ## Hydra scripts options
 Run the following command to list all the possibilities of the `hydra` script
@@ -166,8 +166,6 @@ We have the option `update` to update the Euclid. You can call the option this w
 ## Let's build
 
 After understanding the folder structure, we can start build our containers.
-
-*NOTE: Make sure to fill your GITHUB_TOKEN on euclid.json file before start*
 
 Move your terminal to directory `/scripts`, home of the `hydra` script.
 

@@ -1,7 +1,6 @@
 {
-  "github_token": "",
   "version": "0.15.0",
-  "tessellation_version": "3.3.2",
+  "tessellation_version": "3.4.0-rc.13",
   "ref_type": "tag",
   "project_name": "custom-project",
   "framework": {
@@ -9,7 +8,7 @@
     "modules": [
       "data"
     ],
-    "version": "v3.3.2",
+    "version": "v3.5.0",
     "ref_type": "tag"
   },
   "layers": [
