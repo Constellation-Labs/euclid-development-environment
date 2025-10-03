@@ -33,12 +33,6 @@ jobs:
         shell: bash
         run: |
           sudo apt install -y jq
-
-      - name: Load config file
-        shell: bash
-        run: |
-          contents="$(jq --arg GITHUB_TOKEN "${{ secrets.TOKEN }}" '.github_token = $GITHUB_TOKEN' euclid.json)"
-          echo -E "${contents}" > euclid.json
           
       - name: Run steps
         shell: bash

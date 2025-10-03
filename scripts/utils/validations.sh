@@ -154,13 +154,6 @@ function check_if_tessellation_version_starts_with_v() {
     fi
 }
 
-function check_if_github_token_was_provided() {
-    if [[ -z "$GITHUB_TOKEN" ]]; then
-        echo_red "You should provide the GITHUB_TOKEN on euclid.json file"
-        exit 1
-    fi
-}
-
 function check_if_package_is_installed() {
     if [[ -z "$(which $1 | grep "/")" ]]; then
         echo_red "Could not find package $1, please install this package first"
@@ -171,13 +164,6 @@ function check_if_package_is_installed() {
 function check_if_config_file_is_the_new_format() {
     if [[ ! -f "$ROOT_PATH/euclid.json" ]]; then
         echo_red "In version 0.4.0, Euclid environment variables were migrated to a JSON format in $ROOT_PATH/euclid.json. You will need to manually migrate your variables in .env to $ROOT_PATH/euclid.json"
-        exit 1
-    fi
-}
-
-function check_if_github_token_is_valid() {
-    if curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -q "Bad credentials"; then
-        echo_red "Invalid GITHUB_TOKEN"
         exit 1
     fi
 }
