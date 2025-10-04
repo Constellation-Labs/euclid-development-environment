@@ -115,6 +115,20 @@ function build_metagraph_base_image() {
   fi
 
   echo_green "Metagraph base image built"
+
+  copy_jars_from_image
+}
+
+function copy_jars_from_image() {
+  echo_white "Copying jars to infra/shared/jars..."
+
+  # Create temporary container from the base image, to copy jars from
+  local container_id=$(docker create metagraph-base-image)
+
+  docker cp "$container_id:/code/shared_jars/." "$INFRA_PATH/shared/jars/"
+  docker rm "$container_id" > /dev/null
+
+  echo_green "Jars copied to infra/shared/jars"
 }
 
 function build_containers() {
