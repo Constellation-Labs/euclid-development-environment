@@ -21,7 +21,7 @@ function install_monitoring_service() {
   echo_title "################################## INSTALL REMOTE MONITORING SERVICE ##################################"
   check_if_genesis_files_exists
 
-  METAGRAPH_ID=$(cat $INFRA_PATH/docker/shared/genesis/genesis.address)
+  METAGRAPH_ID=$(cat $INFRA_PATH/shared/genesis/genesis.address)
   PROJECT_NAME=$(jq -r '.project_name // empty' "$ROOT_PATH/euclid.json")
   VERSION="1.0.0"
   P12_GENESIS_FILE_NAME=$(jq -r '.nodes[0].key_file.name // empty' "$ROOT_PATH/euclid.json")

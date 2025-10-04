@@ -32,12 +32,12 @@
   tasks:
     - name: Sending cl-keytool.jar to nodes
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-keytool.jar"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/jars/cl-keytool.jar"
         dest: /home/{{ ansible_user }}/code
 
     - name: Sending cl-wallet.jar to nodes
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/cl-wallet.jar"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/jars/cl-wallet.jar"
         dest: /home/{{ ansible_user }}/code
 
     - name: Copy cl-keytool.jar and cl-wallet.jar files to metagraph-l0
@@ -59,18 +59,18 @@
 
     - name: Sending metagraph-l0.jar to metagraph-l0
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/metagraph-l0.jar"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/jars/metagraph-l0.jar"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
 
     - name: Sending currency-l1.jar to currency-l1
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/currency-l1.jar"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/jars/currency-l1.jar"
         dest: /home/{{ ansible_user }}/code/currency-l1/currency-l1.jar
       when: deploy_cl1 | bool
 
     - name: Sending data-l1.jar to data-l1
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars/data-l1.jar"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/jars/data-l1.jar"
         dest: /home/{{ ansible_user }}/code/data-l1/data-l1.jar
       when: deploy_dl1 | bool
 
@@ -101,7 +101,7 @@
 
     - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.snapshot"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.snapshot"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
       when: (force_genesis | bool) or (not genesis_snapshot_file_stat.stat.exists)
 
@@ -112,7 +112,7 @@
 
     - name: Sending metagraph l0 genesis.address to metagraph-l0
       copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address"
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.address"
         dest: /home/{{ ansible_user }}/code/metagraph-l0
       when: (force_genesis | bool) or (not genesis_address_file_stat.stat.exists)
       

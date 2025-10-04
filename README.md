@@ -303,7 +303,7 @@ Generated Files
 **Output Location**
 
 All generated files are stored in:
-`infra/docker/shared/genesis`
+`infra/shared/genesis`
 
 **Usage Notes**
 	•	This command must be executed before deploying the Metagraph-L0 to remote nodes, so those nodes start with a consistent and valid genesis state.
@@ -567,7 +567,7 @@ If you need to start your metagraph from **genesis** (wiping all previous state 
 #### 1. Create Remote Genesis Files
 Run `./hydra create-remote-genesis` to generate the required genesis files (**genesis.address** and **genesis.snapshot**) under:
 
-`infra/docker/shared/genesis`
+`infra/shared/genesis`
 
 These files define the initial state of your Metagraph-L0 and will be deployed to your remote instances.
 

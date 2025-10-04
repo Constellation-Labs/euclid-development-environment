@@ -5,7 +5,7 @@ function build_metagraph_ubuntu() {
     echo
     echo
     echo_white "Building metagraph ubuntu for tessellation $TESSELLATION_VERSION in image name metagraph-ubuntu-$TESSELLATION_VERSION_NAME"
-    cd $INFRA_PATH/docker/metagraph-ubuntu
+    cd $INFRA_PATH/metagraph-ubuntu
 
     CHECKOUT_TESSELLATION_VERSION=$(get_checkout_tessellation_version "$TESSELLATION_VERSION")
 
@@ -68,7 +68,7 @@ function build_metagraph_base_image() {
   echo
   echo
   echo_white "Building metagraph base image..."
-  cd $INFRA_PATH/docker/metagraph-base-image
+  cd $INFRA_PATH/metagraph-base-image
 
   CUSTOM_METAGRAPH_BASE_IMAGE="$INFRA_PATH/docker/custom/metagraph-base-image/Dockerfile"
 
@@ -76,7 +76,7 @@ function build_metagraph_base_image() {
     echo_yellow "Custom Dockerfile detected..."
     export METAGRAPH_BASE_IMAGE_DOCKERFILE=$CUSTOM_METAGRAPH_BASE_IMAGE
   else
-    export METAGRAPH_BASE_IMAGE_DOCKERFILE="$INFRA_PATH/docker/metagraph-base-image/Dockerfile"
+    export METAGRAPH_BASE_IMAGE_DOCKERFILE="$INFRA_PATH/metagraph-base-image/Dockerfile"
   fi
 
   output=$(get_layers_to_run)
