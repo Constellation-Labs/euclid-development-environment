@@ -70,8 +70,8 @@
         - name: custom-network
           ipv4_address: "{{ base_prefix_ip }}{{ (index + 1) * offset }}"
         volumes:
-          - "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis:/code/shared_genesis"
-          - "{{ lookup('env', 'INFRA_PATH') }}/docker/shared/jars:/code/shared_jars"
+          - "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis:/code/shared_genesis"
+          - "{{ lookup('env', 'INFRA_PATH') }}/shared/jars:/code/shared_jars"
         ports:
           - "{{ (base_global_l0_public_port | int ) +  (offset * index) }}:{{ (base_global_l0_public_port | int ) + (offset * index) }}"
           - "{{ (base_global_l0_p2p_port | int ) +  (offset * index) }}:{{ (base_global_l0_p2p_port | int ) + (offset * index) }}"

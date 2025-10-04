@@ -3,5 +3,5 @@ services:
   metagraph-base-image:
     image: "metagraph-base-image"
     build:
-      context: ../../../source
+      context: ../../source
       dockerfile: ${METAGRAPH_BASE_IMAGE_DOCKERFILE}

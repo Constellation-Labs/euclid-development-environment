@@ -29,7 +29,7 @@ function status_containers() {
   index=0
 
   echo
-  file_path="${INFRA_PATH}/docker/shared/genesis/genesis.address"
+  file_path="${INFRA_PATH}/shared/genesis/genesis.address"
   if [ -f "$file_path" ]; then
     echo_url "Metagraph ID:" "$(cat $file_path)"
   else

@@ -143,7 +143,7 @@ function print_nodes_information() {
 
     echo_white "######################### METAGRAPH INFO #########################"
     echo
-    echo_url "Metagraph ID:" "$(cat $INFRA_PATH/docker/shared/genesis/genesis.address)"
+    echo_url "Metagraph ID:" "$(cat $INFRA_PATH/shared/genesis/genesis.address)"
     echo
     echo
 

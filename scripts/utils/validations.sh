@@ -195,8 +195,8 @@ function check_if_we_have_at_least_3_nodes() {
 }
 
 function check_if_genesis_files_exists() {
-    if [[ ! -f "$INFRA_PATH/docker/shared/genesis/genesis.address" ]]; then
-        echo_red "Could not get metagraph information, be sure that genesis files exists on infra/docker/shared/genesis"
+    if [[ ! -f "$INFRA_PATH/shared/genesis/genesis.address" ]]; then
+        echo_red "Could not get metagraph information, be sure that genesis files exists on infra/shared/genesis"
         exit 1
     fi
 }

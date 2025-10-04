@@ -35,8 +35,8 @@
         path: "{{ item }}"
         state: absent
       loop:
-        - "{{ infra_path }}/docker/shared/genesis/genesis.address"
-        - "{{ infra_path }}/docker/shared/genesis/genesis.snapshot"
+        - "{{ infra_path }}/shared/genesis/genesis.address"
+        - "{{ infra_path }}/shared/genesis/genesis.snapshot"
         
     - name: Destroy Network custom-network
       block:
