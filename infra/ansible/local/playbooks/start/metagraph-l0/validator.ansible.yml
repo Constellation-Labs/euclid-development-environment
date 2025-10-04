@@ -19,7 +19,7 @@
 - name: (Metagraph-L0) Get metagraph address
   shell: |
     cd metagraph-l0
-    cat {{ lookup('env', 'INFRA_PATH') }}/docker/shared/genesis/genesis.address
+    cat {{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.address
   register: metagraph_id_raw
   
 - set_fact:
