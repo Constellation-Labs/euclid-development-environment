@@ -1,4 +1,3 @@
-version: '3'
 services:
   metagraph-base-image:
     image: "metagraph-base-image"
