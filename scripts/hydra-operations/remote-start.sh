@@ -62,5 +62,10 @@ function remote_start_metagraph() {
     -e "second_signer_p12_file_name_staking=$(echo "$staking_second_signer_info" | jq -r '.name')" \
     -e "second_signer_p12_alias_staking=$(echo "$staking_second_signer_info" | jq -r '.alias')" \
     -e "second_signer_p12_password_staking=$(echo "$staking_second_signer_info" | jq -r '.password')" \
+    -e "jvm_min_heap=$JVM_MIN_HEAP" \
+    -e "jvm_max_heap=$JVM_MAX_HEAP" \
+    -e "jvm_metaspace_size=$JVM_METASPACE_SIZE" \
+    -e "jvm_max_metaspace_size=$JVM_MAX_METASPACE_SIZE" \
+    -e "jvm_additional_opts=$JVM_ADDITIONAL_OPTS" \
     -i $ANSIBLE_HOSTS_FILE $ANSIBLE_NODES_START_PLAYBOOK_FILE
 }
