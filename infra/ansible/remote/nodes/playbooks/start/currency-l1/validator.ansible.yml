@@ -40,13 +40,20 @@
     CL_KEYSTORE: "{{ cl_keystore }}"
     CL_KEYALIAS: "{{ cl_keyalias }}"
     CL_PASSWORD: "{{ cl_password }}"
-    
+
     CL_APP_ENV: "{{ network }}"
     CL_COLLATERAL: 0
     CL_L0_TOKEN_IDENTIFIER: "{{ metagraph_id }}"
+  vars:
+    jvm_opts: >-
+      -Xms{{ jvm_min_heap | default('1g') }}
+      -Xmx{{ jvm_max_heap | default('2g') }}
+      -XX:MetaspaceSize={{ jvm_metaspace_size | default('256m') }}
+      -XX:MaxMetaspaceSize={{ jvm_max_metaspace_size | default('512m') }}
+      {{ jvm_additional_opts | default('') }}
   shell: |
     cd "/home/{{ ansible_user }}/code/currency-l1"
-    nohup java -jar currency-l1.jar run-validator --ip {{ ansible_host }} > currency-l1.log 2>&1 &
+    nohup java {{ jvm_opts }} -jar currency-l1.jar run-validator --ip {{ ansible_host }} > currency-l1.log 2>&1 &
 
 - name: Check if node is ReadyToJoin
   uri:

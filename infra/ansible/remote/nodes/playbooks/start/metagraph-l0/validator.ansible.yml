@@ -36,9 +36,16 @@
     CL_APP_ENV: "{{ network }}"
     CL_COLLATERAL: 0
     CL_L0_TOKEN_IDENTIFIER: "{{ metagraph_id }}"
+  vars:
+    jvm_opts: >-
+      -Xms{{ jvm_min_heap | default('1g') }}
+      -Xmx{{ jvm_max_heap | default('2g') }}
+      -XX:MetaspaceSize={{ jvm_metaspace_size | default('256m') }}
+      -XX:MaxMetaspaceSize={{ jvm_max_metaspace_size | default('512m') }}
+      {{ jvm_additional_opts | default('') }}
   shell: |
     cd "/home/{{ ansible_user }}/code/metagraph-l0"
-    nohup java -jar metagraph-l0.jar run-validator --ip {{ ansible_host }} > metagraph-l0.log 2>&1 &
+    nohup java {{ jvm_opts }} -jar metagraph-l0.jar run-validator --ip {{ ansible_host }} > metagraph-l0.log 2>&1 &
 
 - name: Check if node is ReadyToJoin
   uri:
