@@ -8,7 +8,7 @@ jobs:
 
       - name: Uninstall current Docker version
         run: |
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc
+          sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
 
       - name: Install Docker
         run: |
@@ -38,17 +38,19 @@ jobs:
         shell: bash
         run: |
           echo "Installing CARGO"
-          curl https://sh.rustup.rs -sSf | sh -s -- -y 
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
           echo "Cargo Installed"
+
+          source $HOME/.cargo/env
 
           echo "Installing ARGC"
           cargo install argc
           echo "ARGC Installed"
-          
+
           echo "Installing Scala"
           curl -fL https://github.com/coursier/coursier/releases/download/v2.1.0/cs-x86_64-pc-linux.gz | gzip -d > cs && chmod +x cs && ./cs setup -y
           echo "Scala Installed"
-          
+
           source ~/.profile
           
           echo "Installing Giter"

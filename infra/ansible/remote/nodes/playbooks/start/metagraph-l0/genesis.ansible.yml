@@ -268,7 +268,7 @@
 - name: Start metagraph L0 node
   shell: |
     cd "/home/{{ ansible_user }}/code/metagraph-l0"
-    nohup java -jar metagraph-l0.jar {{ start_command }} {{ start_args }} \
+    nohup java {{ jvm_opts }} -jar metagraph-l0.jar {{ start_command }} {{ start_args }} \
       --ip {{ ansible_host }} > metagraph-l0.log 2>&1 &
   environment: "{{ node_environment }}"
   vars:
@@ -288,7 +288,13 @@
       "{{ base_env }}"
     rollback_env:
       "{{ base_env | combine({'CL_L0_TOKEN_IDENTIFIER': metagraph_id}) }}"
-    
+
+    jvm_opts: >-
+      -Xms{{ jvm_min_heap | default('1g') }}
+      -Xmx{{ jvm_max_heap | default('2g') }}
+      -XX:MetaspaceSize={{ jvm_metaspace_size | default('256m') }}
+      -XX:MaxMetaspaceSize={{ jvm_max_metaspace_size | default('512m') }}
+      {{ jvm_additional_opts | default('') }}
     start_command: "{{ 'run-genesis' if should_run_genesis else 'run-rollback' }}"
     start_args: "{{ 'genesis.snapshot --metagraph-owner-message ./owner-message' if should_run_genesis else '' }}"
     node_environment: "{{ genesis_env if should_run_genesis else rollback_env }}"

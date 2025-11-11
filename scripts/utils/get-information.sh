@@ -30,6 +30,12 @@ function get_env_variables_from_json_config_file() {
     export DEPLOY_NETWORK_HOST_ID=$(jq -r .deploy.network.gl0_node.id $ROOT_PATH/euclid.json)
     export DEPLOY_NETWORK_HOST_PUBLIC_PORT=$(jq -r .deploy.network.gl0_node.public_port $ROOT_PATH/euclid.json)
 
+    export JVM_MIN_HEAP=$(jq -r '.deploy.jvm.min_heap // "1g"' $ROOT_PATH/euclid.json)
+    export JVM_MAX_HEAP=$(jq -r '.deploy.jvm.max_heap // "2g"' $ROOT_PATH/euclid.json)
+    export JVM_METASPACE_SIZE=$(jq -r '.deploy.jvm.metaspace_size // "256m"' $ROOT_PATH/euclid.json)
+    export JVM_MAX_METASPACE_SIZE=$(jq -r '.deploy.jvm.max_metaspace_size // "512m"' $ROOT_PATH/euclid.json)
+    export JVM_ADDITIONAL_OPTS=$(jq -r '.deploy.jvm.additional_opts // ""' $ROOT_PATH/euclid.json)
+
     export ANSIBLE_HOSTS_FILE=$(jq -r .deploy.ansible.hosts $ROOT_PATH/euclid.json)
     export ANSIBLE_CONFIGURE_PLAYBOOK_FILE=$(jq -r .deploy.ansible.playbooks.configure $ROOT_PATH/euclid.json)
     export ANSIBLE_NODES_DEPLOY_PLAYBOOK_FILE=$(jq -r .deploy.ansible.nodes.playbooks.deploy $ROOT_PATH/euclid.json)
