@@ -1,7 +1,7 @@
 ---
 - name: (Lead) Get the first node
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   set_fact:
     node_info: "{{ all_nodes[0] }}"  
 
