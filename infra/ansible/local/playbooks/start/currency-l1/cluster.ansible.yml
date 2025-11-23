@@ -17,7 +17,7 @@
   vars_files:
     - ../../vars.ansible.yml
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:
     - name: (Currency L1) Starting
       include_tasks: initial-validator.ansible.yml
@@ -31,7 +31,7 @@
   vars_files:
     - ../../vars.ansible.yml
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:
     - name: (Currency L1) Starting Validator
       include_tasks: validator.ansible.yml

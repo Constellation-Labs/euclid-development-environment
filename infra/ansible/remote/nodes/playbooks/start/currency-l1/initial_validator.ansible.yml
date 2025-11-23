@@ -25,16 +25,16 @@
 
 - name: Start as initial validator
   environment:
-    CL_PUBLIC_HTTP_PORT: "{{ base_currency_l1_public_port }}"
-    CL_P2P_HTTP_PORT: "{{ base_currency_l1_p2p_port }}"
-    CL_CLI_HTTP_PORT: "{{ base_currency_l1_cli_port }}"
+    CL_PUBLIC_HTTP_PORT: "{{ base_currency_l1_public_port | string }}"
+    CL_P2P_HTTP_PORT: "{{ base_currency_l1_p2p_port | string }}"
+    CL_CLI_HTTP_PORT: "{{ base_currency_l1_cli_port | string }}"
 
     CL_L0_PEER_ID: "{{ ml0_node_1_id }}"
     CL_L0_PEER_HTTP_HOST: "{{ ml0_node_1_ip }}"
-    CL_L0_PEER_HTTP_PORT: "{{ base_metagraph_l0_public_port }}"
+    CL_L0_PEER_HTTP_PORT: "{{ base_metagraph_l0_public_port | string }}"
 
     CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ gl0_ip }}"
-    CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port }}"
+    CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port | string }}"
     CL_GLOBAL_L0_PEER_ID: "{{ gl0_id }}"
 
     CL_KEYSTORE: "{{ cl_keystore }}"

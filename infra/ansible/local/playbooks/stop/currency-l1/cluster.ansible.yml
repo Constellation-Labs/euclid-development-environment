@@ -6,7 +6,7 @@
   vars_files:
     - ../../vars.ansible.yml
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"  
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"  
   tasks:
 
   - name: (Currency L1) Add port variable to node
