@@ -1,6 +1,6 @@
 {
   "version": "0.18.0",
-  "tessellation_version": "3.4.0-rc.13",
+  "tessellation_version": "3.5.8",
   "ref_type": "tag",
   "project_name": "custom-project",
   "framework": {
