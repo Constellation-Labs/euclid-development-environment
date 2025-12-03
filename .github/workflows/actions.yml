@@ -33,7 +33,10 @@ jobs:
         shell: bash
         run: |
           sudo apt install -y jq
-          
+
+      - name: Install requests for Ansible Docker modules
+        run: pipx inject ansible-core requests
+
       - name: Run steps
         shell: bash
         run: |
