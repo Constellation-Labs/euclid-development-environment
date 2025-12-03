@@ -2,16 +2,16 @@
 # Set defaults and determine execution mode
 - name: Set default execution flags
   set_fact:
-    force_genesis: "{{ force_genesis | default(false) | bool }}"
-    force_owner_message: "{{ force_owner_message | default(false) | bool }}"
-    force_staking_message: "{{ force_staking_message | default(false) | bool }}"
+    force_genesis_bool: "{{ force_genesis | default(false) | bool }}"
+    force_owner_message_bool: "{{ force_owner_message | default(false) | bool }}"
+    force_staking_message_bool: "{{ force_staking_message | default(false) | bool }}"
 
 - name: Display execution flags
   debug:
     msg:
-      - "Force Genesis: {{ force_genesis }}"
-      - "Force Owner Message: {{ force_owner_message }}"
-      - "Force Staking Message: {{ force_staking_message }}"
+      - "Force Genesis: {{ force_genesis_bool }}"
+      - "Force Owner Message: {{ force_owner_message_bool }}"
+      - "Force Staking Message: {{ force_staking_message_bool }}"
 
 - name: Check for existing incremental snapshots
   stat:
@@ -24,8 +24,8 @@
 
 - name: Determine execution mode
   set_fact:
-    should_run_genesis: "{{ not incremental_snapshots.stat.exists or force_genesis }}"
-    should_run_rollback: "{{ incremental_snapshots.stat.exists and not force_genesis }}"
+    should_run_genesis: "{{ (not incremental_snapshots.stat.exists or force_genesis_bool) | bool }}"
+    should_run_rollback: "{{ (incremental_snapshots.stat.exists and not force_genesis_bool) | bool }}"
 
 - name: Display execution mode
   debug:
@@ -92,7 +92,7 @@
     headers:
       Accept: "application/json"
   register: snapshot_response
-  when: should_run_genesis or force_owner_message or force_staking_message
+  when: should_run_genesis or force_owner_message_bool or force_staking_message_bool
 
 - name: Extract metagraph messages from snapshot
   set_fact:
@@ -156,7 +156,7 @@
         CL_KEYALIAS: "{{ owner_p12_alias }}"
         CL_PASSWORD: "{{ owner_p12_password }}"
       register: owner_msg_first
-      when: should_run_rollback and force_owner_message
+      when: should_run_rollback and force_owner_message_bool
 
     - name: Create owner message (second signer)
       shell: |
@@ -184,7 +184,7 @@
                        ((owner_msg_second.stdout | from_json).proofs if owner_msg_second is not skipped else [])
             })
           }}
-      when: should_run_rollback and force_owner_message
+      when: should_run_rollback and force_owner_message_bool
 
     - name: Display combined owner message
       debug:
@@ -203,9 +203,9 @@
         CL_KEYALIAS: "{{ owner_p12_alias }}"
         CL_PASSWORD: "{{ owner_p12_password }}"
       when: should_run_genesis
-  when: 
+  when:
     - owner_p12_file_name is defined and owner_p12_file_name != ""
-    - should_run_genesis or force_owner_message
+    - should_run_genesis or force_owner_message_bool
 
 - name: Generate staking signing message
   block:
@@ -260,9 +260,9 @@
                        ((staking_msg_second.stdout | from_json).proofs if staking_msg_second is not skipped else [])
             })
           }}
-  when: 
+  when:
     - staking_p12_file_name is defined and staking_p12_file_name != ""
-    - should_run_genesis or force_staking_message
+    - should_run_genesis or force_staking_message_bool
 
 # Start the metagraph node
 - name: Start metagraph L0 node
@@ -273,11 +273,11 @@
   environment: "{{ node_environment }}"
   vars:
     base_env:
-      CL_PUBLIC_HTTP_PORT: "{{ base_metagraph_l0_public_port }}"
-      CL_P2P_HTTP_PORT: "{{ base_metagraph_l0_p2p_port }}"
-      CL_CLI_HTTP_PORT: "{{ base_metagraph_l0_cli_port }}"
+      CL_PUBLIC_HTTP_PORT: "{{ base_metagraph_l0_public_port  | string }}"
+      CL_P2P_HTTP_PORT: "{{ base_metagraph_l0_p2p_port  | string }}"
+      CL_CLI_HTTP_PORT: "{{ base_metagraph_l0_cli_port  | string }}"
       CL_GLOBAL_L0_PEER_HTTP_HOST: "{{ gl0_ip }}"
-      CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port }}"
+      CL_GLOBAL_L0_PEER_HTTP_PORT: "{{ gl0_port | string }}"
       CL_GLOBAL_L0_PEER_ID: "{{ gl0_id }}"
       CL_KEYSTORE: "{{ cl_keystore }}"
       CL_KEYALIAS: "{{ cl_keyalias }}"
@@ -293,44 +293,42 @@
     start_args: "{{ 'genesis.snapshot --metagraph-owner-message ./owner-message' if should_run_genesis else '' }}"
     node_environment: "{{ genesis_env if should_run_genesis else rollback_env }}"
 
-# Wait for node to be online and send messages
-- name: Wait for node to be online
+# Wait for node to be online and Ready before sending messages
+- name: Wait for node to be Ready
   uri:
     url: "http://localhost:{{ base_metagraph_l0_public_port }}/node/info"
     method: GET
+    return_content: yes
   register: node_status
-  until: node_status.status == 200
+  until: node_status.status == 200 and ("Ready" in node_status.content)
   retries: 120
-  delay: 1
+  delay: 2
 
 - name: Wait before sending messages
   pause:
-    seconds: 10
-  when: 
-    - owner_p12_file_name is defined and owner_p12_file_name != ""
-    - should_run_genesis or force_owner_message
+    seconds: 15
 
-- name: Send staking message
-  uri:
-    url: "http://localhost:{{ base_metagraph_l0_public_port }}/currency/message"
-    method: POST
-    body: "{{ staking_message }}"
-    body_format: json
-    status_code: [200, 204]
-  when: 
+- name: Send staking message via curl
+  shell: |
+    curl -s -w "%{http_code}" -X POST http://localhost:{{ base_metagraph_l0_public_port }}/currency/message \
+      -H "Content-Type: application/json" \
+      -d '{{ staking_message | to_json }}'
+  register: staking_result
+  failed_when: staking_result.stdout[-3:] not in ['200', '204']
+  when:
     - staking_message is defined
-    - should_run_genesis or force_staking_message
+    - should_run_genesis or force_staking_message_bool
 
-- name: Send owner message for rollback
-  uri:
-    url: "http://localhost:{{ base_metagraph_l0_public_port }}/currency/message"
-    method: POST
-    body: "{{ owner_message }}"
-    body_format: json
-    status_code: [200, 204]
-  when: 
+- name: Send owner message for rollback via curl
+  shell: |
+    curl -s -w "%{http_code}" -X POST http://localhost:{{ base_metagraph_l0_public_port }}/currency/message \
+      -H "Content-Type: application/json" \
+      -d '{{ owner_message | to_json }}'
+  register: owner_result
+  failed_when: owner_result.stdout[-3:] not in ['200', '204']
+  when:
     - owner_message is defined
-    - should_run_rollback and force_owner_message
+    - should_run_rollback and force_owner_message_bool
 
 - name: Check if node is Ready
   uri:

@@ -18,15 +18,15 @@ function create_template() {
         
         if [ "$TEMPLATE_VERSION_IS_TAG_OR_BRANCH" == "tag" ]; then
             if [[ " ${FRAMEWORK_MODULES[*]} " =~ "data" ]]; then
-                g8 Constellation-Labs/currency --tag $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION_SEMVER" --include_data_l1="yes"
+                g8 Constellation-Labs/currency --tag $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION" --include_data_l1="yes"
             else
-                g8 Constellation-Labs/currency --tag $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION_SEMVER"
+                g8 Constellation-Labs/currency --tag $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION"
             fi
         else
             if [[ " ${FRAMEWORK_MODULES[*]} " =~ "data" ]]; then
-                g8 Constellation-Labs/currency --branch $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION_SEMVER" --include_data_l1="yes"
+                g8 Constellation-Labs/currency --branch $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION" --include_data_l1="yes"
             else
-                g8 Constellation-Labs/currency --branch $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION_SEMVER"
+                g8 Constellation-Labs/currency --branch $TEMPLATE_VERSION --name="$PROJECT_NAME" --tessellation_version="$TESSELLATION_VERSION"
             fi
         fi
         
