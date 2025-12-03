@@ -1,6 +1,5 @@
 # docker-compose.yml
 # We should let the IP address fixed, because the DNS do not work correctly when joining L1 nodes
-version: '3'
 services:
   prometheus:
     container_name: prometheus

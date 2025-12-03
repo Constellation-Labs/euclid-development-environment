@@ -2,8 +2,8 @@
 - name: Destroy Containers and Network
   hosts: localhost
   vars:
-    nodes: "{{ nodes | from_json }}"
-    infra_path: "{{ infra_path }}"
+    nodes: "{{ lookup('env', 'NODES') | from_json }}"
+    infra_path: "{{ lookup('env', 'INFRA_PATH') }}"
   
   tasks:
     - name: Destroy Containers
