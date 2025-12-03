@@ -5,14 +5,7 @@ function try_start_docker_nodes() {
     echo_title "################################################################"
     echo_yellow "Starting docker containers..."
 
-    if pip3 --version &>/dev/null; then
-        ansible-playbook $ANSIBLE_LOCAL_CONTAINERS_START_PLAYBOOK_FILE
-    else
-        echo_white ""
-        echo_yellow "Ansible requires BECOME to install dependencies, please provide your sudo password"
-        echo_white
-        ansible-playbook -K $ANSIBLE_LOCAL_CONTAINERS_START_PLAYBOOK_FILE
-    fi
+    ansible-playbook $ANSIBLE_LOCAL_CONTAINERS_START_PLAYBOOK_FILE
 
     if [ $? -eq 0 ]; then
         echo_green "Nodes containers started successfully."
