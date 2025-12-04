@@ -159,6 +159,15 @@ function check_if_package_is_installed() {
         echo_red "Could not find package $1, please install this package first"
         exit 1
     fi
+
+    # Check for correct yq version (need Mike Farah's Go-based yq, not Python yq)
+    if [[ "$1" == "yq" ]]; then
+        if ! yq --version 2>&1 | grep -q "mikefarah"; then
+            echo_red "Wrong yq version installed. You have the Python yq, but euclid requires Mike Farah's yq."
+            echo_red "Install it from: https://github.com/mikefarah/yq"
+            exit 1
+        fi
+    fi
 }
 
 function check_if_config_file_is_the_new_format() {
