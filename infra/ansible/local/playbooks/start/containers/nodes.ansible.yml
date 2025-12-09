@@ -23,7 +23,7 @@
   tasks:
     - name: Get all nodes from euclid.json
       set_fact:
-        all_nodes: "{{ lookup('env', 'NODES') }}"
+        all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
 
     - name: Create custom network
       docker_network:

@@ -5,7 +5,7 @@
   gather_facts: false
   hosts: node-1
   vars:
-     all_nodes: "{{ lookup('env', 'NODES') }}"
+     all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:
     - name: Get metagraph address
       shell: |
@@ -20,7 +20,7 @@
   gather_facts: false
   hosts: node-1
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:  
     - set_fact:
         metagraph_id: "{{ current_metagraph_id }}"
@@ -36,10 +36,10 @@
   gather_facts: false
   hosts: node-2
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:  
     - set_fact:
-        all_nodes: "{{ lookup('env', 'NODES') }}"
+        all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
         metagraph_id: "{{ hostvars['node-1']['current_metagraph_id'] }}"
         cl_keystore: "{{ all_nodes[1].key_file.name }}"
         cl_keyalias: "{{ all_nodes[1].key_file.alias }}"
@@ -53,10 +53,10 @@
   gather_facts: false
   hosts: node-3
   vars:
-    all_nodes: "{{ lookup('env', 'NODES') }}"
+    all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:  
     - set_fact:
-        all_nodes: "{{ lookup('env', 'NODES') }}"
+        all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
         metagraph_id: "{{ hostvars['node-1']['current_metagraph_id'] }}"
         cl_keystore: "{{ all_nodes[2].key_file.name }}"
         cl_keyalias: "{{ all_nodes[2].key_file.alias }}"

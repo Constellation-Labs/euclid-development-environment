@@ -1,6 +1,6 @@
 {
-  "version": "0.17.0",
-  "tessellation_version": "3.4.0-rc.13",
+  "version": "0.18.0",
+  "tessellation_version": "3.5.8",
   "ref_type": "tag",
   "project_name": "custom-project",
   "framework": {
@@ -70,6 +70,13 @@
         "id": ":gl0_node_id",
         "public_port": ":gl0_node_public_port"
       }
+    },
+    "jvm": {
+      "min_heap": "1g",
+      "max_heap": "2g",
+      "metaspace_size": "256m",
+      "max_metaspace_size": "512m",
+      "additional_opts": ""
     },
     "ansible": {
       "hosts": "infra/ansible/remote/hosts.ansible.yml",
