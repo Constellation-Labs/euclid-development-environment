@@ -120,7 +120,7 @@
   hosts: node-1
   gather_facts: false
   vars:
-     all_nodes: "{{ lookup('env', 'NODES') }}"
+     all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:
     - name: Sending p12 file to node 1
       copy:
@@ -147,7 +147,7 @@
   hosts: node-2
   gather_facts: false
   vars:
-     all_nodes: "{{ lookup('env', 'NODES') }}"
+     all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:
     - name: Sending p12 file to node 2
       copy:
@@ -174,7 +174,7 @@
   hosts: node-3
   gather_facts: false
   vars:
-     all_nodes: "{{ lookup('env', 'NODES') }}"
+     all_nodes: "{{ lookup('env', 'NODES') | from_json }}"
   tasks:
     - name: Sending p12 file to node 3
       copy:

@@ -101,10 +101,9 @@ function try_stop_containers() {
     echo_title "################################################################"
     echo_yellow "Stopping containers ..."
     echo_white ""
-    
-    NODES_JSON=$(echo "$NODES" | jq -c '.')
-    ansible-playbook -e "nodes=${NODES_JSON}" -e "infra_path=${INFRA_PATH}" $ANSIBLE_LOCAL_CONTAINERS_STOP_PLAYBOOK_FILE
-    
+
+    ansible-playbook $ANSIBLE_LOCAL_CONTAINERS_STOP_PLAYBOOK_FILE
+
     if [ $? -eq 0 ]; then
         echo_green "Containers stopped successfully"
     else

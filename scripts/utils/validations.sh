@@ -39,6 +39,7 @@ function check_nodes_host_file() {
     while IFS= read -r node; do
         ansible_host=$(jq -r '.ansible_host' <<<"$node")
         ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
+        ssh_private_key_file="${ssh_private_key_file/#\~/$HOME}"
         if ! check_ip "$ansible_host"; then
             echo_red "Your nodes hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
             exit 1
@@ -78,6 +79,7 @@ function check_monitoring_host_file() {
     while IFS= read -r node; do
         ansible_host=$(jq -r '.ansible_host' <<<"$node")
         ssh_private_key_file=$(jq -r '.ansible_ssh_private_key_file' <<<"$node")
+        ssh_private_key_file="${ssh_private_key_file/#\~/$HOME}"
         if ! check_ip "$ansible_host"; then
             echo_red "Your monitoring hosts IPs are invalid or empty, please update $ANSIBLE_HOSTS_FILE file"
             exit 1

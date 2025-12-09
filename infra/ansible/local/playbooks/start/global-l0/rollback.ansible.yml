@@ -38,9 +38,9 @@
       nohup java -jar global-l0.jar run-rollback --ip {{ node_ip }} {{ last_snapshot_hash }}> global-l0.log 2>&1 &
       '
     env:
-      CL_PUBLIC_HTTP_PORT: "{{ cl_public_http_port }}"
-      CL_P2P_HTTP_PORT: "{{ cl_p2p_http_port }}"
-      CL_CLI_HTTP_PORT: "{{ cl_cli_http_port }}"
+      CL_PUBLIC_HTTP_PORT: "{{ cl_public_http_port  | string }}"
+      CL_P2P_HTTP_PORT: "{{ cl_p2p_http_port  | string }}"
+      CL_CLI_HTTP_PORT: "{{ cl_cli_http_port  | string }}"
 
       CL_KEYSTORE: "{{  node_info.key_file.name }}"
       CL_KEYALIAS: "{{  node_info.key_file.alias }}"

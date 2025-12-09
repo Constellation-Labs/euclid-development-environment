@@ -5,8 +5,6 @@
   tasks:
     - name: Starting metagraph-l0 genesis node
       include_tasks: genesis.ansible.yml
-      vars:
-        force_genesis: "{{ force_genesis_bool }}"
 
     - name: Get node_id
       environment:
