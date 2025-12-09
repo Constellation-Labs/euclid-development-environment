@@ -22,7 +22,7 @@
     - name: (Metagraph-L0) Check execution type
       set_fact:
         force_genesis_bool: "{{ force_genesis | default(true) | bool }}"
-      
+
     - name: (Metagraph-L0) Get the first node
       set_fact:
         first_node_info: "{{ all_nodes[0] }}"
