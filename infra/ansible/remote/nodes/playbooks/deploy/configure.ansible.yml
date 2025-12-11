@@ -8,9 +8,9 @@
       apt:
         update_cache: yes
 
-    - name: Install Java OpenJDK 11
+    - name: Install Java OpenJDK 21
       apt:
-        name: openjdk-11-jdk
+        name: openjdk-21-jre
         state: present
 
     - name: Install curl
