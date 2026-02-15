@@ -397,6 +397,20 @@ function remote-start-monitoring-service() {
   exit 0
 }
 
+# @cmd Check if node peer IDs are on the network seedlist
+# @alias check_seedlist
+function check-seedlist() {
+  build_paths
+  check_if_should_run_update
+
+  ensure_permissions_on_files_and_directories
+  load_scripts
+
+  check_seedlist $DEPLOY_NETWORK_NAME
+
+  exit 0
+}
+
 # @cmd Create remote genesis files to be sent to the remote hosts
 # @alias create_remote_genesis
 function create-remote-genesis() {
