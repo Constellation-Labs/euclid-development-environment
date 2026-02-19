@@ -5,6 +5,9 @@ function remote_deploy_metagraph() {
   check_ansible
   check_nodes_host_file
 
+  check_network $DEPLOY_NETWORK_NAME
+  check_seedlist $DEPLOY_NETWORK_NAME
+
   echo_yellow "Deploying on remote hosts"
   echo_white ""
   if [[ " ${LAYERS[*]} " =~ "currency-l1" ]] || [[ " ${LAYERS[*]} " =~ "metagraph-l1-currency" ]]; then

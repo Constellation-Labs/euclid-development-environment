@@ -6,6 +6,7 @@ function remote_start_metagraph() {
   check_nodes_host_file
 
   check_network $DEPLOY_NETWORK_NAME
+  check_seedlist $DEPLOY_NETWORK_NAME
 
   echo_yellow "Starting on remote hosts"
   echo_white ""

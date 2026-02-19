@@ -266,6 +266,70 @@ function check_metagraph_staking_fees_information() {
     fi
 }
 
+function check_seedlist() {
+    local network="$1"
+    local seedlist_url=""
+
+    if [[ "$network" == "integrationnet" ]]; then
+        seedlist_url="https://constellationlabs-dag.s3.us-west-1.amazonaws.com/integrationnet-seedlist"
+    elif [[ "$network" == "mainnet" ]]; then
+        seedlist_url="https://github.com/Constellation-Labs/tessellation/releases/latest/download/mainnet-seedlist"
+    else
+        return
+    fi
+
+    local wallet_jar="$INFRA_PATH/shared/jars/cl-wallet.jar"
+    if [[ ! -f "$wallet_jar" ]]; then
+        echo_yellow "cl-wallet.jar not found at $wallet_jar, skipping seedlist check. Run 'hydra build' first."
+        return
+    fi
+
+    echo_white "Checking if node peer IDs are on the $network seedlist..."
+
+    local seedlist
+    seedlist=$(curl -s "$seedlist_url")
+    if [[ -z "$seedlist" ]]; then
+        echo_red "Failed to fetch seedlist from $seedlist_url"
+        exit 1
+    fi
+
+    local all_found=true
+    while IFS= read -r node; do
+        local name=$(jq -r '.name' <<<"$node")
+        local key_name=$(jq -r '.key_file.name' <<<"$node")
+        local key_alias=$(jq -r '.key_file.alias' <<<"$node")
+        local key_password=$(jq -r '.key_file.password' <<<"$node")
+
+        local peer_id
+        peer_id=$(cd "$SOURCE_PATH/p12-files" && CL_KEYSTORE="$key_name" CL_KEYALIAS="$key_alias" CL_PASSWORD="$key_password" java -jar "$wallet_jar" show-id 2>/dev/null)
+
+        if [[ -z "$peer_id" ]]; then
+            echo_red "Failed to extract peer ID for $name ($key_name)"
+            all_found=false
+            continue
+        fi
+
+        if echo "$seedlist" | grep -qF "$peer_id"; then
+            echo_green "  $name ($peer_id) found on seedlist"
+        else
+            echo_red "  $name ($peer_id) NOT found on $network seedlist"
+            all_found=false
+        fi
+    done < <(jq -c '.[]' <<<"$NODES")
+
+    if [[ "$all_found" != "true" ]]; then
+        echo_red "One or more node peer IDs are not on the $network seedlist."
+        echo_red "Ensure your peer IDs are registered before proceeding on $network."
+        read -p "Do you want to continue anyway? (Y/y to confirm): " -r response
+        echo_white ""
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "Aborting"
+            exit 1
+        fi
+    fi
+    echo
+}
+
 function check_if_owner_and_staking_address_are_equal() {
     if [[ "$SNAPSHOT_FEES_OWNER_FILE_NAME" == "$SNAPSHOT_FEES_STAKING_FILE_NAME" ]]; then
         echo_red "Owner and Staking address should be different"
