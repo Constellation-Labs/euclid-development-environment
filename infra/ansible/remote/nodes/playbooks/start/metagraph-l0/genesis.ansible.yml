@@ -170,8 +170,8 @@
         CL_KEYALIAS: "{{ second_signer_p12_alias_owner }}"
         CL_PASSWORD: "{{ second_signer_p12_password_owner }}"
       register: owner_msg_second
-      when: 
-        - should_run_rollback and force_owner_message
+      when:
+        - should_run_rollback and force_owner_message_bool
         - second_signer_p12_file_name_owner is defined and second_signer_p12_file_name_owner != ""
 
     - name: Combine owner message proofs
