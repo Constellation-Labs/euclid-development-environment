@@ -78,20 +78,22 @@
       "max_metaspace_size": "512m",
       "additional_opts": ""
     },
-    "ansible": {
-      "hosts": "infra/ansible/remote/hosts.ansible.yml",
-      "nodes": {
-        "playbooks": {
-          "deploy": "infra/ansible/remote/nodes/playbooks/deploy/deploy.ansible.yml",
-          "start": "infra/ansible/remote/nodes/playbooks/start/start.ansible.yml"
-        }
+    "hosts": [
+      {
+        "host": ":host_1_ip",
+        "user": ":host_1_user",
+        "ssh_key": "~/.ssh/id_rsa"
       },
-      "monitoring": {
-        "playbooks": {
-          "deploy": "infra/ansible/remote/monitoring/playbooks/deploy/deploy.ansible.yml",
-          "start": "infra/ansible/remote/monitoring/playbooks/start/start.ansible.yml"
-        }
+      {
+        "host": ":host_2_ip",
+        "user": ":host_2_user",
+        "ssh_key": "~/.ssh/id_rsa"
+      },
+      {
+        "host": ":host_3_ip",
+        "user": ":host_3_user",
+        "ssh_key": "~/.ssh/id_rsa"
       }
-    }
+    ]
   }
 }

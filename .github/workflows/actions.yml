@@ -1,71 +1,73 @@
-on: push
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  hydra-script-tests:
+  typecheck-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Uninstall current Docker version
-        run: |
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Install Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            apt-transport-https \
-            ca-certificates \
-            curl \
-            gnupg \
-            lsb-release
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-          echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-          sudo apt-get update
-          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Verify Docker installation
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: typecheck-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify CLI runs
+        run: node dist/cli/index.js --version
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify Docker is available
         run: docker --version
 
-      - name: Install jq
-        shell: bash
-        run: |
-          sudo apt install -y jq
+      - name: Run hydra doctor
+        run: node dist/cli/index.js doctor
 
-      - name: Install requests for Ansible Docker modules
-        run: pipx inject ansible-core requests
-
-      - name: Run steps
-        shell: bash
-        run: |
-          echo "Installing CARGO"
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          echo "Cargo Installed"
-
-          source $HOME/.cargo/env
-
-          echo "Installing ARGC"
-          cargo install argc
-          echo "ARGC Installed"
-
-          echo "Installing Scala"
-          curl -fL https://github.com/coursier/coursier/releases/download/v2.1.0/cs-x86_64-pc-linux.gz | gzip -d > cs && chmod +x cs && ./cs setup -y
-          echo "Scala Installed"
-
-          source ~/.profile
-          
-          echo "Installing Giter"
-          cs install giter8
-          echo "Gitter Installed"
-          
-          scripts/hydra install
-          
-          scripts/hydra build
-          
-          scripts/hydra start_genesis
-          
-          scripts/hydra stop
-          
-          scripts/hydra destroy
+      - name: Validate config
+        run: node dist/cli/index.js config validate
