@@ -161,7 +161,7 @@ hydra remote snapshot-fee-config      Fetch snapshot fee config from remote meta
 ```
 hydra create-remote-genesis           Run local genesis containers to generate genesis files
 hydra update <version> [--yes]        Update Hydra to a specific version from GitHub
-hydra check-seedlist <network>        Verify node peer IDs on integrationnet/mainnet seedlist
+hydra check-seedlist <network>        Verify node peer IDs on testnet/integrationnet/mainnet seedlist
 ```
 
 ### Global Flags
@@ -319,7 +319,7 @@ Hydra uses `euclid.json` at the project root. The CLI auto-detects it by walking
   // ─── Remote Deployment (optional) ──────────────────────
   "deploy": {
     "network": {
-      "name": "integrationnet",             // "integrationnet" or "mainnet"
+      "name": "testnet",                     // "testnet", "integrationnet", or "mainnet"
       "gl0_node": {
         "ip": "your-gl0-node-ip",
         "id": "your-gl0-node-peer-id",
@@ -363,7 +363,8 @@ Key points:
 - `hosts` maps 1:1 to `nodes` — host-1 runs node-1, host-2 runs node-2, etc.
 - `remote_ports` are per-host (not per-container), different from local ports
 - `monitoring_host` is used by `remote deploy-monitoring` and `remote start-monitoring`
-- `deploy.jvm.default` sets base JVM settings; per-layer overrides (`metagraph_l0`, `currency_l1`, `data_l1`) are deep-merged on top
+- `deploy.jvm.default` sets base JVM settings for all layers; per-layer overrides (`metagraph_l0`, `currency_l1`, `data_l1`) only need the fields you want to change — omitted fields inherit from `default`
+- `deploy.network.name` can be `"testnet"`, `"integrationnet"`, or `"mainnet"`
 - All fields inside `docker`, `ports`, `deploy.jvm`, and `deploy.remote_ports` have sensible defaults
 
 ---
@@ -392,16 +393,16 @@ hydra start --genesis
 hydra destroy --yes
 ```
 
-### Remote Deployment (integrationnet/mainnet)
+### Remote Deployment (testnet/integrationnet/mainnet)
 
 ```bash
 # 1. Update euclid.json with real deploy config:
-#    - Set deploy.network.name to "integrationnet" or "mainnet"
+#    - Set deploy.network.name to "testnet", "integrationnet", or "mainnet"
 #    - Set deploy.network.gl0_node with a real GL0 node IP, ID, and port
 #    - Set deploy.hosts with your 3 remote server IPs, users, and SSH keys
 
-# 2. Check your nodes are on the seedlist (integrationnet/mainnet only)
-hydra check-seedlist integrationnet
+# 2. Check your nodes are on the seedlist
+hydra check-seedlist testnet
 
 # 3. Build locally to compile JARs
 hydra build
@@ -449,6 +450,8 @@ hydra remote start-monitoring --force-restart
 ```
 
 ### Updating Hydra
+
+When a new version is released (e.g. `v2.1.0`), use `hydra update` to upgrade in-place. This replaces `docker/`, `src/`, and all config files (`package.json`, `tsconfig.json`, `eslint.config.js`, `vitest.config.ts`, `.prettierrc`, etc.) from the new version, then rebuilds automatically. Your `euclid.json`, `data/`, and `docker/custom/` are preserved.
 
 ```bash
 # Stop any running containers first
@@ -657,7 +660,7 @@ What changes during migration:
 - `version` (Euclid version string) becomes `config_version: 2` (schema version number)
 - `ref_type` becomes `tessellation_ref_type`
 - `deploy.ansible` is removed (no longer needed)
-- `deploy.jvm` is wrapped in `{ "default": { ... } }` for per-layer override support
+- `deploy.jvm` is wrapped in `{ "default": { ... } }` with optional per-layer overrides (`metagraph_l0`, `currency_l1`, `data_l1`)
 - `deploy.hosts` is added as an empty array (you fill in your SSH hosts)
 - `deploy.remote_ports` is added with defaults
 - `docker` gets new optional fields (`network_subnet`, `base_ip_prefix`, `ip_offset`)

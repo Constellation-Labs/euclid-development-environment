@@ -374,6 +374,7 @@ async function executeCommand(command: string): Promise<void> {
       const network = await select({
         message: 'Which network?',
         choices: [
+          { name: 'TestNet', value: 'testnet' },
           { name: 'IntegrationNet', value: 'integrationnet' },
           { name: 'MainNet', value: 'mainnet' },
         ],

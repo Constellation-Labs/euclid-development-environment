@@ -266,7 +266,7 @@ program
 program
   .command('check-seedlist')
   .description('Verify node peer IDs are registered on a network seedlist')
-  .argument('<network>', 'Network to check (integrationnet or mainnet)')
+  .argument('<network>', 'Network to check (testnet, integrationnet, or mainnet)')
   .action(async (network) => {
     const opts = program.opts();
     await checkSeedlistCommand({ network, verbose: opts.verbose });

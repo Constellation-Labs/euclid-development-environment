@@ -32,7 +32,8 @@ function hasPlaceholders(deploy: DeployConfig): boolean {
     PLACEHOLDER_PATTERNS.includes(net.gl0_node.ip) ||
     PLACEHOLDER_PATTERNS.includes(net.gl0_node.id) ||
     PLACEHOLDER_PATTERNS.includes(String(net.gl0_node.public_port)) ||
-    net.name === 'integrationnet|mainnet'
+    net.name === 'integrationnet|mainnet' ||
+    net.name === 'testnet|integrationnet|mainnet'
   );
 }
 
@@ -48,7 +49,7 @@ async function promptDeployConfig(config: EuclidConfig): Promise<EuclidConfig> {
   let changed = false;
 
   // ── Network name ─────────────────────────────────────────
-  if (net.name === 'integrationnet|mainnet') {
+  if (net.name === 'integrationnet|mainnet' || net.name === 'testnet|integrationnet|mainnet') {
     process.stdout.write(
       `\n  ${t.warn('⚠')}  Deploy config has placeholder values. Let's fill them in.\n\n`,
     );
@@ -56,6 +57,7 @@ async function promptDeployConfig(config: EuclidConfig): Promise<EuclidConfig> {
     net.name = await select({
       message: 'Target network:',
       choices: [
+        { name: 'TestNet', value: 'testnet' },
         { name: 'IntegrationNet', value: 'integrationnet' },
         { name: 'MainNet', value: 'mainnet' },
       ],

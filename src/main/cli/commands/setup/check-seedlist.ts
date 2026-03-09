@@ -6,6 +6,7 @@ import { loadConfig, logger, LogLevel } from '../../../index.js';
 import { formatError, formatSuccess, formatWarning, formatHeader } from '../../ui/format.js';
 
 const SEEDLIST_URLS: Record<string, string> = {
+  testnet: 'https://constellationlabs-dag.s3.us-west-1.amazonaws.com/testnet-seedlist',
   integrationnet:
     'https://constellationlabs-dag.s3.us-west-1.amazonaws.com/integrationnet-seedlist',
   mainnet:
@@ -24,7 +25,7 @@ export async function checkSeedlistCommand(options: {
 
     if (!SEEDLIST_URLS[network]) {
       process.stderr.write(`\nError: Unknown network '${network}'.\n`);
-      process.stderr.write('  Valid networks: integrationnet, mainnet\n\n');
+      process.stderr.write('  Valid networks: testnet, integrationnet, mainnet\n\n');
       process.exit(1);
     }
 
