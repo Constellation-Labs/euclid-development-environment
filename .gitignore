@@ -1,24 +1,40 @@
+# ─── IDE / OS ────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+.metals/
+.DS_Store
+
+# ─── JARs (built/downloaded — never commit binaries) ────────────────────────
+*.jar
+docker/artifacts/jars/
+
+# ─── Legacy paths (removed in v2) ───────────────────────────────────────────
+jars/
+scripts/argc
+
+# ─── Grafana / Prometheus runtime data ──────────────────────────────────────
 docker/grafana/grafana/config/
 docker/grafana/prometheus/data/
 docker/grafana/prometheus/monitoring/
-.idea
-docker/artifacts/jars/**.jar
-.vscode
+
+# ─── Runtime data (user-specific, generated at runtime) ─────────────────────
 data/project/*
 data/metagraph-l0/genesis/genesis.address
 data/metagraph-l0/genesis/genesis.snapshot
 data/*-monitoring-service
 data/p12-files/*
 docker/artifacts/genesis/*
-.DS_Store
+
+# Keep default p12 keys for development
 !data/p12-files/token-key-1.p12
 !data/p12-files/token-key-2.p12
 !data/p12-files/token-key-3.p12
-.metals/
 
-# TypeScript / Node.js
+# ─── TypeScript / Node.js ───────────────────────────────────────────────────
 node_modules/
 dist/
 *.tsbuildinfo
 coverage/
+
+# ─── Claude Code ────────────────────────────────────────────────────────────
 .claude/

@@ -1,8 +1,8 @@
 {
-  "version": "0.19.0",
-  "tessellation_version": "4.0.0-rc.0",
-  "ref_type": "tag",
+  "config_version": 2,
   "project_name": "custom-project",
+  "tessellation_version": "4.0.0-rc.0",
+  "tessellation_ref_type": "tag",
   "framework": {
     "name": "currency",
     "modules": [
@@ -44,7 +44,37 @@
     }
   ],
   "docker": {
-    "start_grafana_container": false
+    "start_grafana_container": false,
+    "network_subnet": "172.50.0.0/24",
+    "base_ip_prefix": "172.50.0.",
+    "ip_offset": 10
+  },
+  "ports": {
+    "global_l0": {
+      "public": 9000,
+      "p2p": 9001,
+      "cli": 9002
+    },
+    "dag_l1": {
+      "public": 9100,
+      "p2p": 9101,
+      "cli": 9102
+    },
+    "metagraph_l0": {
+      "public": 9200,
+      "p2p": 9201,
+      "cli": 9202
+    },
+    "currency_l1": {
+      "public": 9300,
+      "p2p": 9301,
+      "cli": 9302
+    },
+    "data_l1": {
+      "public": 9400,
+      "p2p": 9401,
+      "cli": 9402
+    }
   },
   "snapshot_fees": {
     "owner": {
@@ -72,28 +102,36 @@
       }
     },
     "jvm": {
-      "min_heap": "1g",
-      "max_heap": "2g",
-      "metaspace_size": "256m",
-      "max_metaspace_size": "512m",
-      "additional_opts": ""
+      "default": {
+        "min_heap": "1g",
+        "max_heap": "2g",
+        "metaspace_size": "256m",
+        "max_metaspace_size": "512m",
+        "additional_opts": ""
+      },
+      "metagraph_l0": {
+        "max_heap": "4g"
+      },
+      "currency_l1": {},
+      "data_l1": {}
     },
-    "hosts": [
-      {
-        "host": ":host_1_ip",
-        "user": ":host_1_user",
-        "ssh_key": "~/.ssh/id_rsa"
+    "hosts": [],
+    "remote_ports": {
+      "metagraph_l0": {
+        "public": 9100,
+        "p2p": 9101,
+        "cli": 9102
       },
-      {
-        "host": ":host_2_ip",
-        "user": ":host_2_user",
-        "ssh_key": "~/.ssh/id_rsa"
+      "currency_l1": {
+        "public": 9200,
+        "p2p": 9201,
+        "cli": 9202
       },
-      {
-        "host": ":host_3_ip",
-        "user": ":host_3_user",
-        "ssh_key": "~/.ssh/id_rsa"
+      "data_l1": {
+        "public": 9300,
+        "p2p": 9301,
+        "cli": 9302
       }
-    ]
+    }
   }
 }

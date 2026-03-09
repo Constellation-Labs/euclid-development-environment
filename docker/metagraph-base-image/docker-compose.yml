@@ -2,5 +2,13 @@ services:
   metagraph-base-image:
     image: "metagraph-base-image"
     build:
-      context: ../../source
+      context: ../../data
       dockerfile: ${METAGRAPH_BASE_IMAGE_DOCKERFILE}
+      args:
+        - TESSELLATION_VERSION_NAME
+        - SHOULD_BUILD_GLOBAL_L0
+        - SHOULD_BUILD_DAG_L1
+        - SHOULD_BUILD_METAGRAPH_L0
+        - SHOULD_BUILD_CURRENCY_L1
+        - SHOULD_BUILD_DATA_L1
+        - TEMPLATE_NAME

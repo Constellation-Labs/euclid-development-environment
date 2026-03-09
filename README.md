@@ -8,7 +8,7 @@ Euclid provides the **Hydra CLI** (`hydra` / `euclid`) for orchestrating multi-l
 
 | Dependency | Version | Purpose |
 |---|---|---|
-| **Node.js** | >= 22.0.0 | Runs the CLI |
+| **Node.js** | >= 22.0.0 | Runs the CLI (`.nvmrc` included — run `nvm use`) |
 | **Docker** | >= 26.0.0 | Container orchestration for local clusters |
 | **git** | any | Template cloning and project scaffolding |
 
@@ -20,23 +20,49 @@ Optional (for remote operations and seedlist checks):
 
 ---
 
-## Quick Start
+## Installation
 
 ```bash
-# Install dependencies and build
-npm install
+# 1. Install Node.js 22+ (if you don't have it)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc   # or ~/.zshrc on macOS
+nvm install 22
 
-# Make hydra/euclid available globally (optional)
+# 2. Make sure Docker is installed and running (>= 26.0)
+docker info
+
+# 3. Clone the repository
+git clone https://github.com/Constellation-Labs/euclid-development-environment.git
+cd euclid-development-environment
+
+# 4. Install dependencies and build
+nvm use              # reads .nvmrc → Node 22
+npm install          # installs deps + auto-builds via postinstall
+
+# 5. Make hydra/euclid available globally
 npm link
 
-# Verify your environment
+# 6. Verify your environment
 hydra doctor
+```
 
+> You can also use `npx hydra`, `npx euclid`, or `euclid` instead of `hydra`.
+
+---
+
+## Quick Start
+
+Once installed, here's the typical workflow to get a local metagraph running:
+
+```bash
 # Install a metagraph template
 hydra install-template --name my-metagraph --repo https://github.com/Constellation-Labs/metagraph-examples.git
 
 # Initialize git and .gitignore
 hydra install
+
+# Place your .p12 key files in data/p12-files/ (or generate new ones)
+hydra keygen
 
 # Build Docker images (compiles Tessellation + metagraph JARs)
 hydra build
@@ -56,8 +82,6 @@ hydra stop
 # Destroy containers and network
 hydra destroy --yes
 ```
-
-> You can also use `npx hydra`, `npx euclid`, or `euclid` instead of `hydra`.
 
 ---
 
@@ -156,43 +180,55 @@ hydra check-seedlist <network>        Verify node peer IDs on integrationnet/mai
 
 ```
 euclid-development-environment/
-├── src/                            # TypeScript source
-│   ├── cli/                        # CLI entry point and command handlers
-│   │   ├── commands/               # One file per command
-│   │   │   └── remote/             # Remote deployment subcommands
-│   │   └── ui/                     # Terminal formatting (colors, tables)
-│   ├── core/                       # SDK: config, Docker, cluster management
-│   │   ├── config/                 # Zod schema, loader, v1→v2 migration, atomic writer
-│   │   ├── docker/                 # dockerode client, docker compose wrapper
-│   │   └── cluster/                # Layer orchestration, health polling, state
-│   ├── doctor/                     # Environment verification checks
-│   │   └── checks/                 # Docker, ports, binaries, config checks
-│   └── remote/                     # Remote SSH deployment (replaces Ansible)
-│       ├── ssh.ts                  # SSH connection pooling and command execution
-│       ├── deploy.ts               # File transfer: JARs, p12 keys, genesis files
-│       ├── start.ts                # Layer-by-layer remote orchestration
-│       ├── status.ts               # Remote /node/info health queries
-│       └── logs.ts                 # Remote log streaming via SSH tail
-├── docker/                         # Docker images and build artifacts
-│   ├── metagraph-ubuntu/           # Base image: Ubuntu + Java + Tessellation
-│   ├── metagraph-base-image/       # Project image: compiles metagraph JARs
-│   ├── custom/                     # Custom Dockerfile overrides
-│   ├── grafana/                    # Prometheus + Grafana monitoring stack
-│   └── artifacts/                  # Build outputs
-│       ├── jars/                   # Compiled JARs (cl-keytool, cl-wallet, metagraph-l0, etc.)
-│       └── genesis/                # Genesis snapshot and address files
-├── data/                           # Runtime data
-│   ├── p12-files/                  # Node identity keys (.p12)
-│   ├── metagraph-l0/genesis/       # Genesis CSV with pre-funded addresses
-│   ├── project/                    # Your Scala metagraph project (after install-template)
-│   └── metagraph-monitoring-service/ # Monitoring service (after install-monitoring-service)
-├── legacy/                         # Legacy v1 Hydra CLI (preserved for reference)
-│   ├── scripts/                    # Original bash CLI
-│   └── ansible/                    # Ansible playbooks
-├── euclid.json                     # Project configuration
-├── package.json                    # Single package (v2.0.0)
-├── tsconfig.json                   # TypeScript configuration
-└── vitest.config.ts                # Test configuration
+├── src/
+│   ├── main/                           # All source code
+│   │   ├── index.ts                    # Root barrel export
+│   │   ├── shared/                     # Cross-cutting: errors, logger
+│   │   ├── config/                     # Zod schema, loader, v1→v2 migration, atomic writer
+│   │   ├── docker-client/              # dockerode client, docker compose wrapper
+│   │   ├── cluster/                    # Layer orchestration, health polling, state
+│   │   │   └── starters/              # Per-layer startup logic (global-l0, dag-l1, etc.)
+│   │   ├── doctor/                     # Environment verification checks
+│   │   │   └── checks/                # Docker, ports, binaries, config checks
+│   │   ├── remote/                     # Remote SSH deployment (replaces Ansible)
+│   │   │   ├── ssh.ts                 # SSH connection pooling and command execution
+│   │   │   ├── deploy.ts             # File transfer: JARs, p12 keys, genesis files
+│   │   │   ├── start.ts              # Layer-by-layer remote orchestration
+│   │   │   ├── status.ts             # Remote /node/info health queries
+│   │   │   └── logs.ts               # Remote log streaming via SSH tail
+│   │   └── cli/                        # CLI entry point and command handlers
+│   │       ├── index.ts               # Commander program definition
+│   │       ├── commands/              # One file per command
+│   │       │   ├── cluster/           # build, start, stop, status, logs, destroy, purge
+│   │       │   ├── config/            # show, validate, migrate
+│   │       │   ├── setup/             # doctor, install, install-template, keygen, update
+│   │       │   └── remote/            # deploy, start, status, logs, monitoring
+│   │       ├── menu/                  # Interactive mode and prerequisites
+│   │       └── ui/                    # Terminal formatting (colors, tables, spinner)
+│   └── tests/                          # All test files
+│       ├── config/                    # schema.test.ts, migration.test.ts
+│       └── cluster/                   # layer.test.ts
+├── docker/                             # Docker images and build artifacts
+│   ├── metagraph-ubuntu/              # Base image: Ubuntu + Java + Tessellation
+│   ├── metagraph-base-image/          # Project image: compiles metagraph JARs
+│   ├── custom/                        # Custom Dockerfile overrides (drop a Dockerfile here)
+│   ├── grafana/                       # Prometheus + Grafana monitoring stack
+│   └── artifacts/                     # Build outputs
+│       ├── jars/                      # Compiled JARs (cl-keytool, cl-wallet, metagraph-l0, etc.)
+│       └── genesis/                   # Genesis snapshot and address files
+├── data/                               # Runtime data
+│   ├── p12-files/                     # Node identity keys (.p12)
+│   ├── metagraph-l0/genesis/          # Genesis CSV with pre-funded addresses
+│   ├── project/                       # Your Scala metagraph project (after install-template)
+│   └── metagraph-monitoring-service/  # Monitoring service (after install-monitoring-service)
+├── euclid.json                         # Project configuration
+├── package.json                        # Single package (v2.0.0)
+├── tsconfig.json                       # TypeScript build config (rootDir: src/main → dist/)
+├── tsconfig.eslint.json                # Extended tsconfig for ESLint (includes tests)
+├── eslint.config.js                    # ESLint v10 flat config (TypeScript strict + Prettier)
+├── vitest.config.ts                    # Test configuration (src/tests/**/*.test.ts)
+├── .prettierrc                         # Prettier formatting rules
+└── .nvmrc                              # Node.js version (22)
 ```
 
 ---
@@ -291,11 +327,18 @@ Hydra uses `euclid.json` at the project root. The CLI auto-detects it by walking
       }
     },
     "jvm": {
-      "min_heap": "1g",
-      "max_heap": "2g",
-      "metaspace_size": "256m",
-      "max_metaspace_size": "512m",
-      "additional_opts": ""                 // optional extra JVM flags
+      "default": {                          // base JVM settings for all layers
+        "min_heap": "1g",
+        "max_heap": "2g",
+        "metaspace_size": "256m",
+        "max_metaspace_size": "512m",
+        "additional_opts": ""               // optional extra JVM flags
+      },
+      "metagraph_l0": {                     // optional per-layer overrides
+        "max_heap": "4g"
+      }
+      // "currency_l1": { ... },
+      // "data_l1": { ... }
     },
     "hosts": [
       { "host": "1.2.3.4", "user": "ubuntu", "ssh_key": "~/.ssh/id_rsa" },
@@ -320,6 +363,7 @@ Key points:
 - `hosts` maps 1:1 to `nodes` — host-1 runs node-1, host-2 runs node-2, etc.
 - `remote_ports` are per-host (not per-container), different from local ports
 - `monitoring_host` is used by `remote deploy-monitoring` and `remote start-monitoring`
+- `deploy.jvm.default` sets base JVM settings; per-layer overrides (`metagraph_l0`, `currency_l1`, `data_l1`) are deep-merged on top
 - All fields inside `docker`, `ports`, `deploy.jvm`, and `deploy.remote_ports` have sensible defaults
 
 ---
@@ -513,22 +557,35 @@ Each subsequent local node offsets ports by 10 (configurable via `docker.ip_offs
 
 ## Architecture
 
-The codebase is a single TypeScript package with four modules:
+The codebase is a single TypeScript package with six modules under `src/main/`:
 
-### `src/core/`
-Business logic SDK:
-- **Config** — Zod schema validation, atomic file writes, automatic v1-to-v2 migration
-- **Docker** — Container lifecycle management via `dockerode`, compose build/up/down
-- **Cluster** — Layer orchestration, health polling (`/node/info`), persistent state
-- **Errors** — Structured error hierarchy with actionable suggestions
+### `src/main/shared/`
+Cross-cutting utilities shared by all modules:
+- **errors.ts** — Structured error hierarchy with actionable suggestions and `.format()` for CLI display
+- **logger.ts** — Structured logger with log levels, secret redaction, and color output
 
-### `src/cli/`
-CLI commands built with `commander`. Each command is a thin wrapper that loads config, calls the core/remote module, and formats output for the terminal.
+### `src/main/config/`
+Configuration management:
+- **schema.ts** — Zod schema validation (v2) + legacy v1 types
+- **loader.ts** — Config auto-discovery (walks up the directory tree)
+- **migration.ts** — Automatic v1-to-v2 config migration
+- **writer.ts** — Atomic JSON writes (temp + rename)
 
-### `src/doctor/`
+### `src/main/docker-client/`
+Docker integration via `dockerode` (named `docker-client` to avoid confusion with the top-level `docker/` directory):
+- **client.ts** — Container lifecycle management
+- **compose.ts** — Docker Compose build/up/down wrapper
+
+### `src/main/cluster/`
+Local cluster orchestration:
+- **layer.ts** — Layer types, port computation, state management
+- **health.ts** — Health polling via `/node/info` endpoints
+- **starters/** — Per-layer startup logic split into individual files (global-l0, dag-l1, metagraph-l0, currency-l1, data-l1) with shared helpers
+
+### `src/main/doctor/`
 Environment verification: Docker version/health/memory, binary availability, port scanning, config validation, project structure checks.
 
-### `src/remote/`
+### `src/main/remote/`
 Remote SSH deployment via `node-ssh` (replaces the legacy Ansible playbooks):
 - **ssh.ts** — SSH connection pooling, command execution, file upload
 - **deploy.ts** — Transfer JARs, p12 keys, and genesis files to remote hosts
@@ -536,28 +593,42 @@ Remote SSH deployment via `node-ssh` (replaces the legacy Ansible playbooks):
 - **status.ts** — Query `/node/info` endpoints on all remote nodes
 - **logs.ts** — Stream remote log files via SSH
 
+### `src/main/cli/`
+CLI commands built with `commander`. Each command is a thin wrapper that loads config, calls the appropriate module, and formats output for the terminal. Commands are organized by domain: `commands/cluster/`, `commands/config/`, `commands/setup/`, `commands/remote/`.
+
 ---
 
 ## Development
 
 ```bash
-# Install dependencies
+# Install dependencies and build
 npm install
 
-# Build
+# Build (compiles src/main/ → dist/)
 npm run build
 
-# Run tests
+# Watch mode (auto-recompile on changes)
+npm run dev
+
+# Run tests (34 tests across 3 test suites)
 npm test
 
 # Type-check without building
 npm run typecheck
 
+# Lint (ESLint with TypeScript strict rules)
+npm run lint              # Check for issues
+npm run lint:fix          # Auto-fix issues
+
+# Format (Prettier)
+npm run format            # Format all .ts files
+npm run format:check      # Check formatting (CI-friendly)
+
 # Run the CLI in development (source maps enabled)
 npm run hydra -- doctor
 
-# Watch mode (auto-recompile on changes)
-npm run dev
+# Clean build artifacts
+npm run clean
 ```
 
 ---
@@ -586,6 +657,7 @@ What changes during migration:
 - `version` (Euclid version string) becomes `config_version: 2` (schema version number)
 - `ref_type` becomes `tessellation_ref_type`
 - `deploy.ansible` is removed (no longer needed)
+- `deploy.jvm` is wrapped in `{ "default": { ... } }` for per-layer override support
 - `deploy.hosts` is added as an empty array (you fill in your SSH hosts)
 - `deploy.remote_ports` is added with defaults
 - `docker` gets new optional fields (`network_subnet`, `base_ip_prefix`, `ip_offset`)
@@ -615,7 +687,7 @@ If you use remote deployment, update the `deploy` section in your migrated `eucl
 {
   "deploy": {
     "network": { "name": "integrationnet", "gl0_node": { "..." : "..." } },
-    "jvm": { "..." : "..." },
+    "jvm": { "default": { "..." : "..." }, "metagraph_l0": { "max_heap": "4g" } },
     "hosts": [
       { "host": "1.2.3.4", "user": "ubuntu", "ssh_key": "~/.ssh/id_rsa" },
       { "host": "5.6.7.8", "user": "ubuntu", "ssh_key": "~/.ssh/id_rsa" },
@@ -642,8 +714,8 @@ If you have scripts or tooling that reference the old directory names:
 | `infra/docker/custom/` | `docker/custom/` | Custom Dockerfile overrides |
 | `source/p12-files/` | `data/p12-files/` | Node identity keys |
 | `source/project/` | `data/project/` | Metagraph Scala project |
-| `scripts/` | (removed) | Replaced by `src/cli/` TypeScript commands |
-| `infra/ansible/` | (removed) | Replaced by `src/remote/` native SSH |
+| `scripts/` | (removed) | Replaced by `src/main/cli/` TypeScript commands |
+| `infra/ansible/` | (removed) | Replaced by `src/main/remote/` native SSH |
 
 ### Step 4: Command Migration
 
@@ -686,8 +758,6 @@ Full command mapping from v1 to v2:
 | Scala/Coursier/g8 | Removed — templates cloned via `git` |
 | jq | Removed — Node.js handles JSON natively |
 | yq | Removed — YAML config replaced by JSON |
-
-The legacy v1 scripts are preserved in `legacy/scripts/` for reference.
 
 ---
 

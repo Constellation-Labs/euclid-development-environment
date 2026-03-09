@@ -7,31 +7,41 @@
     "hydra": "./dist/cli/index.js",
     "euclid": "./dist/cli/index.js"
   },
-  "main": "./dist/core/index.js",
-  "types": "./dist/core/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write 'src/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts'",
     "hydra": "node --enable-source-maps ./dist/cli/index.js",
     "postinstall": "npm run build 2>/dev/null || true"
   },
   "dependencies": {
-    "commander": "^13.0.0",
-    "dockerode": "^4.0.0",
-    "zod": "^3.24.0",
-    "ora": "^8.2.0",
+    "@inquirer/prompts": "^7.0.0",
     "chalk": "^5.4.0",
     "cli-table3": "^0.6.0",
-    "@inquirer/prompts": "^7.0.0",
-    "node-ssh": "^13.0.0"
+    "commander": "^13.0.0",
+    "dockerode": "^4.0.0",
+    "node-ssh": "^13.0.0",
+    "ora": "^8.2.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/dockerode": "^3.3.0",
     "@types/node": "^22.0.0",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^3.0.0"
   },
   "engines": {
