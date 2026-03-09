@@ -12,6 +12,7 @@ import {
   ensureGenesisCsv,
   startJavaProcess,
   waitForReady,
+  findLatestSnapshot,
 } from './helpers.js';
 
 /**
@@ -47,11 +48,14 @@ export async function startGlobalL0(ctx: LayerContext): Promise<void> {
       'global-l0.log',
     );
   } else {
-    // Rollback: use the hash provided by the user
-    const rollbackHash = ctx.rollbackHash;
+    // Rollback: find the latest snapshot hash from the container's data directory
+    ctx.onProgress?.('Looking for latest snapshot...');
+    const rollbackHash = await findLatestSnapshot(docker, node.name, layerDir);
+
     if (!rollbackHash) {
       throw new LayerStartError(
-        'Rollback requires a snapshot hash.\n' + '     Usage: hydra start --rollback <hash>',
+        'No snapshot data found for Global L0 — cannot rollback.',
+        { suggestion: "Run 'hydra start --genesis' first to create initial state." },
       );
     }
 

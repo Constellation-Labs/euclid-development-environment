@@ -136,11 +136,8 @@ export class ClusterError extends HydraError {
 }
 
 export class LayerStartError extends ClusterError {
-  constructor(layer: string, options?: { cause?: Error }) {
-    super(`Failed to start layer '${layer}'`, {
-      suggestion: `Check Docker logs: hydra logs ${layer}`,
-      ...options,
-    });
+  constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
+    super(message, options);
     this.name = 'LayerStartError';
   }
 }

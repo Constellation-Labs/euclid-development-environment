@@ -150,9 +150,11 @@ export class DockerClient {
         logger.debug(`Container '${name}' already running`);
         return existing.Id;
       }
-      // Remove stopped container
+      // Restart stopped container to preserve data (needed for rollback)
       const container = this.docker.getContainer(existing.Id);
-      await container.remove({ force: true });
+      await container.start();
+      logger.debug(`Restarted existing container '${name}' on ${ipAddress}`);
+      return existing.Id;
     }
 
     const portBindings: Record<string, Array<{ HostPort: string }>> = {};

@@ -259,25 +259,27 @@ describe('ClusterError', () => {
 // ─── LayerStartError ────────────────────────────────────────────────────────
 
 describe('LayerStartError', () => {
-  it('includes layer name in message', () => {
-    const err = new LayerStartError('metagraph-l0');
-    expect(err.message).toContain('metagraph-l0');
+  it('uses the message directly', () => {
+    const err = new LayerStartError('Failed to start metagraph-l0');
+    expect(err.message).toBe('Failed to start metagraph-l0');
     expect(err.name).toBe('LayerStartError');
   });
 
-  it('suggests checking logs for the layer', () => {
-    const err = new LayerStartError('currency-l1');
+  it('accepts suggestion', () => {
+    const err = new LayerStartError('Layer failed', {
+      suggestion: 'Check Docker logs: hydra logs currency-l1',
+    });
     expect(err.suggestion).toContain('hydra logs currency-l1');
   });
 
   it('extends ClusterError', () => {
-    expect(new LayerStartError('global-l0')).toBeInstanceOf(ClusterError);
-    expect(new LayerStartError('global-l0')).toBeInstanceOf(HydraError);
+    expect(new LayerStartError('fail')).toBeInstanceOf(ClusterError);
+    expect(new LayerStartError('fail')).toBeInstanceOf(HydraError);
   });
 
   it('accepts cause', () => {
     const cause = new Error('container exited');
-    const err = new LayerStartError('data-l1', { cause });
+    const err = new LayerStartError('data-l1 crashed', { cause });
     expect(err.cause).toBe(cause);
   });
 });

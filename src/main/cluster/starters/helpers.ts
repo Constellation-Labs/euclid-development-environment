@@ -16,7 +16,6 @@ export interface LayerContext {
   mode: 'genesis' | 'rollback';
   leadNodeId: string;
   metagraphId?: string;
-  rollbackHash?: string;
   onProgress?: (msg: string) => void;
 }
 
@@ -315,6 +314,19 @@ export async function joinCluster(
   ]);
 }
 
+/**
+ * Find the latest snapshot hash in a layer's data directory.
+ * Checks incremental_snapshot first (most recent), then snapshot.
+ *
+ * Tessellation stores snapshots in a nested structure:
+ *   data/incremental_snapshot/hash/<prefix1>/<prefix2>/<full_hash>
+ *   data/snapshot/hash/<prefix1>/<prefix2>/<full_hash>
+ *
+ * We use the ordinal/ directory (sibling of hash/) to find the highest ordinal,
+ * then read the hash value from that file.
+ * Falls back to listing hash/ leaves sorted by modification time.
+ * Returns null if no snapshot data exists (e.g. fresh container).
+ */
 export async function findLatestSnapshot(
   docker: DockerClient,
   containerName: string,
@@ -322,12 +334,15 @@ export async function findLatestSnapshot(
 ): Promise<string | null> {
   for (const dir of ['incremental_snapshot', 'snapshot']) {
     try {
-      const result = await dockerExec(docker, containerName, [
+      // Strategy: find the leaf files under hash/ sorted by mtime (most recent first)
+      // Uses ls -ltR to recursively list, then grep for 64-char hex filenames
+      const hashDir = `${layerDir}/data/${dir}/hash`;
+      const result = await docker.exec(containerName, [
         'bash',
         '-c',
-        `cd ${layerDir}/data/${dir} 2>/dev/null && ls -1t | head -1`,
+        `find ${hashDir} -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1 | xargs -I{} basename {}`,
       ]);
-      const hash = result.trim();
+      const hash = result.stdout.trim();
       if (hash && /^[a-f0-9]{64}$/i.test(hash)) {
         return hash;
       }
