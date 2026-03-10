@@ -22,6 +22,7 @@ Euclid provides the **Hydra CLI** (`hydra`) for the full metagraph lifecycle: sc
 - [Migrating from v1](#migrating-from-v1)
 - [Project Structure](#project-structure)
 - [Architecture & Code Quality](#architecture--code-quality)
+- [Extending Hydra](#extending-hydra)
 - [Development](#development)
 - [License](#license)
 
@@ -793,6 +794,126 @@ All errors implement `.format()` for consistent, human-readable CLI output. The 
 - **Docker version compatibility** — Pre-release version suffixes are stripped before comparison
 - **Graceful signal handling** — `SIGINT`/`SIGTERM` handlers clean up SSH connections before exit
 - **Secret redaction** — The structured logger automatically redacts known secret fields
+
+---
+
+## Extending Hydra
+
+The codebase is designed for easy extension. Adding a new command to both the interactive menu and the CLI takes just a few steps and a handful of lines of wiring code — most of your time goes into the actual business logic, not the plumbing.
+
+### Adding a New Command
+
+**Step 1 — Create the command function** (one new file)
+
+Every command is a single exported async function in `src/main/cli/commands/<category>/`. They all follow the same shape:
+
+```typescript
+// src/main/cli/commands/setup/my-feature.ts
+import { logger, LogLevel } from '../../../index.js';
+
+export async function myFeatureCommand(options: {
+  verbose?: boolean;
+}): Promise<void> {
+  if (options.verbose) logger.setLevel(LogLevel.DEBUG);
+  // ... your logic here
+}
+```
+
+Pick a category folder that fits (`cluster/`, `remote/`, `setup/`, `config/`) or create a new one.
+
+**Step 2 — Wire it into the interactive menu** (`src/main/cli/menu/interactive.ts`)
+
+Three small additions:
+
+```typescript
+// 1. Import at the top
+import { myFeatureCommand } from '../commands/setup/my-feature.js';
+
+// 2. Add an entry to buildMenuChoices() — it's a flat array
+{
+  name: `my-feature                ${t.dim('Short description here')}`,
+  value: 'my-feature',
+},
+
+// 3. Add a case to the executeCommand() switch
+case 'my-feature':
+  return myFeatureCommand({ verbose });
+```
+
+If your command needs user input (like picking a layer or confirming an action), add the `@inquirer/prompts` calls inline:
+
+```typescript
+case 'my-feature': {
+  const target = await select({
+    message: 'Which target?',
+    choices: [
+      { name: 'Option A', value: 'a' },
+      { name: 'Option B', value: 'b' },
+    ],
+  });
+  return myFeatureCommand({ target, verbose });
+}
+```
+
+**Step 3 (optional) — Register as a direct CLI command** (`src/main/cli/index.ts`)
+
+This lets users also run `hydra my-feature` without the interactive menu:
+
+```typescript
+program
+  .command('my-feature')
+  .description('Short description here')
+  .action(async () => {
+    const opts = program.opts();
+    await myFeatureCommand({ verbose: opts.verbose });
+  });
+```
+
+**Step 4 (optional) — Add prerequisites** (`src/main/cli/menu/prerequisites.ts`)
+
+If your command depends on another step (e.g., build must run first), add an entry:
+
+```typescript
+'my-feature': [
+  {
+    label: 'Docker images not found. The project needs to be built first.',
+    command: 'build',
+    commandLabel: 'build',
+    check: async () => dockerImageExists(),
+  },
+],
+```
+
+The interactive menu will **automatically prompt** the user to run the prerequisite if it's not met, and it chains them (e.g., `remote:start` → `remote:deploy` → `build`).
+
+### Adding a New Menu Section
+
+To create an entirely new section in the interactive menu, use the `section()` helper inside `buildMenuChoices()`:
+
+```typescript
+...section('🔄', 'Migration'),
+{ name: `migrate-data  ${t.dim('Migrate snapshot data')}`, value: 'migrate-data' },
+{ name: `migrate-keys  ${t.dim('Re-encrypt p12 files')}`, value: 'migrate-keys' },
+```
+
+### What You Get for Free
+
+Every new command automatically inherits:
+
+- **Safe execution wrapper** — `runCommandSafe()` intercepts `process.exit()` so errors return to the menu instead of killing the process
+- **Verbose toggle** — The global verbose/debug mode works without any extra code
+- **Loop mode** — After your command finishes, the user returns to the menu
+- **Error formatting** — Throw any `HydraError` subclass and it gets formatted with context, suggestion, and cause chain
+- **Shared infrastructure** — Docker client, SSH connection pool, config loader, structured logger, and the full domain error hierarchy are all available as imports
+
+### Effort Estimate
+
+| What you're adding | Typical effort |
+| --- | --- |
+| Simple command (no sub-prompts, like `doctor`) | ~30 minutes |
+| Command with interactive prompts (like `start`) | ~1 hour |
+| New menu section with 2–3 commands | ~2–3 hours |
+| Prerequisite chain | ~15 minutes |
 
 ---
 
