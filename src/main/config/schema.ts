@@ -78,82 +78,50 @@ export type DockerConfig = z.infer<typeof DockerConfigSchema>;
 
 const jvmHeapRegex = /^\d+[gm]$/;
 
-/** Full JVM config with defaults — used for the `default` base. */
-export const JvmConfigSchema = z
-  .object({
-    min_heap: z
-      .string()
-      .regex(jvmHeapRegex, 'Must be a JVM heap size like "1g" or "256m"')
-      .default('1g'),
-    max_heap: z
-      .string()
-      .regex(jvmHeapRegex, 'Must be a JVM heap size like "2g" or "512m"')
-      .default('2g'),
-    metaspace_size: z
-      .string()
-      .regex(jvmHeapRegex, 'Must be a JVM size like "256m"')
-      .default('256m'),
-    max_metaspace_size: z
-      .string()
-      .regex(jvmHeapRegex, 'Must be a JVM size like "512m"')
-      .default('512m'),
-    additional_opts: z.string().default(''),
-  })
-  .default({});
-export type JvmConfig = z.infer<typeof JvmConfigSchema>;
+/** Helper: create a per-layer JVM schema with the given defaults. */
+function jvmLayerSchema(defaultXms: string, defaultXmx: string) {
+  return z
+    .object({
+      xms: z
+        .string()
+        .regex(jvmHeapRegex, 'Must be a JVM heap size like "4g" or "512m"')
+        .default(defaultXms),
+      xmx: z
+        .string()
+        .regex(jvmHeapRegex, 'Must be a JVM heap size like "8g" or "1024m"')
+        .default(defaultXmx),
+    })
+    .default({});
+}
 
-/** Partial JVM config without defaults — used for per-layer overrides. */
-export const JvmOverrideSchema = z.object({
-  min_heap: z
-    .string()
-    .regex(jvmHeapRegex, 'Must be a JVM heap size like "1g" or "256m"')
-    .optional(),
-  max_heap: z
-    .string()
-    .regex(jvmHeapRegex, 'Must be a JVM heap size like "2g" or "512m"')
-    .optional(),
-  metaspace_size: z.string().regex(jvmHeapRegex, 'Must be a JVM size like "256m"').optional(),
-  max_metaspace_size: z.string().regex(jvmHeapRegex, 'Must be a JVM size like "512m"').optional(),
-  additional_opts: z.string().optional(),
-});
-export type JvmOverride = z.infer<typeof JvmOverrideSchema>;
+/** JVM config for a single layer (xms + xmx). */
+export type JvmLayerConfig = { xms: string; xmx: string };
 
 /**
- * Per-layer JVM config: a `default` base with optional per-layer overrides.
- * Each layer override is merged onto `default` at runtime via `resolveJvmConfig()`.
- * Only explicitly provided fields in the per-layer override win; omitted fields
- * inherit from `default`.
+ * Per-layer JVM config. Each layer has its own -Xms and -Xmx settings.
+ *
+ * Defaults:
+ *   metagraph_l0: xms=8g, xmx=8g
+ *   currency_l1:  xms=4g, xmx=4g
+ *   data_l1:      xms=4g, xmx=4g
  */
 export const LayerJvmConfigSchema = z
   .object({
-    default: JvmConfigSchema,
-    metagraph_l0: JvmOverrideSchema.optional(),
-    currency_l1: JvmOverrideSchema.optional(),
-    data_l1: JvmOverrideSchema.optional(),
+    metagraph_l0: jvmLayerSchema('8g', '8g'),
+    currency_l1: jvmLayerSchema('4g', '4g'),
+    data_l1: jvmLayerSchema('4g', '4g'),
   })
   .default({});
 export type LayerJvmConfig = z.infer<typeof LayerJvmConfigSchema>;
 
 /**
- * Resolve JVM config for a specific layer by merging the per-layer override
- * onto the default config. Only explicitly provided override values win;
- * undefined fields inherit from `default`.
+ * Get the JVM config for a specific layer.
  */
 export function resolveJvmConfig(
   layerJvm: LayerJvmConfig,
   layer: 'metagraph_l0' | 'currency_l1' | 'data_l1',
-): JvmConfig {
-  const base = layerJvm.default;
-  const override = layerJvm[layer];
-  if (!override) return base;
-
-  return {
-    min_heap: override.min_heap ?? base.min_heap,
-    max_heap: override.max_heap ?? base.max_heap,
-    metaspace_size: override.metaspace_size ?? base.metaspace_size,
-    max_metaspace_size: override.max_metaspace_size ?? base.max_metaspace_size,
-    additional_opts: override.additional_opts ?? base.additional_opts,
-  };
+): JvmLayerConfig {
+  return layerJvm[layer];
 }
 
 // ─── Deploy Schema ───────────────────────────────────────────────────────────
@@ -295,9 +263,6 @@ export interface LegacyEuclidConfig {
     jvm?: {
       min_heap?: string;
       max_heap?: string;
-      metaspace_size?: string;
-      max_metaspace_size?: string;
-      additional_opts?: string;
     };
     ansible?: {
       hosts: string;

@@ -1,78 +1,27 @@
 import { resolve } from 'node:path';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
-import { loadConfig, logger, LogLevel } from '../../../index.js';
+import { execFileSync } from 'node:child_process';
+import { loadConfig, findProjectRoot, logger, LogLevel } from '../../../index.js';
 import { formatError, formatSuccess } from '../../ui/format.js';
-
-const GITIGNORE_CONTENT = `# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-
-# Scala build artifacts
-.metals/
-.bloop/
-.bsp/
-.scala-build/
-target/
-metals.sbt
-**/metals.sbt
-project/metals.sbt
-project/project/metals.sbt
-.scalafmt-cache
-.scalafix-cache
-
-# Node
-node_modules/
-dist/
-
-# Jars (downloaded during build)
-docker/artifacts/jars/*.jar
-
-# Genesis files (generated)
-data/metagraph-l0/genesis/genesis.address
-data/metagraph-l0/genesis/genesis.snapshot
-docker/artifacts/genesis/*
-
-# Grafana data
-docker/grafana/grafana/config/
-docker/grafana/prometheus/data/
-docker/grafana/prometheus/monitoring/
-
-# Monitoring service
-data/*-monitoring-service/node_modules
-data/*-monitoring-service/config/config.json
-data/*-monitoring-service/config/id_monitoring
-
-# Project config (contains p12 passwords)
-euclid.json
-
-# Private key files
-data/p12-files/*
-!data/p12-files/.gitkeep
-`;
+import { t, icon } from '../../ui/theme.js';
+import { GITIGNORE_CONTENT } from '../../../shared/gitignore.js';
 
 export async function installCommand(options: { verbose?: boolean }): Promise<void> {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
 
   try {
     const config = await loadConfig();
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
 
     process.stdout.write('\n  Installing Hydra project...\n\n');
 
     // Validate project exists
     const projectDir = resolve(projectRoot, 'data', 'project', config.project_name);
     if (!existsSync(projectDir)) {
-      process.stderr.write(`\nError: Project directory not found: ${projectDir}\n`);
       process.stderr.write(
-        `  Run 'hydra install-template' first to set up a project template.\n\n`,
+        `\n  ${icon.error} ${t.error(`Project directory not found: ${projectDir}`)}\n` +
+          `  ${t.muted('Run')} ${t.cyan("'hydra install-template'")} ${t.muted('first to set up a project template.')}\n\n`,
       );
       process.exit(1);
     }
@@ -86,17 +35,17 @@ export async function installCommand(options: { verbose?: boolean }): Promise<vo
     process.stdout.write(`  [2/3] Initializing git repository...\n`);
     const gitDir = resolve(projectRoot, '.git');
     if (existsSync(gitDir)) {
-      execSync(`chmod -R +w "${gitDir}" && rm -rf "${gitDir}"`, { stdio: 'pipe' });
+      await rm(gitDir, { recursive: true, force: true });
     }
 
     // Initialize new git repo
-    execSync('git init', { cwd: projectRoot, stdio: 'pipe' });
+    execFileSync('git', ['init'], { cwd: projectRoot, stdio: 'pipe' });
     process.stdout.write(`  ${formatSuccess('Git repository initialized')}\n`);
 
     // Create initial commit
     process.stdout.write(`  [3/3] Creating initial commit...\n`);
-    execSync('git add -A', { cwd: projectRoot, stdio: 'pipe' });
-    execSync('git commit -m "Initial commit after hydra install"', {
+    execFileSync('git', ['add', '-A'], { cwd: projectRoot, stdio: 'pipe' });
+    execFileSync('git', ['commit', '-m', 'Initial commit after hydra install'], {
       cwd: projectRoot,
       stdio: 'pipe',
     });

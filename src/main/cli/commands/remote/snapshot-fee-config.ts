@@ -1,6 +1,8 @@
+import chalk from 'chalk';
 import { loadConfig, logger, LogLevel } from '../../../index.js';
 import { SSHManager } from '../../../remote/index.js';
 import { formatError, formatHeader, formatKeyValue } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 export async function remoteSnapshotFeeConfigCommand(options: {
   verbose?: boolean;
@@ -11,16 +13,18 @@ export async function remoteSnapshotFeeConfigCommand(options: {
     const config = await loadConfig();
 
     if (!config.deploy) {
-      process.stderr.write('\nError: No deploy configuration found in euclid.json.\n');
       process.stderr.write(
-        '  Add a "deploy" section with "hosts" to enable remote operations.\n\n',
+        `\n  ${icon.error} ${t.error('No deploy configuration found in euclid.json.')}\n` +
+          `  ${t.muted('Add a "deploy" section with "hosts" to enable remote operations.')}\n\n`,
       );
       process.exit(1);
     }
 
     if (config.deploy.hosts.length === 0) {
-      process.stderr.write('\nError: No remote hosts configured.\n');
-      process.stderr.write('  Add hosts to the deploy.hosts array in euclid.json.\n\n');
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error('No remote hosts configured.')}\n` +
+          `  ${t.muted('Add hosts to the deploy.hosts array in euclid.json.')}\n\n`,
+      );
       process.exit(1);
     }
 
@@ -31,7 +35,7 @@ export async function remoteSnapshotFeeConfigCommand(options: {
 
     try {
       // Connect to first host and fetch metagraph ID
-      process.stdout.write('  Connecting to first host...\n');
+      process.stdout.write(`  ${icon.arrow} ${t.muted('Connecting to first host...')}\n`);
       await ssh.connect(firstHost);
 
       const ml0Dir = `/home/${firstHost.user}/code/metagraph-l0`;
@@ -39,18 +43,20 @@ export async function remoteSnapshotFeeConfigCommand(options: {
       const metagraphId = result.stdout.trim();
 
       if (!metagraphId) {
-        process.stderr.write('\nError: Could not fetch metagraph ID from remote host.\n');
-        process.stderr.write(`  Ensure genesis.address exists at ${ml0Dir}/genesis.address\n\n`);
+        process.stderr.write(
+          `\n  ${icon.error} ${t.error('Could not fetch metagraph ID from remote host.')}\n` +
+            `  ${t.muted(`Ensure genesis.address exists at ${ml0Dir}/genesis.address`)}\n\n`,
+        );
         process.exit(1);
       }
 
-      process.stdout.write(`  Metagraph ID: ${metagraphId}\n\n`);
+      process.stdout.write(`  ${icon.pass} Metagraph ID: ${t.cyan(metagraphId)}\n\n`);
 
       // Fetch latest global snapshot
       const gl0 = config.deploy.network.gl0_node;
       const url = `http://${gl0.ip}:${gl0.public_port}/global-snapshots/latest/combined`;
 
-      process.stdout.write(`  Fetching latest global snapshot from ${url}...\n\n`);
+      process.stdout.write(`  ${icon.arrow} ${t.muted('Fetching latest global snapshot...')}\n\n`);
       const response = await fetch(url, {
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(30000),
@@ -58,7 +64,7 @@ export async function remoteSnapshotFeeConfigCommand(options: {
 
       if (!response.ok) {
         process.stderr.write(
-          `\nError: Failed to fetch global snapshot. HTTP ${response.status}\n\n`,
+          `\n  ${icon.error} ${t.error(`Failed to fetch global snapshot. HTTP ${response.status}`)}\n\n`,
         );
         process.exit(1);
       }
@@ -75,9 +81,9 @@ export async function remoteSnapshotFeeConfigCommand(options: {
 
       if (!lastMessages) {
         process.stderr.write(
-          '\nError: Could not extract fee configuration from global snapshot.\n',
+          `\n  ${icon.error} ${t.error('Could not extract fee configuration from global snapshot.')}\n` +
+            `  ${t.muted('Ensure your metagraph has fee messages configured.')}\n\n`,
         );
-        process.stderr.write('  Ensure your metagraph has fee messages configured.\n\n');
         process.exit(1);
       }
 
@@ -85,16 +91,16 @@ export async function remoteSnapshotFeeConfigCommand(options: {
       const owner = lastMessages.Owner as Record<string, Record<string, string>> | undefined;
       const staking = lastMessages.Staking as Record<string, Record<string, string>> | undefined;
 
-      const ownerAddress = owner?.value?.address ?? 'N/A';
-      const ownerOrdinal = owner?.value?.parentOrdinal ?? 'N/A';
-      const stakingAddress = staking?.value?.address ?? 'N/A';
-      const stakingOrdinal = staking?.value?.parentOrdinal ?? 'N/A';
+      const ownerAddress = owner?.value?.address ?? t.dim('N/A');
+      const ownerOrdinal = owner?.value?.parentOrdinal ?? t.dim('N/A');
+      const stakingAddress = staking?.value?.address ?? t.dim('N/A');
+      const stakingOrdinal = staking?.value?.parentOrdinal ?? t.dim('N/A');
 
-      process.stdout.write('  OWNER\n');
+      process.stdout.write(`  ${chalk.bold('OWNER')}\n`);
       process.stdout.write(formatKeyValue('  Address', ownerAddress) + '\n');
       process.stdout.write(formatKeyValue('  Parent Ordinal', String(ownerOrdinal)) + '\n');
       process.stdout.write('\n');
-      process.stdout.write('  STAKING\n');
+      process.stdout.write(`  ${chalk.bold('STAKING')}\n`);
       process.stdout.write(formatKeyValue('  Address', stakingAddress) + '\n');
       process.stdout.write(formatKeyValue('  Parent Ordinal', String(stakingOrdinal)) + '\n');
       process.stdout.write('\n');

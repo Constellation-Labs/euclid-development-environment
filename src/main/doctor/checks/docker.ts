@@ -77,6 +77,15 @@ export async function checkDockerMemory(): Promise<CheckResult> {
   try {
     const info = await execCommand('docker', ['info', '--format', '{{.MemTotal}}']);
     const bytes = parseInt(info.trim(), 10);
+
+    if (Number.isNaN(bytes) || bytes <= 0) {
+      return {
+        name: 'Docker memory',
+        status: 'warn',
+        message: 'Could not parse Docker memory allocation',
+      };
+    }
+
     const gb = bytes / (1024 * 1024 * 1024);
     const minGb = 4;
 

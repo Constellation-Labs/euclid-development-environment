@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolveJvmConfig,
-  JvmOverrideSchema,
   LayerJvmConfigSchema,
   PortTripleSchema,
   PortsSchema,
@@ -15,124 +14,41 @@ import {
 // ─── resolveJvmConfig ────────────────────────────────────────────────────────
 
 describe('resolveJvmConfig', () => {
-  const defaultJvm = {
-    min_heap: '2g',
-    max_heap: '4g',
-    metaspace_size: '256m',
-    max_metaspace_size: '512m',
-    additional_opts: '-XX:+UseG1GC',
-  };
-
-  it('returns default config when no layer override exists', () => {
-    const layerJvm = { default: defaultJvm };
-    const result = resolveJvmConfig(layerJvm, 'metagraph_l0');
-    expect(result).toEqual(defaultJvm);
+  it('returns metagraph_l0 defaults (8g)', () => {
+    const jvm = LayerJvmConfigSchema.parse({});
+    const result = resolveJvmConfig(jvm, 'metagraph_l0');
+    expect(result).toEqual({ xms: '8g', xmx: '8g' });
   });
 
-  it('overrides only max_heap when only max_heap is provided', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      metagraph_l0: { max_heap: '8g' },
-    };
-    const result = resolveJvmConfig(layerJvm, 'metagraph_l0');
-    expect(result).toEqual({
-      min_heap: '2g',
-      max_heap: '8g',
-      metaspace_size: '256m',
-      max_metaspace_size: '512m',
-      additional_opts: '-XX:+UseG1GC',
+  it('returns currency_l1 defaults (4g)', () => {
+    const jvm = LayerJvmConfigSchema.parse({});
+    const result = resolveJvmConfig(jvm, 'currency_l1');
+    expect(result).toEqual({ xms: '4g', xmx: '4g' });
+  });
+
+  it('returns data_l1 defaults (4g)', () => {
+    const jvm = LayerJvmConfigSchema.parse({});
+    const result = resolveJvmConfig(jvm, 'data_l1');
+    expect(result).toEqual({ xms: '4g', xmx: '4g' });
+  });
+
+  it('uses custom values per layer', () => {
+    const jvm = LayerJvmConfigSchema.parse({
+      metagraph_l0: { xms: '16g', xmx: '16g' },
+      currency_l1: { xms: '2g', xmx: '6g' },
     });
+    expect(resolveJvmConfig(jvm, 'metagraph_l0')).toEqual({ xms: '16g', xmx: '16g' });
+    expect(resolveJvmConfig(jvm, 'currency_l1')).toEqual({ xms: '2g', xmx: '6g' });
+    // data_l1 untouched — keeps defaults
+    expect(resolveJvmConfig(jvm, 'data_l1')).toEqual({ xms: '4g', xmx: '4g' });
   });
 
-  it('overrides multiple fields at once', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      currency_l1: { min_heap: '4g', max_heap: '16g', metaspace_size: '512m' },
-    };
-    const result = resolveJvmConfig(layerJvm, 'currency_l1');
-    expect(result).toEqual({
-      min_heap: '4g',
-      max_heap: '16g',
-      metaspace_size: '512m',
-      max_metaspace_size: '512m',
-      additional_opts: '-XX:+UseG1GC',
+  it('partial override fills remaining from defaults', () => {
+    const jvm = LayerJvmConfigSchema.parse({
+      metagraph_l0: { xmx: '12g' },
     });
-  });
-
-  it('returns default for a layer that has no override', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      metagraph_l0: { max_heap: '8g' },
-    };
-    // currency_l1 has no override
-    const result = resolveJvmConfig(layerJvm, 'currency_l1');
-    expect(result).toEqual(defaultJvm);
-  });
-
-  it('handles empty override object (all fields inherit)', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      data_l1: {},
-    };
-    const result = resolveJvmConfig(layerJvm, 'data_l1');
-    expect(result).toEqual(defaultJvm);
-  });
-
-  it('allows overriding additional_opts to a non-empty value', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      metagraph_l0: { additional_opts: '-Dfoo=bar' },
-    };
-    const result = resolveJvmConfig(layerJvm, 'metagraph_l0');
-    expect(result.additional_opts).toBe('-Dfoo=bar');
-  });
-
-  it('allows overriding additional_opts to empty string', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      metagraph_l0: { additional_opts: '' },
-    };
-    const result = resolveJvmConfig(layerJvm, 'metagraph_l0');
-    // '' is not undefined/null, so ?? returns ''
-    expect(result.additional_opts).toBe('');
-  });
-
-  it('works with all three layers independently', () => {
-    const layerJvm = {
-      default: defaultJvm,
-      metagraph_l0: { max_heap: '8g' },
-      currency_l1: { min_heap: '512m' },
-      data_l1: { metaspace_size: '1g' },
-    };
-    expect(resolveJvmConfig(layerJvm, 'metagraph_l0').max_heap).toBe('8g');
-    expect(resolveJvmConfig(layerJvm, 'currency_l1').min_heap).toBe('512m');
-    expect(resolveJvmConfig(layerJvm, 'data_l1').metaspace_size).toBe('1g');
-  });
-});
-
-// ─── JvmOverrideSchema ───────────────────────────────────────────────────────
-
-describe('JvmOverrideSchema', () => {
-  it('accepts empty object (all fields optional)', () => {
-    expect(JvmOverrideSchema.safeParse({}).success).toBe(true);
-  });
-
-  it('accepts partial override', () => {
-    const result = JvmOverrideSchema.safeParse({ max_heap: '8g' });
-    expect(result.success).toBe(true);
-    expect(result.data?.max_heap).toBe('8g');
-    expect(result.data?.min_heap).toBeUndefined();
-  });
-
-  it('rejects invalid heap format', () => {
-    expect(JvmOverrideSchema.safeParse({ max_heap: '8gb' }).success).toBe(false);
-    expect(JvmOverrideSchema.safeParse({ max_heap: 'big' }).success).toBe(false);
-  });
-
-  it('accepts valid heap formats', () => {
-    expect(JvmOverrideSchema.safeParse({ min_heap: '512m' }).success).toBe(true);
-    expect(JvmOverrideSchema.safeParse({ max_heap: '1g' }).success).toBe(true);
-    expect(JvmOverrideSchema.safeParse({ metaspace_size: '256m' }).success).toBe(true);
+    // xms comes from metagraph_l0 default (8g), xmx from override (12g)
+    expect(resolveJvmConfig(jvm, 'metagraph_l0')).toEqual({ xms: '8g', xmx: '12g' });
   });
 });
 
@@ -142,19 +58,36 @@ describe('LayerJvmConfigSchema', () => {
   it('provides full defaults when given empty object', () => {
     const result = LayerJvmConfigSchema.safeParse({});
     expect(result.success).toBe(true);
-    expect(result.data?.default.min_heap).toBe('1g');
-    expect(result.data?.default.max_heap).toBe('2g');
+    expect(result.data?.metagraph_l0).toEqual({ xms: '8g', xmx: '8g' });
+    expect(result.data?.currency_l1).toEqual({ xms: '4g', xmx: '4g' });
+    expect(result.data?.data_l1).toEqual({ xms: '4g', xmx: '4g' });
   });
 
-  it('does NOT fill in defaults for per-layer overrides', () => {
+  it('accepts partial layer overrides', () => {
     const result = LayerJvmConfigSchema.safeParse({
-      default: {},
-      metagraph_l0: { max_heap: '8g' },
+      metagraph_l0: { xmx: '12g' },
     });
     expect(result.success).toBe(true);
-    // The override should only have max_heap, not defaults
-    expect(result.data?.metagraph_l0?.max_heap).toBe('8g');
-    expect(result.data?.metagraph_l0?.min_heap).toBeUndefined();
+    expect(result.data?.metagraph_l0.xms).toBe('8g'); // default
+    expect(result.data?.metagraph_l0.xmx).toBe('12g'); // overridden
+  });
+
+  it('rejects invalid heap format', () => {
+    expect(
+      LayerJvmConfigSchema.safeParse({ metagraph_l0: { xms: '8gb' } }).success,
+    ).toBe(false);
+    expect(
+      LayerJvmConfigSchema.safeParse({ currency_l1: { xmx: 'big' } }).success,
+    ).toBe(false);
+  });
+
+  it('accepts valid heap formats', () => {
+    expect(
+      LayerJvmConfigSchema.safeParse({ metagraph_l0: { xms: '512m', xmx: '1g' } }).success,
+    ).toBe(true);
+    expect(
+      LayerJvmConfigSchema.safeParse({ data_l1: { xms: '2g', xmx: '8g' } }).success,
+    ).toBe(true);
   });
 });
 

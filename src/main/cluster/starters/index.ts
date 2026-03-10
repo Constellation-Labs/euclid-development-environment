@@ -18,6 +18,7 @@ export const LAYER_STARTERS: Record<LayerType, (ctx: LayerContext) => Promise<vo
 
 // Re-export everything consumers need
 export type { LayerContext } from './helpers.js';
+export { LAYER_PORT_KEYS } from './helpers.js';
 export { getLeadNodeId } from './lead-node.js';
 export { startGlobalL0 } from './global-l0.js';
 export { startMetagraphL0, createMultiNodeSignedMessage } from './metagraph-l0.js';

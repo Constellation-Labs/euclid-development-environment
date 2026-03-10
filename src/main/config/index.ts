@@ -6,7 +6,6 @@ export {
   LayerTypeSchema,
   DockerConfigSchema,
   PortsSchema,
-  JvmConfigSchema,
   LayerJvmConfigSchema,
   DeploySchema,
   SnapshotFeesSchema,
@@ -24,7 +23,7 @@ export type {
   PortTriple,
   PortsConfig,
   DockerConfig,
-  JvmConfig,
+  JvmLayerConfig,
   LayerJvmConfig,
   DeployConfig,
   SnapshotFeesConfig,
@@ -33,6 +32,12 @@ export type {
   LegacyEuclidConfig,
 } from './schema.js';
 
-export { loadConfig, validateConfig, checkConfig, findConfigPath } from './loader.js';
+export {
+  loadConfig,
+  validateConfig,
+  checkConfig,
+  findConfigPath,
+  findProjectRoot,
+} from './loader.js';
 export { migrateV1toV2 } from './migration.js';
 export { writeConfigAtomic } from './writer.js';

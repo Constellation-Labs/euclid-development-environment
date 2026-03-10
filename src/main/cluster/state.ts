@@ -1,5 +1,4 @@
 import { readFile, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
@@ -58,14 +57,12 @@ export function hashConfig(config: unknown): string {
 export async function loadClusterState(): Promise<ClusterState> {
   const statePath = getStatePath();
 
-  if (!existsSync(statePath)) {
-    return defaultState();
-  }
-
   try {
     const content = await readFile(statePath, 'utf-8');
     return JSON.parse(content) as ClusterState;
   } catch {
+    // ENOENT = file doesn't exist yet → return fresh default
+    // Other errors (corrupt JSON, permissions) → also return default gracefully
     return defaultState();
   }
 }
@@ -77,10 +74,8 @@ export async function saveClusterState(state: ClusterState): Promise<void> {
   const statePath = getStatePath();
   const dir = dirname(statePath);
 
-  if (!existsSync(dir)) {
-    await mkdir(dir, { recursive: true });
-  }
-
+  // mkdir with recursive is safe to call even if dir already exists
+  await mkdir(dir, { recursive: true });
   await writeConfigAtomic(statePath, state);
 }
 

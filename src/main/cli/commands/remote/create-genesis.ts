@@ -1,16 +1,15 @@
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { input, select, confirm } from '@inquirer/prompts';
 import {
   loadConfig,
   DockerClient,
-  composeUp,
-  composeDown,
   logger,
   LogLevel,
   writeConfigAtomic,
   findConfigPath,
+  findProjectRoot,
 } from '../../../index.js';
 import type { EuclidConfig, DeployConfig } from '../../../index.js';
 import {
@@ -44,7 +43,10 @@ function hasEmptyHosts(deploy: DeployConfig): boolean {
 // ─── Interactive Config Prompts ─────────────────────────────────────────────
 
 async function promptDeployConfig(config: EuclidConfig): Promise<EuclidConfig> {
-  const deploy = config.deploy!;
+  if (!config.deploy) {
+    throw new Error('No deploy configuration found in euclid.json');
+  }
+  const deploy = config.deploy;
   const net = deploy.network;
   let changed = false;
 
@@ -164,24 +166,28 @@ const LAYER_JVM_LABELS: Record<string, string> = {
 };
 
 async function promptJvmConfig(config: EuclidConfig): Promise<EuclidConfig> {
-  const deploy = config.deploy!;
+  if (!config.deploy) {
+    throw new Error('No deploy configuration found in euclid.json');
+  }
+  const deploy = config.deploy;
   const jvm = deploy.jvm;
 
-  // Show current defaults
-  process.stdout.write(`  ${t.dim('Current JVM defaults:')}\n`);
-  process.stdout.write(`    ${formatKeyValue('Min Heap', jvm.default.min_heap, 20)}`);
-  process.stdout.write(`    ${formatKeyValue('Max Heap', jvm.default.max_heap, 20)}`);
-  process.stdout.write(`    ${formatKeyValue('Metaspace', jvm.default.metaspace_size, 20)}`);
-  process.stdout.write(
-    `    ${formatKeyValue('Max Metaspace', jvm.default.max_metaspace_size, 20)}`,
-  );
-  if (jvm.default.additional_opts) {
-    process.stdout.write(`    ${formatKeyValue('Extra opts', jvm.default.additional_opts, 20)}`);
+  // Show current per-layer settings
+  process.stdout.write(`  ${t.dim('Current JVM heap settings:')}\n`);
+  for (const layerKey of LAYER_JVM_KEYS) {
+    if (!config.layers.includes(layerKey.replace('_', '-') as (typeof config.layers)[number])) {
+      continue;
+    }
+    const label = LAYER_JVM_LABELS[layerKey];
+    const layerCfg = jvm[layerKey];
+    process.stdout.write(
+      `    ${t.white(label.padEnd(14))} -Xms=${layerCfg.xms}  -Xmx=${layerCfg.xmx}\n`,
+    );
   }
   process.stdout.write('\n');
 
   const customize = await confirm({
-    message: 'Customize JVM settings per layer?',
+    message: 'Customize JVM heap settings?',
     default: false,
   });
 
@@ -189,75 +195,31 @@ async function promptJvmConfig(config: EuclidConfig): Promise<EuclidConfig> {
 
   let changed = false;
 
-  // First ask if they want to change the defaults
-  const changeDefaults = await confirm({
-    message: 'Change default JVM settings (applied to all layers)?',
-    default: false,
-  });
-
-  if (changeDefaults) {
-    jvm.default.min_heap = await input({
-      message: 'Default min heap (e.g. 1g, 512m):',
-      default: jvm.default.min_heap,
-      validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "1g" or "512m"',
-    });
-    jvm.default.max_heap = await input({
-      message: 'Default max heap (e.g. 2g, 1024m):',
-      default: jvm.default.max_heap,
-      validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "2g" or "1024m"',
-    });
-    jvm.default.metaspace_size = await input({
-      message: 'Default metaspace size:',
-      default: jvm.default.metaspace_size,
-      validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "256m"',
-    });
-    jvm.default.max_metaspace_size = await input({
-      message: 'Default max metaspace size:',
-      default: jvm.default.max_metaspace_size,
-      validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "512m"',
-    });
-    changed = true;
-  }
-
-  // Per-layer overrides
+  // Per-layer settings
   const activeLayers = LAYER_JVM_KEYS.filter((k) =>
     config.layers.includes(k.replace('_', '-') as (typeof config.layers)[number]),
   );
 
   for (const layerKey of activeLayers) {
     const label = LAYER_JVM_LABELS[layerKey];
-    const override = await confirm({
-      message: `Override JVM settings for ${label}?`,
+    const current = jvm[layerKey];
+    const edit = await confirm({
+      message: `Edit heap settings for ${label} (current: -Xms=${current.xms} -Xmx=${current.xmx})?`,
       default: false,
     });
 
-    if (!override) continue;
+    if (!edit) continue;
 
-    const layerJvm = {
-      min_heap: await input({
-        message: `${label} min heap:`,
-        default: jvm.default.min_heap,
-        validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "1g" or "512m"',
-      }),
-      max_heap: await input({
-        message: `${label} max heap:`,
-        default: jvm.default.max_heap,
-        validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "2g" or "1024m"',
-      }),
-      metaspace_size: await input({
-        message: `${label} metaspace size:`,
-        default: jvm.default.metaspace_size,
-        validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "256m"',
-      }),
-      max_metaspace_size: await input({
-        message: `${label} max metaspace size:`,
-        default: jvm.default.max_metaspace_size,
-        validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "512m"',
-      }),
-      additional_opts: '',
-    };
-
-    (jvm as Record<string, unknown>)[layerKey] = layerJvm;
+    jvm[layerKey].xms = await input({
+      message: `${label} -Xms (min heap):`,
+      default: current.xms,
+      validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "4g" or "512m"',
+    });
+    jvm[layerKey].xmx = await input({
+      message: `${label} -Xmx (max heap):`,
+      default: current.xmx,
+      validate: (v) => /^\d+[gm]$/.test(v) || 'Must be like "8g" or "1024m"',
+    });
     changed = true;
   }
 
@@ -283,7 +245,7 @@ export async function createRemoteGenesisCommand(options: { verbose?: boolean })
 
   try {
     let config = await loadConfig();
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
     const dataPath = resolve(projectRoot, 'data');
 
     // Validate deploy config exists
@@ -325,7 +287,10 @@ export async function createRemoteGenesisCommand(options: { verbose?: boolean })
     // ── JVM configuration ────────────────────────────────────
     config = await promptJvmConfig(config);
 
-    const net = config.deploy!.network;
+    if (!config.deploy) {
+      throw new Error('Deploy configuration was lost after JVM config step');
+    }
+    const net = config.deploy.network;
     const docker = new DockerClient();
     const { version } = await docker.checkConnection();
     logger.debug(`Docker ${version} connected`);
@@ -338,60 +303,161 @@ export async function createRemoteGenesisCommand(options: { verbose?: boolean })
     process.stdout.write('\n');
 
     const dockerPath = resolve(projectRoot, 'docker');
+    const genesisDir = resolve(dockerPath, 'artifacts', 'genesis');
+    mkdirSync(genesisDir, { recursive: true });
 
-    // Set environment variables for the build
-    const env: Record<string, string> = {
-      NETWORK_HOST_IP: net.gl0_node.ip,
-      NETWORK_HOST_ID: net.gl0_node.id,
-      NETWORK_HOST_PUBLIC_PORT: String(net.gl0_node.public_port),
-    };
+    // Validate metagraph-base-image exists (built by `hydra build`)
+    const imageExists = await docker.imageExists('metagraph-base-image');
+    if (!imageExists) {
+      process.stderr.write(`\n  ${t.error('✗')} Docker image 'metagraph-base-image' not found.\n`);
+      process.stderr.write(
+        `    Run ${t.cyan("'hydra build'")} first to compile your metagraph.\n\n`,
+      );
+      process.exit(1);
+    }
 
+    const containerName = 'hydra-genesis-tmp';
     const totalSteps = 4;
 
-    process.stdout.write(`  ${formatStep(1, totalSteps, 'Starting Docker containers')}\n`);
-    await composeUp({
-      cwd: resolve(dockerPath, 'metagraph-ubuntu'),
-      env,
-    });
-    process.stdout.write(`  ${formatSuccess('Containers started')}\n`);
+    try {
+      // ── Step 1: Start a temporary container ────────────────────────
+      process.stdout.write(`  ${formatStep(1, totalSteps, 'Starting temporary container')}\n`);
 
-    process.stdout.write(`  ${formatStep(2, totalSteps, 'Starting Global L0')}\n`);
-    await composeUp({
-      cwd: resolve(dockerPath, 'metagraph-base-image'),
-      env: {
-        ...env,
-        FORCE_GENESIS: 'true',
-      },
-    });
-    process.stdout.write(`  ${formatSuccess('Global L0 started')}\n`);
+      // Clean up any leftover container from a previous run
+      await docker.removeContainer(containerName);
 
-    process.stdout.write(`  ${formatStep(3, totalSteps, 'Starting Metagraph L0 (genesis)')}\n`);
-    // Wait for genesis files to be generated
-    await new Promise((r) => setTimeout(r, 30000));
-    process.stdout.write(`  ${formatSuccess('Metagraph L0 genesis created')}\n`);
+      // Ensure network exists
+      await docker.ensureNetwork('custom-network', config.docker.network_subnet);
 
-    // Stop all containers
-    process.stdout.write(`  ${formatStep(4, totalSteps, 'Stopping containers')}\n`);
-    await composeDown({
-      cwd: resolve(dockerPath, 'metagraph-base-image'),
-    });
-    await composeDown({
-      cwd: resolve(dockerPath, 'metagraph-ubuntu'),
-    });
-    process.stdout.write(`  ${formatSuccess('Containers stopped')}\n`);
+      await docker.startContainer({
+        name: containerName,
+        image: 'metagraph-base-image:latest',
+        networkName: 'custom-network',
+        ipAddress: '172.50.0.100',
+        ports: [],
+        volumes: [
+          {
+            host: genesisDir,
+            container: '/code/shared_genesis',
+          },
+        ],
+      });
+      process.stdout.write(`  ${formatSuccess('Container started')}\n`);
 
-    // Verify genesis files were created
-    const genesisDir = resolve(dockerPath, 'artifacts', 'genesis');
+      // ── Step 2: Copy P12 keystore + genesis.csv ──────────────────
+      process.stdout.write(`  ${formatStep(2, totalSteps, 'Preparing genesis files')}\n`);
+
+      const leadNode = config.nodes[0];
+      const p12Path = resolve(dataPath, 'p12-files', leadNode.key_file.name);
+      await docker.copyToContainer(
+        containerName,
+        p12Path,
+        `code/metagraph-l0/${leadNode.key_file.name}`,
+      );
+
+      // Ensure genesis.csv exists in container
+      const csvCheck = await docker.exec(containerName, [
+        'bash',
+        '-c',
+        'test -f metagraph-l0/genesis.csv && echo "ok" || echo "missing"',
+      ]);
+      if (csvCheck.stdout.trim() !== 'ok') {
+        const hostCsv = resolve(dataPath, 'metagraph-l0', 'genesis', 'genesis.csv');
+        if (!existsSync(hostCsv)) {
+          throw new Error(
+            `Missing genesis.csv. Expected at: ${hostCsv}\n` +
+              `  Create one in data/metagraph-l0/genesis/genesis.csv`,
+          );
+        }
+        await docker.copyToContainer(containerName, hostCsv, 'code/metagraph-l0/genesis.csv');
+      }
+      process.stdout.write(`  ${formatSuccess('Files prepared')}\n`);
+
+      // ── Step 3: Run create-genesis ───────────────────────────────
+      process.stdout.write(`  ${formatStep(3, totalSteps, 'Creating genesis snapshot')}\n`);
+
+      const genesisEnv: Record<string, string> = {
+        CL_KEYSTORE: leadNode.key_file.name,
+        CL_KEYALIAS: leadNode.key_file.alias,
+        CL_PASSWORD: leadNode.key_file.password,
+        CL_APP_ENV: 'dev',
+        CL_COLLATERAL: '0',
+        CL_GLOBAL_L0_PEER_HTTP_HOST: net.gl0_node.ip,
+        CL_GLOBAL_L0_PEER_HTTP_PORT: String(net.gl0_node.public_port),
+        CL_GLOBAL_L0_PEER_ID: net.gl0_node.id,
+      };
+
+      const result = await docker.exec(
+        containerName,
+        ['bash', '-c', 'cd metagraph-l0 && java -jar metagraph-l0.jar create-genesis genesis.csv'],
+        { env: genesisEnv },
+      );
+
+      if (result.exitCode !== 0) {
+        const errMsg = result.stderr.trim() || result.stdout.trim();
+        throw new Error(`create-genesis failed (exit ${result.exitCode}): ${errMsg}`);
+      }
+
+      logger.debug(`create-genesis output: ${result.stdout.trim().slice(0, 300)}`);
+
+      // Verify genesis files inside container
+      const fileCheck = await docker.exec(containerName, [
+        'bash',
+        '-c',
+        'ls -la metagraph-l0/genesis.address metagraph-l0/genesis.snapshot 2>&1',
+      ]);
+      logger.debug(`Genesis files: ${fileCheck.stdout.trim()}`);
+
+      if (
+        !fileCheck.stdout.includes('genesis.snapshot') ||
+        !fileCheck.stdout.includes('genesis.address')
+      ) {
+        throw new Error(
+          `create-genesis did not produce expected files.\n` +
+            `  Output: ${result.stdout.trim().slice(0, 200)}`,
+        );
+      }
+
+      // Copy genesis files to host via shared volume
+      await docker.exec(containerName, [
+        'bash',
+        '-c',
+        'cp metagraph-l0/genesis.address shared_genesis/genesis.address && ' +
+          'cp metagraph-l0/genesis.snapshot shared_genesis/genesis.snapshot',
+      ]);
+
+      process.stdout.write(`  ${formatSuccess('Genesis snapshot created')}\n`);
+
+      // ── Step 4: Clean up ─────────────────────────────────────────
+      process.stdout.write(`  ${formatStep(4, totalSteps, 'Cleaning up')}\n`);
+      await docker.removeContainer(containerName);
+      process.stdout.write(`  ${formatSuccess('Container removed')}\n`);
+    } catch (innerErr) {
+      // Always clean up the temp container on failure
+      await docker.removeContainer(containerName).catch((e) => {
+        logger.debug(
+          `Failed to clean up container ${containerName}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
+      throw innerErr;
+    }
+
+    // Verify genesis files on host
     const hasSnapshot = existsSync(resolve(genesisDir, 'genesis.snapshot'));
     const hasAddress = existsSync(resolve(genesisDir, 'genesis.address'));
 
     if (hasSnapshot && hasAddress) {
+      // Read the metagraph ID from genesis.address
+      const metagraphId = (await readFile(resolve(genesisDir, 'genesis.address'), 'utf-8')).trim();
       process.stdout.write(`\n  ${t.accent('Genesis files created successfully:')}\n`);
       process.stdout.write(`    ${t.dim('docker/artifacts/genesis/')}genesis.snapshot\n`);
       process.stdout.write(`    ${t.dim('docker/artifacts/genesis/')}genesis.address\n`);
+      if (metagraphId) {
+        process.stdout.write(`\n  ${formatKeyValue('Metagraph ID', metagraphId)}`);
+      }
       process.stdout.write(`\n  Next step: ${t.cyan('hydra remote deploy')}\n\n`);
     } else {
-      process.stderr.write(`\n  ${t.warn('⚠')} Genesis files may not have been fully generated.\n`);
+      process.stderr.write(`\n  ${t.error('✗')} Genesis files were not copied to host.\n`);
       process.stderr.write(`  Check ${t.dim('docker/artifacts/genesis/')} for outputs.\n\n`);
     }
   } catch (err) {

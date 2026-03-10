@@ -1,7 +1,7 @@
 {
   "config_version": 2,
   "project_name": "custom-project",
-  "tessellation_version": "4.0.0-rc.0",
+  "tessellation_version": "4.0.0-rc.11",
   "tessellation_ref_type": "tag",
   "framework": {
     "name": "currency",
@@ -102,20 +102,32 @@
       }
     },
     "jvm": {
-      "default": {
-        "min_heap": "1g",
-        "max_heap": "2g",
-        "metaspace_size": "256m",
-        "max_metaspace_size": "512m",
-        "additional_opts": ""
-      },
-      "metagraph_l0": {
-        "max_heap": "4g"
-      },
-      "currency_l1": {},
-      "data_l1": {}
+      "metagraph_l0": { "xms": "8g", "xmx": "8g" },
+      "currency_l1": { "xms": "4g", "xmx": "4g" },
+      "data_l1": { "xms": "4g", "xmx": "4g" }
     },
-    "hosts": [],
+    "monitoring_host": {
+      "host": "13.14.15.16",
+      "user": "ubuntu",
+      "ssh_key": "~/.ssh/id_rsa"
+    },
+    "hosts": [
+      {
+        "host": "1.2.3.4",
+        "user": "ubuntu",
+        "ssh_key": "~/.ssh/id_rsa"
+      },
+      {
+        "host": "5.6.7.8",
+        "user": "ubuntu",
+        "ssh_key": "~/.ssh/id_rsa"
+      },
+      {
+        "host": "9.10.11.12",
+        "user": "ubuntu",
+        "ssh_key": "~/.ssh/id_rsa"
+      }
+    ],
     "remote_ports": {
       "metagraph_l0": {
         "public": 9100,

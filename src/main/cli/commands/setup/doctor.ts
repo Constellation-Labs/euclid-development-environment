@@ -1,4 +1,4 @@
-import { loadConfig, logger, LogLevel } from '../../../index.js';
+import { loadConfig, findProjectRoot, logger, LogLevel } from '../../../index.js';
 import { runDoctorChecks } from '../../../doctor/index.js';
 import { formatDoctorReport } from '../../ui/format.js';
 
@@ -15,7 +15,7 @@ export async function doctorCommand(options: { verbose?: boolean; json?: boolean
     logger.debug('Could not load config — running doctor without config-dependent checks.');
   }
 
-  const projectRoot = process.cwd();
+  const projectRoot = findProjectRoot();
   const report = await runDoctorChecks(projectRoot, config);
 
   if (options.json) {

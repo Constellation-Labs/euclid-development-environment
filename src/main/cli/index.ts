@@ -36,6 +36,8 @@ import { remoteStatusCommand } from './commands/remote/status.js';
 import { remoteLogsCommand } from './commands/remote/logs.js';
 import { remoteDeployMonitoringCommand } from './commands/remote/deploy-monitoring.js';
 import { remoteStartMonitoringCommand } from './commands/remote/start-monitoring.js';
+import { remoteStopCommand } from './commands/remote/stop.js';
+import { remoteDestroyCommand } from './commands/remote/destroy.js';
 import { remoteSnapshotFeeConfigCommand } from './commands/remote/snapshot-fee-config.js';
 
 const program = new Command();
@@ -337,6 +339,23 @@ remoteCmd
       follow: cmdOpts.follow !== false,
       verbose: opts.verbose,
     });
+  });
+
+remoteCmd
+  .command('stop')
+  .description('Stop all metagraph processes on remote hosts')
+  .action(async () => {
+    const opts = program.opts();
+    await remoteStopCommand({ verbose: opts.verbose });
+  });
+
+remoteCmd
+  .command('destroy')
+  .description('Remove all metagraph data and processes from remote hosts')
+  .option('--yes', 'Skip confirmation prompt')
+  .action(async (cmdOpts) => {
+    const opts = program.opts();
+    await remoteDestroyCommand({ yes: cmdOpts.yes, verbose: opts.verbose });
   });
 
 remoteCmd

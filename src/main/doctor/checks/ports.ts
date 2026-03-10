@@ -1,15 +1,7 @@
 import { createServer } from 'node:net';
 import type { CheckResult } from '../index.js';
-import type { EuclidConfig, LayerType, PortTriple } from '../../index.js';
-import { computeNodePorts, LAYER_DISPLAY_NAMES } from '../../index.js';
-
-const LAYER_PORT_KEYS: Record<LayerType, keyof EuclidConfig['ports']> = {
-  'global-l0': 'global_l0',
-  'dag-l1': 'dag_l1',
-  'metagraph-l0': 'metagraph_l0',
-  'currency-l1': 'currency_l1',
-  'data-l1': 'data_l1',
-};
+import type { EuclidConfig, PortTriple } from '../../index.js';
+import { computeNodePorts, LAYER_DISPLAY_NAMES, LAYER_PORT_KEYS } from '../../index.js';
 
 /**
  * Check port availability for all configured layers and nodes.

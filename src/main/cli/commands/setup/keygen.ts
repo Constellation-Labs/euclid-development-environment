@@ -1,11 +1,11 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { input, confirm, select } from '@inquirer/prompts';
 import { t, icon } from '../../ui/theme.js';
 import { formatHeader, formatError } from '../../ui/format.js';
 import { createSpinner, spinnerSuccess, spinnerFail } from '../../ui/spinner.js';
-import { findConfigPath } from '../../../config/loader.js';
+import { findConfigPath, findProjectRoot } from '../../../config/loader.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import { logger } from '../../../shared/logger.js';
 
@@ -30,7 +30,7 @@ interface GeneratedKey {
 
 function keytoolAvailable(): boolean {
   try {
-    execSync('keytool -help', { stdio: 'pipe' });
+    execFileSync('keytool', ['-help'], { stdio: 'pipe' });
     return true;
   } catch {
     return false;
@@ -38,7 +38,7 @@ function keytoolAvailable(): boolean {
 }
 
 function resolveP12Dir(): string {
-  const dir = resolve(process.cwd(), 'data', 'p12-files');
+  const dir = resolve(findProjectRoot(), 'data', 'p12-files');
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -56,26 +56,27 @@ function generateFilename(alias: string): string {
 // ─── Core Generation ────────────────────────────────────────────────────────
 
 function generateKeystore(outputPath: string, alias: string, password: string): void {
-  const cmd = [
+  execFileSync(
     'keytool',
-    '-genkeypair',
-    '-alias',
-    alias,
-    '-keyalg',
-    'EC',
-    '-groupname',
-    'secp256k1',
-    '-keystore',
-    outputPath,
-    '-storetype',
-    'PKCS12',
-    '-storepass',
-    password,
-    '-dname',
-    '"CN=Constellation Node"',
-  ].join(' ');
-
-  execSync(cmd, { stdio: 'pipe' });
+    [
+      '-genkeypair',
+      '-alias',
+      alias,
+      '-keyalg',
+      'EC',
+      '-groupname',
+      'secp256k1',
+      '-keystore',
+      outputPath,
+      '-storetype',
+      'PKCS12',
+      '-storepass',
+      password,
+      '-dname',
+      'CN=Constellation Node',
+    ],
+    { stdio: 'pipe' },
+  );
 }
 
 // ─── Config Update ──────────────────────────────────────────────────────────
@@ -128,7 +129,9 @@ async function updateEuclidConfig(keys: GeneratedKey[]): Promise<boolean> {
     await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
     return true;
   } catch (err) {
-    logger.error('Failed to update config', { error: (err as Error).message });
+    logger.error('Failed to update config', {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 }

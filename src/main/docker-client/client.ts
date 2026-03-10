@@ -140,8 +140,12 @@ export class DockerClient {
     ipAddress: string;
     ports: Array<{ host: number; container: number }>;
     volumes: Array<{ host: string; container: string }>;
+    resources?: {
+      memoryMb?: number;
+      cpus?: number;
+    };
   }): Promise<string> {
-    const { name, image, networkName, ipAddress, ports, volumes } = options;
+    const { name, image, networkName, ipAddress, ports, volumes, resources } = options;
 
     // Check if container already exists
     const existing = await this.getContainer(name);
@@ -167,15 +171,30 @@ export class DockerClient {
 
     const binds = volumes.map((v) => `${v.host}:${v.container}`);
 
+    // Build HostConfig with optional resource limits
+    const hostConfig: Record<string, unknown> = {
+      PortBindings: portBindings,
+      Binds: binds,
+      NetworkMode: networkName,
+      RestartPolicy: { Name: 'unless-stopped', MaximumRetryCount: 0 },
+    };
+
+    // Apply resource limits if specified
+    if (resources?.memoryMb) {
+      hostConfig.Memory = resources.memoryMb * 1024 * 1024;
+      // Set memory + swap equal to memory (no swap)
+      hostConfig.MemorySwap = resources.memoryMb * 1024 * 1024;
+    }
+    if (resources?.cpus) {
+      // NanoCPUs: 1 CPU = 1e9
+      hostConfig.NanoCpus = Math.round(resources.cpus * 1e9);
+    }
+
     const container = await this.docker.createContainer({
       name,
       Image: image,
       ExposedPorts: exposedPorts,
-      HostConfig: {
-        PortBindings: portBindings,
-        Binds: binds,
-        NetworkMode: networkName,
-      },
+      HostConfig: hostConfig as Dockerode.HostConfig,
       NetworkingConfig: {
         EndpointsConfig: {
           [networkName]: {
@@ -358,8 +377,9 @@ export class DockerClient {
  * Returns: negative if a < b, 0 if equal, positive if a > b.
  */
 function compareVersions(a: string, b: string): number {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
+  // Strip pre-release suffixes (e.g. "26.0.0-rc1" → "26.0.0")
+  const pa = a.split('-')[0].split('.').map(Number);
+  const pb = b.split('-')[0].split('.').map(Number);
   const len = Math.max(pa.length, pb.length);
 
   for (let i = 0; i < len; i++) {

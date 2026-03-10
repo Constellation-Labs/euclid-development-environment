@@ -34,9 +34,12 @@ export function layerToPortKey(layer: LayerType): string {
   return layer.replace(/-/g, '_');
 }
 
+const MAX_PORT = 65535;
+
 /**
  * Compute the actual ports for a given layer and node index.
  * Ports are offset by (nodeIndex * ipOffset) from the base.
+ * @throws {RangeError} if any computed port exceeds valid TCP range (1-65535).
  */
 export function computeNodePorts(
   basePorts: PortTriple,
@@ -44,11 +47,22 @@ export function computeNodePorts(
   ipOffset: number,
 ): PortTriple {
   const offset = nodeIndex * ipOffset;
-  return {
+  const ports: PortTriple = {
     public: basePorts.public + offset,
     p2p: basePorts.p2p + offset,
     cli: basePorts.cli + offset,
   };
+
+  for (const [key, port] of Object.entries(ports)) {
+    if (port < 1 || port > MAX_PORT) {
+      throw new RangeError(
+        `Computed ${key} port ${port} is out of range (1-${MAX_PORT}). ` +
+          `Base port + (nodeIndex=${nodeIndex} × ipOffset=${ipOffset}) exceeds maximum.`,
+      );
+    }
+  }
+
+  return ports;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import {
   loadConfig,
+  findProjectRoot,
   logger,
   LogLevel,
   DockerClient,
@@ -9,23 +10,16 @@ import {
   LAYER_START_ORDER,
   LAYER_DISPLAY_NAMES,
   LAYER_STARTERS,
+  LAYER_PORT_KEYS,
   getLeadNodeId,
   updateClusterState,
   hashConfig,
 } from '../../../index.js';
-import type { EuclidConfig, LayerType, LayerContext } from '../../../index.js';
+import type { LayerContext } from '../../../index.js';
 import { formatError, formatStep } from '../../ui/format.js';
 import { createSpinner, spinnerSuccess, spinnerFail } from '../../ui/spinner.js';
-import { t } from '../../ui/theme.js';
+import { t, icon } from '../../ui/theme.js';
 import type { Ora } from 'ora';
-
-const LAYER_PORT_KEYS: Record<LayerType, keyof EuclidConfig['ports']> = {
-  'global-l0': 'global_l0',
-  'dag-l1': 'dag_l1',
-  'metagraph-l0': 'metagraph_l0',
-  'currency-l1': 'currency_l1',
-  'data-l1': 'data_l1',
-};
 
 export async function startCommand(options: {
   genesis?: boolean;
@@ -34,6 +28,27 @@ export async function startCommand(options: {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
 
   let activeSpinner: Ora | null = null;
+  let interrupted = false;
+
+  // ─── Signal handlers for clean shutdown ──────────────────────────
+  const cleanup = (signal: string, code: number) => {
+    if (interrupted) return;
+    interrupted = true;
+    if (activeSpinner?.isSpinning) {
+      spinnerFail(activeSpinner, `Interrupted (${signal})`);
+    }
+    process.stderr.write(`\n  ${icon.warn} ${t.warn(`Received ${signal}, stopping...`)}\n\n`);
+    updateClusterState((s) => ({ ...s, status: 'stopped' }))
+      .catch((e) =>
+        logger.debug('State update failed', { error: e instanceof Error ? e.message : String(e) }),
+      )
+      .finally(() => process.exit(code));
+  };
+
+  const sigintHandler = () => cleanup('SIGINT', 130);
+  const sigtermHandler = () => cleanup('SIGTERM', 143);
+  process.on('SIGINT', sigintHandler);
+  process.on('SIGTERM', sigtermHandler);
 
   try {
     const config = await loadConfig();
@@ -41,7 +56,7 @@ export async function startCommand(options: {
     await docker.checkConnection();
 
     const mode = options.genesis ? 'genesis' : 'rollback';
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
     const dockerPath = resolve(projectRoot, 'docker');
 
     process.stdout.write(`\n  Starting metagraph cluster ${t.dim(`(${mode} mode)`)}\n`);
@@ -205,8 +220,13 @@ export async function startCommand(options: {
     if (activeSpinner?.isSpinning) {
       spinnerFail(activeSpinner, 'Start failed');
     }
-    await updateClusterState((s) => ({ ...s, status: 'stopped' })).catch(() => {});
+    await updateClusterState((s) => ({ ...s, status: 'stopped' })).catch((e) =>
+      logger.debug('State update failed', { error: e instanceof Error ? e.message : String(e) }),
+    );
     process.stderr.write('\n' + formatError(err) + '\n');
     process.exit(1);
+  } finally {
+    process.removeListener('SIGINT', sigintHandler);
+    process.removeListener('SIGTERM', sigtermHandler);
   }
 }

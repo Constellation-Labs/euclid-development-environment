@@ -7,17 +7,10 @@ import {
   fetchClusterInfo,
   computeNodePorts,
   LAYER_DISPLAY_NAMES,
+  LAYER_PORT_KEYS,
 } from '../../../index.js';
-import type { EuclidConfig, LayerType } from '../../../index.js';
 import { formatError, formatHeader, formatTable } from '../../ui/format.js';
-
-const LAYER_PORT_KEYS: Record<LayerType, keyof EuclidConfig['ports']> = {
-  'global-l0': 'global_l0',
-  'dag-l1': 'dag_l1',
-  'metagraph-l0': 'metagraph_l0',
-  'currency-l1': 'currency_l1',
-  'data-l1': 'data_l1',
-};
+import { t } from '../../ui/theme.js';
 
 export async function statusCommand(options: { verbose?: boolean; json?: boolean }): Promise<void> {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
@@ -42,7 +35,7 @@ export async function statusCommand(options: { verbose?: boolean; json?: boolean
 
     for (const node of config.nodes) {
       const running = await docker.isContainerRunning(node.name);
-      const state = running ? '\x1b[32mrunning\x1b[0m' : '\x1b[31mstopped\x1b[0m';
+      const state = running ? t.accent('running') : t.error('stopped');
       rows.push([node.name, state]);
     }
 
@@ -61,10 +54,10 @@ export async function statusCommand(options: { verbose?: boolean; json?: boolean
       const port = String(nodePorts.public);
       const colorState =
         state === 'Ready'
-          ? `\x1b[32m${state}\x1b[0m`
+          ? t.accent(state)
           : state === 'unavailable'
-            ? `\x1b[31m${state}\x1b[0m`
-            : `\x1b[33m${state}\x1b[0m`;
+            ? t.error(state)
+            : t.warn(state);
 
       layerRows.push([displayName, colorState, port]);
 

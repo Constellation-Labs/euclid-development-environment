@@ -1,4 +1,14 @@
 import { logger } from '../shared/logger.js';
+import { errorMessage, LayerStartError } from '../shared/errors.js';
+
+/** Timeout for individual HTTP requests to node info/cluster endpoints. */
+const HTTP_TIMEOUT_MS = 5000;
+
+/** Default maximum polling attempts before giving up. */
+const DEFAULT_MAX_RETRIES = 120;
+
+/** Default interval between polling attempts (milliseconds). */
+const DEFAULT_POLL_INTERVAL_MS = 1000;
 
 export interface NodeInfo {
   state: string;
@@ -28,11 +38,11 @@ export interface ClusterInfo {
 export async function fetchNodeInfo(host: string, port: number): Promise<NodeInfo | null> {
   const url = `http://${host}:${port}/node/info`;
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(HTTP_TIMEOUT_MS) });
     if (!response.ok) return null;
     return (await response.json()) as NodeInfo;
   } catch (err) {
-    logger.debug(`Failed to fetch node info from ${url}`, { error: (err as Error).message });
+    logger.debug(`Failed to fetch node info from ${url}`, { error: errorMessage(err) });
     return null;
   }
 }
@@ -43,12 +53,12 @@ export async function fetchNodeInfo(host: string, port: number): Promise<NodeInf
 export async function fetchClusterInfo(host: string, port: number): Promise<ClusterInfo | null> {
   const url = `http://${host}:${port}/cluster/info`;
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(HTTP_TIMEOUT_MS) });
     if (!response.ok) return null;
     const peers = (await response.json()) as ClusterInfo['peers'];
     return { peers };
   } catch (err) {
-    logger.debug(`Failed to fetch cluster info from ${url}`, { error: (err as Error).message });
+    logger.debug(`Failed to fetch cluster info from ${url}`, { error: errorMessage(err) });
     return null;
   }
 }
@@ -66,8 +76,8 @@ export async function waitForNodeState(
     onRetry?: (attempt: number, elapsed: number) => void;
   },
 ): Promise<NodeInfo> {
-  const maxRetries = options?.maxRetries ?? 120;
-  const intervalMs = options?.intervalMs ?? 1000;
+  const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const intervalMs = options?.intervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   const startTime = Date.now();
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -84,7 +94,7 @@ export async function waitForNodeState(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  throw new Error(
+  throw new LayerStartError(
     `Node at ${host}:${port} did not reach '${targetState}' after ${maxRetries} attempts (${Math.round((maxRetries * intervalMs) / 1000)}s)`,
   );
 }
@@ -101,8 +111,8 @@ export async function waitForNodeReady(
     onRetry?: (attempt: number, elapsed: number) => void;
   },
 ): Promise<NodeInfo> {
-  const maxRetries = options?.maxRetries ?? 120;
-  const intervalMs = options?.intervalMs ?? 1000;
+  const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const intervalMs = options?.intervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   const startTime = Date.now();
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -119,7 +129,7 @@ export async function waitForNodeReady(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  throw new Error(
+  throw new LayerStartError(
     `Node at ${host}:${port} did not become Ready after ${maxRetries} attempts (${Math.round((maxRetries * intervalMs) / 1000)}s)`,
   );
 }

@@ -15,6 +15,8 @@ import {
   RemoteStartError,
   PortInUseError,
   BinaryNotFoundError,
+  errorMessage,
+  shellEscape,
 } from '../../main/shared/errors.js';
 
 // ─── HydraError (base) ─────────────────────────────────────────────────────
@@ -407,5 +409,67 @@ describe('BinaryNotFoundError', () => {
 
   it('extends HydraError', () => {
     expect(new BinaryNotFoundError('git')).toBeInstanceOf(HydraError);
+  });
+});
+
+// ─── errorMessage ──────────────────────────────────────────────────────────
+
+describe('errorMessage', () => {
+  it('extracts message from Error instance', () => {
+    expect(errorMessage(new Error('oops'))).toBe('oops');
+  });
+
+  it('extracts message from HydraError', () => {
+    expect(errorMessage(new HydraError('bad'))).toBe('bad');
+  });
+
+  it('converts string to string', () => {
+    expect(errorMessage('raw string error')).toBe('raw string error');
+  });
+
+  it('converts number to string', () => {
+    expect(errorMessage(42)).toBe('42');
+  });
+
+  it('converts null to string', () => {
+    expect(errorMessage(null)).toBe('null');
+  });
+
+  it('converts undefined to string', () => {
+    expect(errorMessage(undefined)).toBe('undefined');
+  });
+});
+
+// ─── shellEscape ───────────────────────────────────────────────────────────
+
+describe('shellEscape', () => {
+  it('returns plain strings unchanged', () => {
+    expect(shellEscape('hello')).toBe('hello');
+  });
+
+  it('escapes double quotes', () => {
+    expect(shellEscape('say "hi"')).toBe('say \\"hi\\"');
+  });
+
+  it('escapes dollar signs', () => {
+    expect(shellEscape('$HOME')).toBe('\\$HOME');
+  });
+
+  it('escapes backticks', () => {
+    expect(shellEscape('`cmd`')).toBe('\\`cmd\\`');
+  });
+
+  it('escapes backslashes', () => {
+    expect(shellEscape('a\\b')).toBe('a\\\\b');
+  });
+
+  it('handles complex passwords with special characters', () => {
+    const password = 'p@ss"w0rd$`test\\end';
+    const escaped = shellEscape(password);
+    expect(escaped).toBe('p@ss\\"w0rd\\$\\`test\\\\end');
+  });
+
+  it('preserves single quotes (safe in double-quoted context)', () => {
+    expect(shellEscape("it's")).toBe("it's");
   });
 });

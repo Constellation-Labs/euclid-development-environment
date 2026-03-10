@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
 import { readFile, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
-import { loadConfig, logger, LogLevel } from '../../../index.js';
+import { execFileSync } from 'node:child_process';
+import { loadConfig, findProjectRoot, logger, LogLevel } from '../../../index.js';
 import { formatError, formatSuccess } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 const MONITORING_REPO = 'https://github.com/Constellation-Labs/metagraph-monitoring-service';
 
@@ -14,16 +15,16 @@ export async function installMonitoringServiceCommand(options: {
 
   try {
     const config = await loadConfig();
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
     const dataPath = resolve(projectRoot, 'data');
     const dockerPath = resolve(projectRoot, 'docker');
 
     // Check genesis files exist
     const genesisAddressPath = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
     if (!existsSync(genesisAddressPath)) {
-      process.stderr.write('\nError: genesis.address not found.\n');
       process.stderr.write(
-        "  Run 'hydra build' and 'hydra start --genesis' first to generate genesis files.\n\n",
+        `\n  ${icon.error} ${t.error('genesis.address not found.')}\n` +
+          `  ${t.muted("Run 'hydra build' and 'hydra start --genesis' first to generate genesis files.")}\n\n`,
       );
       process.exit(1);
     }
@@ -39,7 +40,7 @@ export async function installMonitoringServiceCommand(options: {
     }
 
     process.stdout.write('  [1/3] Cloning metagraph-monitoring-service...\n');
-    execSync(`git clone --quiet "${MONITORING_REPO}" "${monitoringDir}"`, { stdio: 'pipe' });
+    execFileSync('git', ['clone', '--quiet', MONITORING_REPO, monitoringDir], { stdio: 'pipe' });
     process.stdout.write(`  ${formatSuccess('Repository cloned')}\n`);
 
     // Update package.json with project name
@@ -86,7 +87,7 @@ export async function installMonitoringServiceCommand(options: {
     // Remove .git directory
     const gitDir = resolve(monitoringDir, '.git');
     if (existsSync(gitDir)) {
-      execSync(`chmod -R +w "${gitDir}" 2>/dev/null; rm -rf "${gitDir}"`, { stdio: 'pipe' });
+      await rm(gitDir, { recursive: true, force: true });
     }
 
     process.stdout.write('\n  Monitoring service installed!\n');

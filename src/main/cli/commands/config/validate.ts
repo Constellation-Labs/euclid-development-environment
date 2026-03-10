@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { findConfigPath, checkConfig, isLegacyConfig, logger, LogLevel } from '../../../index.js';
 import { formatError } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 export async function configValidateCommand(options: {
   verbose?: boolean;
@@ -10,7 +11,10 @@ export async function configValidateCommand(options: {
 
   const configPath = findConfigPath();
   if (!configPath) {
-    process.stderr.write('Error: euclid.json not found in current directory or parents.\n');
+    process.stderr.write(
+      `\n  ${icon.error} ${t.error('euclid.json not found in current directory or parents.')}\n` +
+        `  ${t.muted("Run 'hydra install-template' to set up a project first.")}\n\n`,
+    );
     process.exit(1);
   }
 
@@ -28,8 +32,10 @@ export async function configValidateCommand(options: {
           }) + '\n',
         );
       } else {
-        process.stdout.write('\n  Legacy (v1) configuration detected.\n');
-        process.stdout.write("  Run 'hydra config migrate' to upgrade to v2.\n\n");
+        process.stdout.write(`\n  ${icon.warn} ${t.warn('Legacy (v1) configuration detected.')}\n`);
+        process.stdout.write(
+          `  ${t.muted('Run')} ${t.cyan("'hydra config migrate'")} ${t.muted('to upgrade to v2.')}\n\n`,
+        );
       }
       return;
     }
@@ -40,22 +46,24 @@ export async function configValidateCommand(options: {
       if (options.json) {
         process.stdout.write(JSON.stringify({ status: 'valid', issues: [] }) + '\n');
       } else {
-        process.stdout.write('\n  Configuration is valid.\n\n');
+        process.stdout.write(`\n  ${icon.pass} ${t.accent('Configuration is valid.')}\n\n`);
       }
     } else {
       if (options.json) {
         process.stdout.write(JSON.stringify({ status: 'invalid', issues }) + '\n');
       } else {
-        process.stderr.write(`\n  Configuration has ${issues.length} issue(s):\n\n`);
+        process.stderr.write(
+          `\n  ${icon.error} ${t.error(`Configuration has ${issues.length} issue(s):`)}\n\n`,
+        );
         for (const issue of issues) {
-          process.stderr.write(`  - ${issue.path}: ${issue.message}\n`);
+          process.stderr.write(`  ${icon.dot} ${t.white(issue.path)}: ${t.muted(issue.message)}\n`);
         }
         process.stderr.write('\n');
       }
       process.exit(1);
     }
   } catch (err) {
-    process.stderr.write(formatError(err) + '\n');
+    process.stderr.write('\n' + formatError(err) + '\n');
     process.exit(1);
   }
 }

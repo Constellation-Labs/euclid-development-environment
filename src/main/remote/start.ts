@@ -1,7 +1,10 @@
 import { SSHManager } from './ssh.js';
-import { RemoteStartError } from '../shared/errors.js';
+import { remoteCodeDir } from './paths.js';
+import { DEFAULT_REMOTE_PORTS } from './defaults.js';
+import { RemoteStartError, errorMessage, shellEscape } from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
-import { fetchNodeInfo, waitForNodeReady } from '../cluster/health.js';
+import { fetchNodeInfo } from '../cluster/health.js';
+import { combineSignedMessages } from '../cluster/fees.js';
 import type { EuclidConfig, RemoteHostConfig, DeployConfig } from '../config/schema.js';
 import { resolveJvmConfig } from '../config/schema.js';
 
@@ -34,14 +37,21 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
   const ssh = new SSHManager();
   const progress = (step: string) => options.onProgress?.(step);
 
-  // Register SIGINT handler for graceful cleanup
-  const cleanup = async () => {
-    process.stdout.write('\n  Cleaning up SSH connections...\n');
-    await ssh.disconnectAll();
+  // Register signal handlers for graceful cleanup
+  const cleanup = async (signal: string, exitCode: number) => {
+    process.stdout.write(`\n  Cleaning up SSH connections (${signal})...\n`);
+    await ssh.disconnectAll(5000);
+    process.exit(exitCode);
   };
-  process.on('SIGINT', () => {
-    cleanup().then(() => process.exit(130));
-  });
+
+  const sigintHandler = () => {
+    void cleanup('SIGINT', 130);
+  };
+  const sigtermHandler = () => {
+    void cleanup('SIGTERM', 143);
+  };
+  process.on('SIGINT', sigintHandler);
+  process.on('SIGTERM', sigtermHandler);
 
   try {
     // Connect to all hosts
@@ -49,10 +59,12 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
     for (const host of deploy.hosts) {
       await ssh.connect(host);
     }
+    progress('done:Connected to all hosts');
 
     // Pre-start cleanup on all hosts
     progress('Cleaning up existing processes...');
     await cleanupAllHosts(ssh, deploy, config);
+    progress('done:Cleanup complete');
 
     // Get metagraph ID from genesis.address on first host
     const firstHost = deploy.hosts[0];
@@ -67,15 +79,11 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
       logger.warn('No genesis.address found — metagraph ID will be empty');
     }
 
-    const remotePorts = deploy.remote_ports ?? {
-      metagraph_l0: { public: 9100, p2p: 9101, cli: 9102 },
-      currency_l1: { public: 9200, p2p: 9201, cli: 9202 },
-      data_l1: { public: 9300, p2p: 9301, cli: 9302 },
-    };
+    const remotePorts = deploy.remote_ports ?? DEFAULT_REMOTE_PORTS;
 
     // ─── Metagraph L0 ───────────────────────────────────────────
     if (config.layers.includes('metagraph-l0')) {
-      progress('Starting Metagraph L0...');
+      progress('phase:Metagraph L0');
       const ml0Ports = remotePorts.metagraph_l0;
       const ml0NodeId = await startLayer(ssh, {
         deploy,
@@ -89,7 +97,7 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
 
       // ─── Currency L1 ───────────────────────────────────────────
       if (config.layers.includes('currency-l1')) {
-        progress('Starting Currency L1...');
+        progress('phase:Currency L1');
         const cl1Ports = remotePorts.currency_l1;
         await startLayer(ssh, {
           deploy,
@@ -107,7 +115,7 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
 
       // ─── Data L1 ──────────────────────────────────────────────
       if (config.layers.includes('data-l1')) {
-        progress('Starting Data L1...');
+        progress('phase:Data L1');
         const dl1Ports = remotePorts.data_l1;
         await startLayer(ssh, {
           deploy,
@@ -122,12 +130,34 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
           onProgress: progress,
         });
       }
+
+      // ─── Staking message (submitted after all layers are running) ──
+      if (genesis && config.snapshot_fees?.staking && deploy.network.name !== 'dev') {
+        progress('phase:Staking Message');
+        progress('Submitting staking signing message...');
+        try {
+          await submitRemoteStakingMessage(ssh, {
+            hosts: deploy.hosts,
+            config,
+            metagraphId,
+            codeDir: remoteCodeDir(firstHost, 'metagraph-l0'),
+            ml0Port: ml0Ports.public,
+            onProgress: progress,
+          });
+          progress('done:Staking message submitted');
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.warn(`Staking message failed (non-fatal): ${msg}`);
+          progress('warn:Staking message failed — submit later with: hydra update-owner');
+        }
+      }
     }
 
-    progress('All layers started successfully');
+    progress('done:All layers started successfully');
   } finally {
-    process.removeAllListeners('SIGINT');
-    await ssh.disconnectAll();
+    process.removeListener('SIGINT', sigintHandler);
+    process.removeListener('SIGTERM', sigtermHandler);
+    await ssh.disconnectAll(5000);
   }
 }
 
@@ -150,11 +180,10 @@ interface StartLayerOptions {
  */
 async function startLayer(ssh: SSHManager, options: StartLayerOptions): Promise<string> {
   const { deploy, config, layer, ports, genesis, metagraphId } = options;
-  const progress = (step: string) => options.onProgress?.(`  [${layer}] ${step}`);
+  const progress = (step: string) => options.onProgress?.(step);
 
   const hosts = deploy.hosts;
   const firstHost = hosts[0];
-  const _codeDir = remoteCodeDir(firstHost, layer);
 
   // Build base environment variables
   const baseEnv: Record<string, string> = {
@@ -168,6 +197,11 @@ async function startLayer(ssh: SSHManager, options: StartLayerOptions): Promise<
     CL_COLLATERAL: '0',
   };
 
+  // Metagraph L0 needs the token identifier (rollback lead + all validators)
+  if (layer === 'metagraph-l0' && metagraphId) {
+    baseEnv.CL_L0_TOKEN_IDENTIFIER = metagraphId;
+  }
+
   // L1 layers need metagraph L0 peer info
   if (layer !== 'metagraph-l0' && options.ml0NodeId) {
     baseEnv.CL_L0_PEER_ID = options.ml0NodeId;
@@ -176,18 +210,10 @@ async function startLayer(ssh: SSHManager, options: StartLayerOptions): Promise<
     baseEnv.CL_L0_TOKEN_IDENTIFIER = metagraphId;
   }
 
-  // JVM options — resolve per-layer overrides
+  // JVM options — resolve per-layer config
   const jvmLayerKey = layer.replace('-', '_') as 'metagraph_l0' | 'currency_l1' | 'data_l1';
   const jvm = resolveJvmConfig(deploy.jvm, jvmLayerKey);
-  const jvmOpts = [
-    `-Xms${jvm.min_heap}`,
-    `-Xmx${jvm.max_heap}`,
-    `-XX:MetaspaceSize=${jvm.metaspace_size}`,
-    `-XX:MaxMetaspaceSize=${jvm.max_metaspace_size}`,
-    jvm.additional_opts,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const jvmOpts = `-Xms${jvm.xms} -Xmx${jvm.xmx}`;
 
   // ─── Start genesis/initial-validator node (host-1) ─────────
   const node1 = config.nodes[0];
@@ -201,28 +227,58 @@ async function startLayer(ssh: SSHManager, options: StartLayerOptions): Promise<
   let startCmd: string;
   if (layer === 'metagraph-l0') {
     if (genesis) {
-      startCmd = `nohup java ${jvmOpts} -jar ${layer}.jar run-genesis genesis.snapshot --ip ${firstHost.host} > ${layer}.log 2>&1 &`;
+      // For non-dev environments, create owner signing message before genesis
+      const isNonDev = deploy.network.name !== 'dev';
+      let ownerMessageFlag = '';
+
+      if (isNonDev) {
+        progress('Creating owner signing message...');
+        await createRemoteOwnerMessage(ssh, {
+          hosts,
+          config,
+          metagraphId,
+          codeDir: remoteCodeDir(firstHost, layer),
+          onProgress: progress,
+        });
+        ownerMessageFlag = ' --metagraph-owner-message owner_message.json';
+      }
+
+      const genesisArgs = `run-genesis genesis.snapshot --ip ${firstHost.host}${ownerMessageFlag}`;
+      startCmd = buildBackgroundJavaCmd(jvmOpts, layer, genesisArgs, node1Env);
     } else {
-      startCmd = `nohup java ${jvmOpts} -jar ${layer}.jar run-rollback --ip ${firstHost.host} > ${layer}.log 2>&1 &`;
+      startCmd = buildBackgroundJavaCmd(
+        jvmOpts,
+        layer,
+        `run-rollback --ip ${firstHost.host}`,
+        node1Env,
+      );
     }
   } else {
-    startCmd = `nohup java ${jvmOpts} -jar ${layer}.jar run-initial-validator --ip ${firstHost.host} > ${layer}.log 2>&1 &`;
+    startCmd = buildBackgroundJavaCmd(
+      jvmOpts,
+      layer,
+      `run-initial-validator --ip ${firstHost.host}`,
+      node1Env,
+    );
   }
 
   progress(`Starting node-1 on ${firstHost.host}...`);
-  await ssh.exec(firstHost, startCmd, {
+  await ssh.execDetached(firstHost, startCmd, {
     cwd: remoteCodeDir(firstHost, layer),
-    env: node1Env,
   });
 
-  // Wait for node-1 to be ready
-  progress(`Waiting for node-1 to be ready...`);
-  await waitForNodeReady(firstHost.host, ports.public, {
+  // Brief pause then verify the process is actually running
+  await new Promise((r) => setTimeout(r, 3000));
+  await verifyProcessRunning(ssh, firstHost, layer, remoteCodeDir(firstHost, layer));
+
+  // Wait for node-1 to be ready (with log checking on failure)
+  progress(`Waiting for node-1 to reach Ready...`);
+  await waitForRemoteNodeReady(ssh, firstHost, layer, ports.public, {
     maxRetries: 120,
     intervalMs: 2000,
     onRetry: (attempt) => {
       if (attempt % 15 === 0) {
-        progress(`Still waiting for node-1 (attempt ${attempt})...`);
+        progress(`wait:node-1 still starting (attempt ${attempt})...`);
       }
     },
   });
@@ -233,7 +289,7 @@ async function startLayer(ssh: SSHManager, options: StartLayerOptions): Promise<
     env: node1Env,
   });
   const node1Id = nodeIdResult.stdout.trim();
-  progress(`Node-1 ready (ID: ${node1Id.slice(0, 16)}...)`);
+  progress(`done:Node-1 ready — ${firstHost.host} (${node1Id.slice(0, 12)}…)`);
 
   // ─── Start validator nodes (host-2, host-3, ...) ───────────
   for (let i = 1; i < hosts.length; i++) {
@@ -248,24 +304,271 @@ async function startLayer(ssh: SSHManager, options: StartLayerOptions): Promise<
       CL_PASSWORD: node.key_file.password,
     };
 
-    const validatorCmd = `nohup java ${jvmOpts} -jar ${layer}.jar run-validator --ip ${host.host} > ${layer}.log 2>&1 &`;
+    const validatorCmd = buildBackgroundJavaCmd(
+      jvmOpts,
+      layer,
+      `run-validator --ip ${host.host}`,
+      nodeEnv,
+    );
 
     progress(`Starting node-${i + 1} on ${host.host}...`);
-    await ssh.exec(host, validatorCmd, {
+    await ssh.execDetached(host, validatorCmd, {
       cwd: remoteCodeDir(host, layer),
-      env: nodeEnv,
     });
 
-    // Wait for ReadyToJoin
-    progress(`Waiting for node-${i + 1} to be ready to join...`);
-    await waitForState(host.host, ports.public, 'ReadyToJoin', 120, 1000);
+    // Brief pause then verify the process is actually running
+    await new Promise((r) => setTimeout(r, 3000));
+    await verifyProcessRunning(ssh, host, layer, remoteCodeDir(host, layer));
 
-    // Join cluster via first node's CLI port
-    progress(`Node-${i + 1} joining cluster...`);
-    await joinCluster(host.host, ports.cli, firstHost.host, ports.p2p, node1Id);
+    // Wait for ReadyToJoin (with log checking on failure)
+    progress(`Waiting for node-${i + 1} to reach ReadyToJoin...`);
+    await waitForRemoteNodeState(ssh, host, layer, ports.public, 'ReadyToJoin', 120, 1000);
+
+    // Join cluster
+    progress(`Joining node-${i + 1} to cluster...`);
+    await joinCluster(ssh, host, ports.cli, firstHost.host, ports.p2p, node1Id);
+    progress(`done:Node-${i + 1} joined — ${host.host}`);
   }
 
   return node1Id;
+}
+
+// ─── Owner / Staking Message Helpers ──────────────────────────────────────
+
+interface OwnerMessageOptions {
+  hosts: RemoteHostConfig[];
+  config: EuclidConfig;
+  metagraphId: string;
+  codeDir: string;
+  onProgress?: (step: string) => void;
+}
+
+/**
+ * Run a cl-wallet.jar signing command on a remote host and return the JSON output.
+ * Handles both stdout output and file-based fallback.
+ */
+async function remoteSign(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  command: string,
+  keyEnv: Record<string, string>,
+  cwd: string,
+  fallbackFiles: string[],
+): Promise<string> {
+  const result = await ssh.exec(host, command, { cwd, env: keyEnv });
+  const output = result.stdout.trim();
+
+  if (output.startsWith('{')) return output;
+
+  // Check if the tool wrote to a file instead of stdout
+  const fileList = fallbackFiles.map((f) => `if [ -f "${f}" ]; then cat "${f}"; exit 0; fi`);
+  const fileCheck = await ssh.exec(host, `${fileList.join('; ')}; echo ""`, { cwd });
+  const fileContent = fileCheck.stdout.trim();
+  if (fileContent.startsWith('{')) {
+    logger.debug(`Found signed message in file on ${host.host}`);
+    return fileContent;
+  }
+
+  throw new RemoteStartError(host.host, 'metagraph-l0', {
+    cause: new Error(
+      `cl-wallet.jar signing command did not output valid JSON.\n  Output: ${output.slice(0, 300)}`,
+    ),
+  });
+}
+
+/**
+ * Create the owner signing message file on the genesis host (host-1).
+ * The message is signed by BOTH the owner keystore AND all node keystores,
+ * then proofs are combined into a single message file.
+ */
+async function createRemoteOwnerMessage(ssh: SSHManager, opts: OwnerMessageOptions): Promise<void> {
+  const { hosts, config, metagraphId } = opts;
+  const firstHost = hosts[0];
+  const codeDir = opts.codeDir;
+
+  // Determine the owner keystore — if snapshot_fees.owner is set use that, else use node-1
+  const ownerKey = config.snapshot_fees?.owner?.key_file ?? config.nodes[0].key_file;
+
+  // Get owner address from the first host
+  opts.onProgress?.('Getting owner address...');
+  const addrResult = await ssh.exec(firstHost, `java -jar cl-wallet.jar show-address`, {
+    cwd: codeDir,
+    env: {
+      CL_KEYSTORE: ownerKey.name,
+      CL_KEYALIAS: ownerKey.alias,
+      CL_PASSWORD: ownerKey.password,
+    },
+  });
+  const ownerAddress = addrResult.stdout.trim();
+  logger.debug(`Owner address: ${ownerAddress}`);
+
+  if (!ownerAddress || ownerAddress.length < 10) {
+    throw new RemoteStartError(firstHost.host, 'metagraph-l0', {
+      cause: new Error(`Failed to get owner address. Output: ${addrResult.stdout}`),
+    });
+  }
+
+  const signCmd =
+    `java -jar cl-wallet.jar create-owner-signing-message ` +
+    `--address "${ownerAddress}" ` +
+    `--metagraphId "${metagraphId}" ` +
+    `--parentOrdinal 0`;
+  const fallbackFiles = ['owner_message.txt', 'signed_message.json', 'owner-message'];
+
+  const signedOutputs: string[] = [];
+
+  // 1. Sign with the OWNER keystore (on genesis host where owner p12 is deployed)
+  opts.onProgress?.('Signing owner message with owner key...');
+  const ownerSigned = await remoteSign(
+    ssh,
+    firstHost,
+    signCmd,
+    { CL_KEYSTORE: ownerKey.name, CL_KEYALIAS: ownerKey.alias, CL_PASSWORD: ownerKey.password },
+    codeDir,
+    fallbackFiles,
+  );
+  signedOutputs.push(ownerSigned);
+  logger.debug(`Owner key signed (${ownerSigned.length} chars)`);
+
+  // 2. Sign with each node's keystore
+  for (let i = 0; i < hosts.length; i++) {
+    const host = hosts[i];
+    const node = config.nodes[i];
+    if (!node) break;
+
+    opts.onProgress?.(`Signing owner message with node-${i + 1}...`);
+    const hostCodeDir = remoteCodeDir(host, 'metagraph-l0');
+    const nodeSigned = await remoteSign(
+      ssh,
+      host,
+      signCmd,
+      {
+        CL_KEYSTORE: node.key_file.name,
+        CL_KEYALIAS: node.key_file.alias,
+        CL_PASSWORD: node.key_file.password,
+      },
+      hostCodeDir,
+      fallbackFiles,
+    );
+    signedOutputs.push(nodeSigned);
+    logger.debug(`Node-${i + 1} signed (${nodeSigned.length} chars)`);
+  }
+
+  // Combine all proofs (owner + all nodes) into one message
+  const combined = combineSignedMessages(signedOutputs);
+  const messageJson = JSON.stringify(combined);
+
+  // Write combined message to genesis host
+  opts.onProgress?.('Writing owner message file...');
+  await ssh.exec(firstHost, `cat > owner_message.json << 'EOFMSG'\n${messageJson}\nEOFMSG`, {
+    cwd: codeDir,
+  });
+  logger.debug(
+    `Owner message written to ${codeDir}/owner_message.json (${combined.proofs.length} proofs)`,
+  );
+}
+
+/**
+ * Submit the staking signing message via HTTP after the metagraph L0 cluster is running.
+ * The message is signed by BOTH the staking keystore AND all node keystores,
+ * then proofs are combined and submitted via HTTP.
+ */
+async function submitRemoteStakingMessage(
+  ssh: SSHManager,
+  opts: OwnerMessageOptions & { ml0Port: number },
+): Promise<void> {
+  const { hosts, config, metagraphId, ml0Port } = opts;
+  const firstHost = hosts[0];
+  const codeDir = opts.codeDir;
+
+  // Determine staking keystore
+  const stakingKey = config.snapshot_fees?.staking?.key_file ?? config.nodes[0].key_file;
+
+  // Get staking address
+  opts.onProgress?.('Getting staking address...');
+  const addrResult = await ssh.exec(firstHost, `java -jar cl-wallet.jar show-address`, {
+    cwd: codeDir,
+    env: {
+      CL_KEYSTORE: stakingKey.name,
+      CL_KEYALIAS: stakingKey.alias,
+      CL_PASSWORD: stakingKey.password,
+    },
+  });
+  const stakingAddress = addrResult.stdout.trim();
+  logger.debug(`Staking address: ${stakingAddress}`);
+
+  const signCmd =
+    `java -jar cl-wallet.jar create-staking-signing-message ` +
+    `--address "${stakingAddress}" ` +
+    `--metagraphId "${metagraphId}" ` +
+    `--parentOrdinal 0`;
+  const fallbackFiles = ['staking_message.txt', 'signed_message.json', 'staking-message'];
+
+  const signedOutputs: string[] = [];
+
+  // 1. Sign with the STAKING keystore (on genesis host where staking p12 is deployed)
+  opts.onProgress?.('Signing staking message with staking key...');
+  const stakingSigned = await remoteSign(
+    ssh,
+    firstHost,
+    signCmd,
+    {
+      CL_KEYSTORE: stakingKey.name,
+      CL_KEYALIAS: stakingKey.alias,
+      CL_PASSWORD: stakingKey.password,
+    },
+    codeDir,
+    fallbackFiles,
+  );
+  signedOutputs.push(stakingSigned);
+  logger.debug(`Staking key signed (${stakingSigned.length} chars)`);
+
+  // 2. Sign with each node's keystore
+  for (let i = 0; i < hosts.length; i++) {
+    const host = hosts[i];
+    const node = config.nodes[i];
+    if (!node) break;
+
+    opts.onProgress?.(`Signing staking message with node-${i + 1}...`);
+    const hostCodeDir = remoteCodeDir(host, 'metagraph-l0');
+    const nodeSigned = await remoteSign(
+      ssh,
+      host,
+      signCmd,
+      {
+        CL_KEYSTORE: node.key_file.name,
+        CL_KEYALIAS: node.key_file.alias,
+        CL_PASSWORD: node.key_file.password,
+      },
+      hostCodeDir,
+      fallbackFiles,
+    );
+    signedOutputs.push(nodeSigned);
+    logger.debug(`Node-${i + 1} signed (${nodeSigned.length} chars)`);
+  }
+
+  // Combine all proofs (staking + all nodes) and submit via HTTP
+  const combined = combineSignedMessages(signedOutputs);
+  opts.onProgress?.('Submitting staking message...');
+
+  const messageUrl = `http://${firstHost.host}:${ml0Port}/currency/message`;
+  const response = await fetch(messageUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(combined),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    logger.warn(
+      `Staking message submission returned HTTP ${response.status}: ${body.slice(0, 300)}`,
+    );
+  } else {
+    logger.debug(
+      `Staking signing message submitted successfully (${combined.proofs.length} proofs)`,
+    );
+  }
 }
 
 /**
@@ -276,33 +579,37 @@ async function cleanupAllHosts(
   deploy: DeployConfig,
   config: EuclidConfig,
 ): Promise<void> {
-  const remotePorts = deploy.remote_ports ?? {
-    metagraph_l0: { public: 9100, p2p: 9101, cli: 9102 },
-    currency_l1: { public: 9200, p2p: 9201, cli: 9202 },
-    data_l1: { public: 9300, p2p: 9301, cli: 9302 },
-  };
-
-  const allPorts = [
-    remotePorts.metagraph_l0.public,
-    remotePorts.metagraph_l0.p2p,
-    remotePorts.metagraph_l0.cli,
-    remotePorts.currency_l1.public,
-    remotePorts.currency_l1.p2p,
-    remotePorts.currency_l1.cli,
-    remotePorts.data_l1.public,
-    remotePorts.data_l1.p2p,
-    remotePorts.data_l1.cli,
-  ];
+  const remotePorts = deploy.remote_ports ?? DEFAULT_REMOTE_PORTS;
 
   const layers = ['metagraph-l0'];
   if (config.layers.includes('currency-l1')) layers.push('currency-l1');
   if (config.layers.includes('data-l1')) layers.push('data-l1');
 
+  // Only kill ports for configured layers
+  const allPorts: number[] = [];
+  const portSets: Record<string, LayerPorts> = {
+    'metagraph-l0': remotePorts.metagraph_l0,
+    'currency-l1': remotePorts.currency_l1,
+    'data-l1': remotePorts.data_l1,
+  };
+  for (const layer of layers) {
+    const ps = portSets[layer];
+    if (ps) allPorts.push(ps.public, ps.p2p, ps.cli);
+  }
+
   for (const host of deploy.hosts) {
-    // Kill processes by port
+    // Kill Java processes by JAR name (catches processes that haven't bound ports yet)
+    for (const layer of layers) {
+      await ssh.exec(host, `pkill -f "${layer}.jar" 2>/dev/null || true`);
+    }
+
+    // Also kill by port (catches any non-Java processes holding the ports)
     for (const port of allPorts) {
       await ssh.exec(host, `fuser -k ${port}/tcp 2>/dev/null || true`);
     }
+
+    // Brief pause to let processes die
+    await ssh.exec(host, `sleep 1`);
 
     // Archive old logs
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -320,36 +627,190 @@ async function cleanupAllHosts(
 }
 
 /**
- * Wait for a remote node to reach a specific state.
+ * Verify a Java process is actually running on the remote host.
+ * Throws immediately with log context if the process crashed.
  */
-async function waitForState(
-  host: string,
+async function verifyProcessRunning(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  layer: string,
+  cwd: string,
+): Promise<void> {
+  const result = await ssh.exec(host, `pgrep -f "${layer}.jar" || echo "NOT_RUNNING"`, { cwd });
+  if (result.stdout.includes('NOT_RUNNING')) {
+    const logTail = await getRemoteLogTail(ssh, host, layer, cwd, 30);
+    throw new RemoteStartError(host.host, layer, {
+      cause: new Error(
+        `Java process for ${layer} is not running — it may have crashed on startup.\n` +
+          `  Last log lines:\n${logTail}`,
+      ),
+    });
+  }
+  logger.debug(`[${host.host}] Process for ${layer} is running (PID: ${result.stdout.trim()})`);
+}
+
+/**
+ * Get the tail of a remote log file for diagnostics.
+ */
+async function getRemoteLogTail(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  layer: string,
+  cwd: string,
+  lines: number,
+): Promise<string> {
+  try {
+    const result = await ssh.exec(
+      host,
+      `tail -${lines} ${layer}.log 2>/dev/null || echo "(no log file)"`,
+      {
+        cwd,
+      },
+    );
+    return result.stdout.trim();
+  } catch (err) {
+    logger.debug(`Failed to read remote log for ${layer} on ${host.host}: ${errorMessage(err)}`);
+    return '(failed to read log)';
+  }
+}
+
+/**
+ * Wait for a remote node to reach "Ready" state, checking the log on failure.
+ */
+async function waitForRemoteNodeReady(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  layer: string,
+  port: number,
+  options?: {
+    maxRetries?: number;
+    intervalMs?: number;
+    onRetry?: (attempt: number, elapsed: number) => void;
+  },
+): Promise<void> {
+  const maxRetries = options?.maxRetries ?? 120;
+  const intervalMs = options?.intervalMs ?? 2000;
+  const startTime = Date.now();
+  const cwd = remoteCodeDir(host, layer);
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const info = await fetchNodeInfo(host.host, port);
+
+    if (info?.state === 'Ready') {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      logger.debug(
+        `[${host.host}] ${layer} reached Ready state after ${elapsed}s (attempt ${attempt})`,
+      );
+      return;
+    }
+
+    // Log intermediate states (not just failures)
+    if (info?.state) {
+      logger.debug(`[${host.host}] ${layer} state: ${info.state} (attempt ${attempt})`);
+    }
+
+    // Every 30 attempts (~60s), check if process is still alive
+    if (attempt > 0 && attempt % 30 === 0) {
+      const psCheck = await ssh.exec(host, `pgrep -f "${layer}.jar" || echo "NOT_RUNNING"`, {
+        cwd,
+      });
+      if (psCheck.stdout.includes('NOT_RUNNING')) {
+        const logTail = await getRemoteLogTail(ssh, host, layer, cwd, 40);
+        throw new RemoteStartError(host.host, layer, {
+          cause: new Error(
+            `Java process for ${layer} died while waiting for Ready state.\n` +
+              `  Last log lines:\n${logTail}`,
+          ),
+        });
+      }
+    }
+
+    if (options?.onRetry) {
+      options.onRetry(attempt, Date.now() - startTime);
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  // Timed out — show log context
+  const logTail = await getRemoteLogTail(ssh, host, layer, cwd, 40);
+  throw new RemoteStartError(host.host, layer, {
+    cause: new Error(
+      `Node did not reach Ready state after ${maxRetries} attempts (${Math.round((maxRetries * intervalMs) / 1000)}s).\n` +
+        `  Last log lines:\n${logTail}`,
+    ),
+  });
+}
+
+/**
+ * Wait for a remote node to reach a specific state, checking the log on failure.
+ */
+async function waitForRemoteNodeState(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  layer: string,
   port: number,
   targetState: string,
   maxRetries: number,
   intervalMs: number,
 ): Promise<void> {
+  const cwd = remoteCodeDir(host, layer);
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const info = await fetchNodeInfo(host, port);
-    if (info?.state === targetState) return;
+    const info = await fetchNodeInfo(host.host, port);
+
+    if (info?.state === targetState) {
+      logger.debug(`[${host.host}] ${layer} reached ${targetState} (attempt ${attempt})`);
+      return;
+    }
+
+    if (info?.state) {
+      logger.debug(`[${host.host}] ${layer} state: ${info.state} (attempt ${attempt})`);
+    }
+
+    // Every 30 attempts, check if process is still alive
+    if (attempt > 0 && attempt % 30 === 0) {
+      const psCheck = await ssh.exec(host, `pgrep -f "${layer}.jar" || echo "NOT_RUNNING"`, {
+        cwd,
+      });
+      if (psCheck.stdout.includes('NOT_RUNNING')) {
+        const logTail = await getRemoteLogTail(ssh, host, layer, cwd, 40);
+        throw new RemoteStartError(host.host, layer, {
+          cause: new Error(
+            `Java process for ${layer} died while waiting for ${targetState}.\n` +
+              `  Last log lines:\n${logTail}`,
+          ),
+        });
+      }
+    }
+
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  throw new Error(
-    `Node at ${host}:${port} did not reach ${targetState} after ${maxRetries} attempts`,
-  );
+
+  // Timed out — show log context
+  const logTail = await getRemoteLogTail(ssh, host, layer, cwd, 40);
+  throw new RemoteStartError(host.host, layer, {
+    cause: new Error(
+      `Node at ${host.host}:${port} did not reach ${targetState} after ${maxRetries} attempts.\n` +
+        `  Last log lines:\n${logTail}`,
+    ),
+  });
 }
 
 /**
  * Join a validator node to the cluster via the genesis node's CLI endpoint.
+ * Executes curl from INSIDE the validator host (via SSH) since CLI ports
+ * are typically not exposed externally.
  */
 async function joinCluster(
-  validatorHost: string,
+  ssh: SSHManager,
+  validatorHost: RemoteHostConfig,
   validatorCliPort: number,
   genesisHost: string,
   genesisP2pPort: number,
   genesisId: string,
 ): Promise<void> {
-  const url = `http://${validatorHost}:${validatorCliPort}/cluster/join`;
+  const url = `http://localhost:${validatorCliPort}/cluster/join`;
   const body = JSON.stringify({
     id: genesisId,
     ip: genesisHost,
@@ -358,22 +819,51 @@ async function joinCluster(
 
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: AbortSignal.timeout(10000),
-      });
-      if (response.ok || response.status === 404) return;
-    } catch {
-      // Retry
+      // Escape single quotes in JSON payload to prevent shell injection
+      const safeBody = body.replace(/'/g, "'\\''");
+      const result = await ssh.exec(
+        validatorHost,
+        [
+          `curl -s -o /dev/null -w '%{http_code}'`,
+          `-X POST`,
+          `-H 'Content-Type: application/json'`,
+          `--data-raw '${safeBody}'`,
+          `--max-time 10`,
+          `"${url}"`,
+        ].join(' '),
+      );
+
+      const httpCode = result.stdout.trim();
+      logger.debug(`[${validatorHost.host}] join cluster response: HTTP ${httpCode}`);
+
+      if (httpCode === '200' || httpCode === '404') return;
+    } catch (err) {
+      logger.debug(
+        `[${validatorHost.host}] join cluster attempt ${attempt} failed: ${errorMessage(err)}`,
+      );
     }
     await new Promise((r) => setTimeout(r, 10000));
   }
 
-  throw new Error(`Failed to join cluster at ${url}`);
+  throw new RemoteStartError(
+    validatorHost.host,
+    `Failed to join cluster via localhost:${validatorCliPort} after 5 attempts`,
+  );
 }
 
-function remoteCodeDir(host: RemoteHostConfig, layer: string): string {
-  return `/home/${host.user}/code/${layer}`;
+/**
+ * Build a command that starts a Java process fully detached from the SSH session.
+ * Uses setsid to create a new session so the SSH channel can close immediately.
+ * Environment variables are passed via `env` so they survive the session detach.
+ */
+function buildBackgroundJavaCmd(
+  jvmOpts: string,
+  layer: string,
+  args: string,
+  env: Record<string, string>,
+): string {
+  const envPairs = Object.entries(env)
+    .map(([k, v]) => `${k}="${shellEscape(v)}"`)
+    .join(' ');
+  return `setsid env ${envPairs} java ${jvmOpts} -jar ${layer}.jar ${args} > ${layer}.log 2>&1 < /dev/null &`;
 }

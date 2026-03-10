@@ -7,6 +7,7 @@ export {
   validateConfig,
   checkConfig,
   findConfigPath,
+  findProjectRoot,
   migrateV1toV2,
   writeConfigAtomic,
   resolveJvmConfig,
@@ -21,7 +22,7 @@ export type {
   PortTriple,
   PortsConfig,
   DockerConfig,
-  JvmConfig,
+  JvmLayerConfig,
   LayerJvmConfig,
   DeployConfig,
   SnapshotFeesConfig,
@@ -50,6 +51,7 @@ export {
   updateClusterState,
   hashConfig,
   LAYER_STARTERS,
+  LAYER_PORT_KEYS,
   getLeadNodeId,
   createMultiNodeSignedMessage,
   formatSignedMessage,
@@ -84,7 +86,19 @@ export {
   RemoteStartError,
   PortInUseError,
   BinaryNotFoundError,
+  errorMessage,
+  shellEscape,
 } from './shared/errors.js';
 
 // ─── Logger ─────────────────────────────────────────────────────────────────
 export { Logger, LogLevel, logger } from './shared/logger.js';
+
+// ─── Preflight checks ──────────────────────────────────────────────────────
+export {
+  checkKeyFiles,
+  checkJarFiles,
+  checkDeployConfig,
+  checkPortAvailable,
+  checkPortsAvailable,
+} from './shared/preflight.js';
+export type { PreflightIssue } from './shared/preflight.js';

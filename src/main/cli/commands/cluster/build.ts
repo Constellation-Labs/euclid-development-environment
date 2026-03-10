@@ -1,5 +1,12 @@
 import { resolve } from 'node:path';
-import { loadConfig, logger, LogLevel, DockerClient, composeBuild } from '../../../index.js';
+import {
+  loadConfig,
+  findProjectRoot,
+  logger,
+  LogLevel,
+  DockerClient,
+  composeBuild,
+} from '../../../index.js';
 import { formatError, formatStep } from '../../ui/format.js';
 import { createSpinner, spinnerSuccess, spinnerFail } from '../../ui/spinner.js';
 import { t } from '../../ui/theme.js';
@@ -52,7 +59,7 @@ export async function buildCommand(options: {
     const { version } = await docker.checkConnection();
     logger.debug(`Docker ${version} connected`);
 
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
     const dockerPath = resolve(projectRoot, 'docker');
 
     const tessVersionName = config.tessellation_version.replace(/\./g, '_');
@@ -158,6 +165,19 @@ export async function buildCommand(options: {
         } catch {
           // Layer may not have been built (e.g. global-l0 jar comes from tessellation, not sbt)
           logger.debug(`Skipping ${dir}/${jar} — not found in image`);
+        }
+      }
+
+      // Extract utility JARs (cl-keytool, cl-wallet) — needed for remote deploy
+      for (const utilJar of ['cl-keytool.jar', 'cl-wallet.jar']) {
+        try {
+          execSync(
+            `docker cp ${containerId}:/code/metagraph-l0/${utilJar} "${jarsDir}/${utilJar}"`,
+            { stdio: 'pipe' },
+          );
+          extracted++;
+        } catch {
+          logger.debug(`Utility JAR ${utilJar} not found in image`);
         }
       }
 

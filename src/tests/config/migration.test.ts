@@ -52,9 +52,6 @@ describe('migrateV1toV2', () => {
       jvm: {
         min_heap: '1g',
         max_heap: '2g',
-        metaspace_size: '256m',
-        max_metaspace_size: '512m',
-        additional_opts: '',
       },
       ansible: {
         hosts: 'infra/ansible/remote/hosts.ansible.yml',
@@ -107,7 +104,8 @@ describe('migrateV1toV2', () => {
     const migrated = migrateV1toV2(legacyConfig as unknown as Record<string, unknown>);
     expect(migrated.deploy).toBeDefined();
     expect(migrated.deploy!.network.name).toBe('integrationnet|mainnet');
-    expect(migrated.deploy!.jvm.default.min_heap).toBe('1g');
+    expect(migrated.deploy!.jvm.metagraph_l0.xms).toBe('1g');
+    expect(migrated.deploy!.jvm.currency_l1.xms).toBe('1g');
   });
 
   it('adds default ports and docker config', () => {

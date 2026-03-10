@@ -22,6 +22,7 @@ export type {
 
 export {
   LAYER_STARTERS,
+  LAYER_PORT_KEYS,
   getLeadNodeId,
   startGlobalL0,
   startMetagraphL0,

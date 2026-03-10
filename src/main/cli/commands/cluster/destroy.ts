@@ -1,5 +1,12 @@
 import { resolve } from 'node:path';
-import { loadConfig, logger, LogLevel, DockerClient, updateClusterState } from '../../../index.js';
+import {
+  loadConfig,
+  findProjectRoot,
+  logger,
+  LogLevel,
+  DockerClient,
+  updateClusterState,
+} from '../../../index.js';
 import { formatError, formatSuccess } from '../../ui/format.js';
 
 export async function destroyCommand(options: { yes?: boolean; verbose?: boolean }): Promise<void> {
@@ -45,7 +52,7 @@ export async function destroyCommand(options: { yes?: boolean; verbose?: boolean
 
     // Clean genesis files
     const { rmSync, existsSync } = await import('node:fs');
-    const genesisDir = resolve(process.cwd(), 'docker', 'artifacts', 'genesis');
+    const genesisDir = resolve(findProjectRoot(), 'docker', 'artifacts', 'genesis');
     for (const file of ['genesis.address', 'genesis.snapshot']) {
       const filePath = resolve(genesisDir, file);
       if (existsSync(filePath)) {

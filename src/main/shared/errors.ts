@@ -214,3 +214,22 @@ export class BinaryNotFoundError extends HydraError {
     this.name = 'BinaryNotFoundError';
   }
 }
+
+// ─── Utilities ─────────────────────────────────────────────────────────────
+
+/**
+ * Safely extract a message string from an unknown error value.
+ * Avoids the unsafe `(err as Error).message` pattern.
+ */
+export function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+/**
+ * Escape a string for use inside double-quoted shell context.
+ * Handles: backslash, double-quote, dollar sign, backtick.
+ */
+export function shellEscape(value: string): string {
+  return value.replace(/[\\"$`]/g, '\\$&');
+}

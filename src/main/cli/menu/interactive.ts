@@ -29,10 +29,13 @@ import { remoteStatusCommand } from '../commands/remote/status.js';
 import { remoteLogsCommand } from '../commands/remote/logs.js';
 import { remoteDeployMonitoringCommand } from '../commands/remote/deploy-monitoring.js';
 import { remoteStartMonitoringCommand } from '../commands/remote/start-monitoring.js';
+import { remoteStopCommand } from '../commands/remote/stop.js';
+import { remoteDestroyCommand } from '../commands/remote/destroy.js';
 import { remoteSnapshotFeeConfigCommand } from '../commands/remote/snapshot-fee-config.js';
 import { loadClusterState } from '../../cluster/state.js';
-import { findConfigPath, loadConfig } from '../../config/loader.js';
+import { findConfigPath, findProjectRoot, loadConfig } from '../../config/loader.js';
 import { checkPrerequisites } from './prerequisites.js';
+import { logger, LogLevel } from '../../shared/logger.js';
 
 // ─── process.exit() Interception ────────────────────────────────────────────
 
@@ -143,78 +146,124 @@ function section(emoji: string, label: string): Separator[] {
   ];
 }
 
-const MENU_CHOICES = [
-  ...section('🔍', 'Environment'),
-  {
-    name: `doctor                   ${t.dim('Verify your development environment')}`,
-    value: 'doctor',
-  },
-  {
-    name: `config show              ${t.dim('Display the current configuration')}`,
-    value: 'config:show',
-  },
-  { name: `config validate          ${t.dim('Validate euclid.json')}`, value: 'config:validate' },
-  { name: `config migrate           ${t.dim('Migrate v1 config to v2')}`, value: 'config:migrate' },
+// ─── Verbose State ──────────────────────────────────────────────────────────
 
-  ...section('📦', 'Project Setup'),
-  { name: `install                  ${t.dim('Create .gitignore and git repo')}`, value: 'install' },
-  {
-    name: `install-template         ${t.dim('Install from a Git template')}`,
-    value: 'install-template',
-  },
+let verboseMode = false;
 
-  ...section('🖥️ ', 'Local Cluster'),
-  {
-    name: `build                    ${t.dim('Build Docker images and compile JARs')}`,
-    value: 'build',
-  },
-  { name: `start                    ${t.dim('Start the local cluster')}`, value: 'start' },
-  { name: `stop                     ${t.dim('Stop the local cluster')}`, value: 'stop' },
-  { name: `status                   ${t.dim('Show cluster health')}`, value: 'status' },
-  { name: `logs                     ${t.dim('Tail logs for a layer')}`, value: 'logs' },
-  { name: `destroy                  ${t.dim('Remove containers and network')}`, value: 'destroy' },
-  { name: `purge                    ${t.dim('Destroy + remove Docker images')}`, value: 'purge' },
+function buildMenuChoices() {
+  const verboseLabel = verboseMode
+    ? `  ⚙ Verbose mode ${t.accent('[ON]')}`
+    : `  ⚙ Verbose mode ${t.dim('[OFF]')}`;
 
-  ...section('🌐', 'Remote Deploy'),
-  {
-    name: `create-remote-genesis    ${t.dim('Generate genesis files for remote')}`,
-    value: 'create-remote-genesis',
-  },
-  { name: `remote deploy            ${t.dim('Deploy to remote hosts')}`, value: 'remote:deploy' },
-  { name: `remote start             ${t.dim('Start remote cluster')}`, value: 'remote:start' },
-  { name: `remote status            ${t.dim('Check remote node health')}`, value: 'remote:status' },
-  { name: `remote logs              ${t.dim('Tail remote logs')}`, value: 'remote:logs' },
-  {
-    name: `remote snapshot-fee      ${t.dim('Fetch snapshot fee config')}`,
-    value: 'remote:snapshot-fee-config',
-  },
+  return [
+    ...section('🔍', 'Environment'),
+    {
+      name: `doctor                   ${t.dim('Verify your development environment')}`,
+      value: 'doctor',
+    },
+    {
+      name: `config show              ${t.dim('Display the current configuration')}`,
+      value: 'config:show',
+    },
+    {
+      name: `config validate          ${t.dim('Validate euclid.json')}`,
+      value: 'config:validate',
+    },
+    {
+      name: `config migrate           ${t.dim('Migrate v1 config to v2')}`,
+      value: 'config:migrate',
+    },
 
-  ...section('📊', 'Monitoring'),
-  {
-    name: `install-monitoring       ${t.dim('Download monitoring service')}`,
-    value: 'install-monitoring-service',
-  },
-  {
-    name: `remote deploy-monitoring ${t.dim('Deploy monitoring to remote')}`,
-    value: 'remote:deploy-monitoring',
-  },
-  {
-    name: `remote start-monitoring  ${t.dim('Start remote monitoring')}`,
-    value: 'remote:start-monitoring',
-  },
+    ...section('📦', 'Project Setup'),
+    {
+      name: `install                  ${t.dim('Create .gitignore and git repo')}`,
+      value: 'install',
+    },
+    {
+      name: `install-template         ${t.dim('Install from a Git template')}`,
+      value: 'install-template',
+    },
 
-  ...section('🛠️ ', 'Utilities'),
-  { name: `keygen                   ${t.dim('Generate p12 keystore files')}`, value: 'keygen' },
-  { name: `update                   ${t.dim('Update Hydra version')}`, value: 'update' },
-  {
-    name: `check-seedlist           ${t.dim('Verify seedlist registration')}`,
-    value: 'check-seedlist',
-  },
+    ...section('🖥️ ', 'Local Cluster'),
+    {
+      name: `build                    ${t.dim('Build Docker images and compile JARs')}`,
+      value: 'build',
+    },
+    { name: `start                    ${t.dim('Start the local cluster')}`, value: 'start' },
+    { name: `stop                     ${t.dim('Stop the local cluster')}`, value: 'stop' },
+    { name: `status                   ${t.dim('Show cluster health')}`, value: 'status' },
+    { name: `logs                     ${t.dim('Tail logs for a layer')}`, value: 'logs' },
+    {
+      name: `destroy                  ${t.dim('Remove containers and network')}`,
+      value: 'destroy',
+    },
+    {
+      name: `purge                    ${t.dim('Destroy + remove Docker images')}`,
+      value: 'purge',
+    },
 
-  new Separator(''),
-  new Separator(`  ${t.dim('─'.repeat(44))}`),
-  { name: t.error('  ✕ Exit'), value: 'exit' },
-];
+    ...section('🌐', 'Remote Deploy'),
+    {
+      name: `create-remote-genesis    ${t.dim('Generate genesis files for remote')}`,
+      value: 'create-remote-genesis',
+    },
+    {
+      name: `remote deploy            ${t.dim('Deploy to remote hosts')}`,
+      value: 'remote:deploy',
+    },
+    {
+      name: `remote start             ${t.dim('Start remote cluster')}`,
+      value: 'remote:start',
+    },
+    {
+      name: `remote status            ${t.dim('Check remote node health')}`,
+      value: 'remote:status',
+    },
+    { name: `remote logs              ${t.dim('Tail remote logs')}`, value: 'remote:logs' },
+    {
+      name: `remote stop              ${t.dim('Stop remote processes')}`,
+      value: 'remote:stop',
+    },
+    {
+      name: `remote destroy           ${t.dim('Remove remote metagraph data')}`,
+      value: 'remote:destroy',
+    },
+    {
+      name: `remote snapshot-fee      ${t.dim('Fetch snapshot fee config')}`,
+      value: 'remote:snapshot-fee-config',
+    },
+
+    ...section('📊', 'Monitoring'),
+    {
+      name: `install-monitoring       ${t.dim('Download monitoring service')}`,
+      value: 'install-monitoring-service',
+    },
+    {
+      name: `remote deploy-monitoring ${t.dim('Deploy monitoring to remote')}`,
+      value: 'remote:deploy-monitoring',
+    },
+    {
+      name: `remote start-monitoring  ${t.dim('Start remote monitoring')}`,
+      value: 'remote:start-monitoring',
+    },
+
+    ...section('🛠️ ', 'Utilities'),
+    {
+      name: `keygen                   ${t.dim('Generate p12 keystore files')}`,
+      value: 'keygen',
+    },
+    { name: `update                   ${t.dim('Update Hydra version')}`, value: 'update' },
+    {
+      name: `check-seedlist           ${t.dim('Verify seedlist registration')}`,
+      value: 'check-seedlist',
+    },
+
+    new Separator(''),
+    new Separator(`  ${t.dim('─'.repeat(44))}`),
+    { name: verboseLabel, value: 'toggle-verbose' },
+    { name: t.error('  ✕ Exit'), value: 'exit' },
+  ];
+}
 
 // ─── Layer Choices ──────────────────────────────────────────────────────────
 
@@ -246,7 +295,7 @@ async function getNodeChoices(): Promise<Array<{ name: string; value: string }>>
 // ─── Prerequisite Resolution ────────────────────────────────────────────────
 
 async function resolvePrerequisites(command: string): Promise<void> {
-  const projectRoot = process.cwd();
+  const projectRoot = findProjectRoot();
 
   // Loop to handle chained prerequisites (e.g. remote:deploy → build → create-remote-genesis)
 
@@ -276,35 +325,38 @@ async function resolvePrerequisites(command: string): Promise<void> {
 // ─── Command Dispatch ───────────────────────────────────────────────────────
 
 async function executeCommand(command: string): Promise<void> {
+  const verbose = verboseMode;
+  // Set log level based on current verbose state (so toggling OFF resets to INFO)
+  logger.setLevel(verbose ? LogLevel.DEBUG : LogLevel.INFO);
   // ── Prerequisite check ───────────────────────────────────────────
   await resolvePrerequisites(command);
 
   switch (command) {
     // ── Simple commands (no sub-prompts) ──────────────────────────────
     case 'doctor':
-      return doctorCommand({});
+      return doctorCommand({ verbose });
     case 'config:show':
-      return configShowCommand({});
+      return configShowCommand({ verbose });
     case 'config:validate':
-      return configValidateCommand({});
+      return configValidateCommand({ verbose });
     case 'config:migrate':
-      return configMigrateCommand({});
+      return configMigrateCommand({ verbose });
     case 'install':
-      return installCommand({});
+      return installCommand({ verbose });
     case 'install-monitoring-service':
-      return installMonitoringServiceCommand({});
+      return installMonitoringServiceCommand({ verbose });
     case 'stop':
-      return stopCommand({});
+      return stopCommand({ verbose });
     case 'status':
-      return statusCommand({});
+      return statusCommand({ verbose });
     case 'create-remote-genesis':
-      return createRemoteGenesisCommand({});
+      return createRemoteGenesisCommand({ verbose });
     case 'remote:status':
-      return remoteStatusCommand({});
+      return remoteStatusCommand({ verbose });
     case 'remote:deploy-monitoring':
-      return remoteDeployMonitoringCommand({});
+      return remoteDeployMonitoringCommand({ verbose });
     case 'remote:snapshot-fee-config':
-      return remoteSnapshotFeeConfigCommand({});
+      return remoteSnapshotFeeConfigCommand({ verbose });
 
     // ── Commands with sub-prompts ─────────────────────────────────────
 
@@ -313,7 +365,7 @@ async function executeCommand(command: string): Promise<void> {
         message: 'Force rebuild without Docker cache?',
         default: false,
       });
-      return buildCommand({ noCache });
+      return buildCommand({ noCache, verbose });
     }
 
     case 'start': {
@@ -330,21 +382,21 @@ async function executeCommand(command: string): Promise<void> {
           },
         ],
       });
-      return startCommand({ genesis: mode === 'genesis' });
+      return startCommand({ genesis: mode === 'genesis', verbose });
     }
 
     case 'logs': {
       const layer = await select({ message: 'Which layer?', choices: LAYER_CHOICES });
       const nodeChoices = await getNodeChoices();
       const node = await select({ message: 'Which node?', choices: nodeChoices });
-      return logsCommand(layer, { node, follow: true, lines: 50 });
+      return logsCommand(layer, { node, follow: true, lines: 50, verbose });
     }
 
     case 'destroy':
-      return destroyCommand({});
+      return destroyCommand({ verbose });
 
     case 'purge':
-      return purgeCommand({});
+      return purgeCommand({ verbose });
 
     case 'install-template': {
       const action = await select({
@@ -354,12 +406,12 @@ async function executeCommand(command: string): Promise<void> {
           { name: 'Install a template', value: 'install' as const },
         ],
       });
-      if (action === 'list') return installTemplateCommand({ list: true });
+      if (action === 'list') return installTemplateCommand({ list: true, verbose });
       const name = await input({
         message: 'Template name:',
         validate: (v: string) => v.trim().length > 0 || 'Template name is required',
       });
-      return installTemplateCommand({ name: name.trim() });
+      return installTemplateCommand({ name: name.trim(), verbose });
     }
 
     case 'update': {
@@ -367,7 +419,7 @@ async function executeCommand(command: string): Promise<void> {
         message: 'Version tag or branch:',
         validate: (v: string) => v.trim().length > 0 || 'Version is required',
       });
-      return updateCommand({ version: version.trim() });
+      return updateCommand({ version: version.trim(), verbose });
     }
 
     case 'check-seedlist': {
@@ -379,11 +431,11 @@ async function executeCommand(command: string): Promise<void> {
           { name: 'MainNet', value: 'mainnet' },
         ],
       });
-      return checkSeedlistCommand({ network });
+      return checkSeedlistCommand({ network, verbose });
     }
 
     case 'keygen':
-      return keygenCommand({});
+      return keygenCommand({ verbose });
 
     // ── Remote commands ───────────────────────────────────────────────
 
@@ -392,7 +444,7 @@ async function executeCommand(command: string): Promise<void> {
         message: 'Force genesis file upload even if data exists?',
         default: false,
       });
-      return remoteDeployCommand({ forceGenesis });
+      return remoteDeployCommand({ forceGenesis, verbose });
     }
 
     case 'remote:start': {
@@ -409,7 +461,7 @@ async function executeCommand(command: string): Promise<void> {
           },
         ],
       });
-      return remoteStartCommand({ genesis: mode === 'genesis' });
+      return remoteStartCommand({ genesis: mode === 'genesis', verbose });
     }
 
     case 'remote:logs': {
@@ -418,15 +470,21 @@ async function executeCommand(command: string): Promise<void> {
         validate: (v: string) => v.trim().length > 0 || 'Host is required',
       });
       const layer = await select({ message: 'Which layer?', choices: REMOTE_LAYER_CHOICES });
-      return remoteLogsCommand(host.trim(), layer, { lines: 50, follow: true });
+      return remoteLogsCommand(host.trim(), layer, { lines: 50, follow: true, verbose });
     }
+
+    case 'remote:stop':
+      return remoteStopCommand({ verbose });
+
+    case 'remote:destroy':
+      return remoteDestroyCommand({ verbose });
 
     case 'remote:start-monitoring': {
       const forceRestart = await confirm({
         message: 'Force restart the monitoring service?',
         default: false,
       });
-      return remoteStartMonitoringCommand({ forceRestart });
+      return remoteStartMonitoringCommand({ forceRestart, verbose });
     }
 
     default:
@@ -476,7 +534,7 @@ export async function runInteractiveMenu(): Promise<void> {
     try {
       command = await select({
         message: t.white.bold('What would you like to do?'),
-        choices: MENU_CHOICES,
+        choices: buildMenuChoices(),
         pageSize: 40,
         loop: false,
       });
@@ -492,6 +550,13 @@ export async function runInteractiveMenu(): Promise<void> {
     if (command === 'exit') {
       process.stdout.write(t.dim('\n   Goodbye! 👋\n\n'));
       return;
+    }
+
+    if (command === 'toggle-verbose') {
+      verboseMode = !verboseMode;
+      const state = verboseMode ? t.accent('ON') : t.dim('OFF');
+      process.stdout.write(`\n  ${t.dim('⚙')}  Verbose mode: ${state}\n\n`);
+      continue;
     }
 
     process.stdout.write('\n');

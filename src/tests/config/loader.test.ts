@@ -87,13 +87,9 @@ describe('validateConfig', () => {
           gl0_node: { ip: '1.2.3.4', id: 'abc', public_port: 9000 },
         },
         jvm: {
-          default: {
-            min_heap: '1g',
-            max_heap: '2g',
-            metaspace_size: '256m',
-            max_metaspace_size: '512m',
-            additional_opts: '',
-          },
+          metagraph_l0: { xms: '8g', xmx: '8g' },
+          currency_l1: { xms: '4g', xmx: '4g' },
+          data_l1: { xms: '4g', xmx: '4g' },
         },
         hosts: [{ host: '1.2.3.4', user: 'ubuntu', ssh_key: '~/.ssh/id_rsa' }],
       },

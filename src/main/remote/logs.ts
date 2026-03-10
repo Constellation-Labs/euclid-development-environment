@@ -1,4 +1,6 @@
 import { SSHManager } from './ssh.js';
+import { logger } from '../shared/logger.js';
+import { errorMessage } from '../shared/errors.js';
 import type { RemoteHostConfig } from '../config/schema.js';
 
 export interface RemoteLogsOptions {
@@ -20,7 +22,9 @@ export async function remoteLogs(options: RemoteLogsOptions): Promise<void> {
     await ssh.disconnectAll();
   };
   process.on('SIGINT', () => {
-    cleanup().then(() => process.exit(130));
+    cleanup()
+      .catch((err) => logger.debug(`Cleanup error during SIGINT: ${errorMessage(err)}`))
+      .finally(() => process.exit(130));
   });
 
   try {

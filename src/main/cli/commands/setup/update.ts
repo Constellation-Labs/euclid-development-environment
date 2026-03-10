@@ -1,10 +1,11 @@
 import { resolve } from 'node:path';
 import { rm, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { confirm } from '@inquirer/prompts';
-import { DockerClient, logger, LogLevel } from '../../../index.js';
+import { DockerClient, findProjectRoot, logger, LogLevel } from '../../../index.js';
 import { formatError, formatSuccess, formatHeader } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 const EUCLID_REPO = 'https://github.com/Constellation-Labs/euclid-development-environment.git';
 
@@ -16,7 +17,7 @@ export async function updateCommand(options: {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
 
   try {
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
 
     process.stdout.write(formatHeader('Update Hydra'));
     process.stdout.write(`  Target version: ${options.version}\n\n`);
@@ -58,9 +59,9 @@ export async function updateCommand(options: {
       );
       if (hydraContainers.length > 0) {
         process.stderr.write(
-          '\nError: Running containers detected. Stop all containers before updating.\n',
+          `\n  ${icon.error} ${t.error('Running containers detected. Stop all containers before updating.')}\n` +
+            `  ${t.muted("Run 'hydra stop' or 'hydra destroy' first.")}\n\n`,
         );
-        process.stderr.write("  Run 'hydra stop' or 'hydra destroy' first.\n\n");
         process.exit(1);
       }
     } catch {
@@ -77,18 +78,20 @@ export async function updateCommand(options: {
 
     // Clone the repository
     process.stdout.write('  [1/4] Fetching updated version...\n');
-    execSync(`git clone --quiet "${EUCLID_REPO}" "${tmpDir}"`, { stdio: 'pipe' });
+    execFileSync('git', ['clone', '--quiet', EUCLID_REPO, tmpDir], { stdio: 'pipe' });
 
     // Checkout the specified version
     try {
-      execSync(`git checkout --quiet "${options.version}"`, {
+      execFileSync('git', ['checkout', '--quiet', options.version], {
         cwd: tmpDir,
         stdio: 'pipe',
       });
     } catch {
       await rm(tmpDir, { recursive: true, force: true });
-      process.stderr.write(`\nError: Version '${options.version}' not found.\n`);
-      process.stderr.write('  Ensure the version tag or branch exists in the repository.\n\n');
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error(`Version '${options.version}' not found.`)}\n` +
+          `  ${t.muted('Ensure the version tag or branch exists in the repository.')}\n\n`,
+      );
       process.exit(1);
     }
     process.stdout.write(`  ${formatSuccess(`Version ${options.version} fetched`)}\n`);
@@ -171,9 +174,13 @@ export async function updateCommand(options: {
     process.stdout.write('\n  Update complete!\n\n');
   } catch (err) {
     // Cleanup on error
-    const tmpDir = resolve(process.cwd(), '.hydra-update-tmp');
+    const tmpDir = resolve(findProjectRoot(), '.hydra-update-tmp');
     if (existsSync(tmpDir)) {
-      await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      await rm(tmpDir, { recursive: true, force: true }).catch((e) => {
+        logger.debug(
+          `Failed to clean up temp directory: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
     }
     process.stderr.write('\n' + formatError(err) + '\n');
     process.exit(1);

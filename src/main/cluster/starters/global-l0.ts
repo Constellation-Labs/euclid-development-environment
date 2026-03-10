@@ -53,10 +53,9 @@ export async function startGlobalL0(ctx: LayerContext): Promise<void> {
     const rollbackHash = await findLatestSnapshot(docker, node.name, layerDir);
 
     if (!rollbackHash) {
-      throw new LayerStartError(
-        'No snapshot data found for Global L0 — cannot rollback.',
-        { suggestion: "Run 'hydra start --genesis' first to create initial state." },
-      );
+      throw new LayerStartError('No snapshot data found for Global L0 — cannot rollback.', {
+        suggestion: "Run 'hydra start --genesis' first to create initial state.",
+      });
     }
 
     logger.debug(`Rollback from snapshot: ${rollbackHash}`);

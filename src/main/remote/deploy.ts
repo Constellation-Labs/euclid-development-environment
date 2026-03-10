@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { SSHManager } from './ssh.js';
+import { remoteCodeDir, getConfiguredRemoteLayers } from './paths.js';
 import { RemoteDeployError } from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
-import type { EuclidConfig, RemoteHostConfig } from '../config/schema.js';
+import type { EuclidConfig, NodeConfig, RemoteHostConfig } from '../config/schema.js';
 
 export interface DeployOptions {
   config: EuclidConfig;
@@ -13,7 +14,7 @@ export interface DeployOptions {
 }
 
 /**
- * Deploy JARs, keys, and genesis files to all remote hosts.
+ * Deploy JARs, keys, and genesis files to all remote hosts in parallel.
  */
 export async function remoteDeploy(options: DeployOptions): Promise<void> {
   const { config, projectRoot, forceGenesis } = options;
@@ -39,42 +40,108 @@ export async function remoteDeploy(options: DeployOptions): Promise<void> {
     }
   }
 
-  const remoteLayers = getRemoteLayers(config);
+  const remoteLayers = getConfiguredRemoteLayers(config);
 
   try {
-    // Deploy to each host (one host per node)
-    for (let i = 0; i < deploy.hosts.length; i++) {
-      const host = deploy.hosts[i];
+    // Deploy to all hosts in parallel
+    const tasks = deploy.hosts.map((host, i) => {
       const node = config.nodes[i];
-      if (!node) break;
+      if (!node) return Promise.resolve();
 
-      const progress = (step: string) => options.onProgress?.(host.host, step);
+      return deployToHost({
+        ssh,
+        host,
+        node,
+        config,
+        jarsDir,
+        dataPath,
+        dockerPath,
+        remoteLayers,
+        forceGenesis,
+        onProgress: (step) => options.onProgress?.(host.host, step),
+      });
+    });
 
-      progress('Connecting...');
-      await ssh.connect(host);
+    const results = await Promise.allSettled(tasks);
 
-      // Create directory structure
-      progress('Creating directories...');
-      for (const layer of remoteLayers) {
-        await ssh.mkdir(host, remoteCodeDir(host, layer));
+    // Collect failures
+    const failures: string[] = [];
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'rejected') {
+        const host = deploy.hosts[i].host;
+        const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        failures.push(`  ${host}: ${msg}`);
       }
+    }
 
-      // Upload JARs
-      progress('Uploading JARs...');
-      for (const layer of remoteLayers) {
-        const remoteDir = remoteCodeDir(host, layer);
+    if (failures.length > 0) {
+      throw new RemoteDeployError(
+        `${failures.length} host(s)`,
+        `Deploy failed:\n${failures.join('\n')}`,
+      );
+    }
+  } finally {
+    await ssh.disconnectAll();
+  }
+}
 
-        // Utility JARs go to every layer
-        await ssh.upload(host, resolve(jarsDir, 'cl-keytool.jar'), `${remoteDir}/cl-keytool.jar`);
-        await ssh.upload(host, resolve(jarsDir, 'cl-wallet.jar'), `${remoteDir}/cl-wallet.jar`);
+// ─── Per-host deploy ──────────────────────────────────────────────────────
 
-        // Layer-specific JAR
-        const jarName = `${layer}.jar`;
-        if (existsSync(resolve(jarsDir, jarName))) {
-          await ssh.upload(host, resolve(jarsDir, jarName), `${remoteDir}/${jarName}`);
-        }
+interface HostDeployOptions {
+  ssh: SSHManager;
+  host: RemoteHostConfig;
+  node: NodeConfig;
+  config: EuclidConfig;
+  jarsDir: string;
+  dataPath: string;
+  dockerPath: string;
+  remoteLayers: string[];
+  forceGenesis?: boolean;
+  onProgress: (step: string) => void;
+}
+
+async function deployToHost(opts: HostDeployOptions): Promise<void> {
+  const { ssh, host, node, config, jarsDir, dataPath, dockerPath, remoteLayers, forceGenesis } =
+    opts;
+  const progress = opts.onProgress;
+
+  try {
+    progress('Connecting...');
+    await ssh.connect(host);
+
+    // ── Genesis deploy: archive old data first, before any uploads ──
+    if (forceGenesis) {
+      if (await hasExistingData(ssh, host, remoteLayers)) {
+        progress('Archiving existing data...');
+        await archiveExistingData(ssh, host, remoteLayers);
       }
+    }
 
+    // Create directory structure (also recreates dirs after archive moved them)
+    progress('Creating directories...');
+    for (const layer of remoteLayers) {
+      await ssh.mkdir(host, remoteCodeDir(host, layer));
+    }
+
+    // Upload JARs
+    progress('Uploading JARs...');
+    for (const layer of remoteLayers) {
+      const remoteDir = remoteCodeDir(host, layer);
+
+      // Utility JARs go to every layer
+      await ssh.upload(host, resolve(jarsDir, 'cl-keytool.jar'), `${remoteDir}/cl-keytool.jar`);
+      await ssh.upload(host, resolve(jarsDir, 'cl-wallet.jar'), `${remoteDir}/cl-wallet.jar`);
+
+      // Layer-specific JAR
+      const jarName = `${layer}.jar`;
+      if (existsSync(resolve(jarsDir, jarName))) {
+        await ssh.upload(host, resolve(jarsDir, jarName), `${remoteDir}/${jarName}`);
+      }
+    }
+
+    // ── Genesis deploy: upload keys + genesis + fee keys ──
+    if (forceGenesis) {
       // Upload p12 keys
       progress('Uploading keys...');
       const p12Path = resolve(dataPath, 'p12-files', node.key_file.name);
@@ -87,31 +154,28 @@ export async function remoteDeploy(options: DeployOptions): Promise<void> {
         logger.warn(`P12 file not found: ${p12Path}`);
       }
 
-      // Upload genesis files (only on genesis deploy for metagraph-l0)
-      if (forceGenesis || !(await hasExistingData(ssh, host))) {
-        progress('Uploading genesis files...');
-        const ml0Dir = remoteCodeDir(host, 'metagraph-l0');
+      // Upload genesis files
+      progress('Uploading genesis files...');
+      const ml0Dir = remoteCodeDir(host, 'metagraph-l0');
 
-        const genesisCsv = resolve(dataPath, 'metagraph-l0', 'genesis', 'genesis.csv');
-        if (existsSync(genesisCsv)) {
-          await ssh.upload(host, genesisCsv, `${ml0Dir}/genesis.csv`);
-        }
+      const genesisCsv = resolve(dataPath, 'metagraph-l0', 'genesis', 'genesis.csv');
+      if (existsSync(genesisCsv)) {
+        await ssh.upload(host, genesisCsv, `${ml0Dir}/genesis.csv`);
+      }
 
-        const genesisSnapshot = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.snapshot');
-        if (existsSync(genesisSnapshot)) {
-          await ssh.upload(host, genesisSnapshot, `${ml0Dir}/genesis.snapshot`);
-        }
+      const genesisSnapshot = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.snapshot');
+      if (existsSync(genesisSnapshot)) {
+        await ssh.upload(host, genesisSnapshot, `${ml0Dir}/genesis.snapshot`);
+      }
 
-        const genesisAddress = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
-        if (existsSync(genesisAddress)) {
-          await ssh.upload(host, genesisAddress, `${ml0Dir}/genesis.address`);
-        }
+      const genesisAddress = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
+      if (existsSync(genesisAddress)) {
+        await ssh.upload(host, genesisAddress, `${ml0Dir}/genesis.address`);
       }
 
       // Upload snapshot fee keys if configured
       if (config.snapshot_fees) {
         progress('Uploading snapshot fee keys...');
-        const ml0Dir = remoteCodeDir(host, 'metagraph-l0');
 
         const ownerP12 = resolve(dataPath, 'p12-files', config.snapshot_fees.owner.key_file.name);
         if (existsSync(ownerP12)) {
@@ -131,33 +195,72 @@ export async function remoteDeploy(options: DeployOptions): Promise<void> {
           );
         }
       }
-
-      progress('Done');
     }
-  } finally {
-    await ssh.disconnectAll();
+
+    progress('Done ✓');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    progress(`Failed ✗`);
+    throw new RemoteDeployError(host.host, msg, {
+      cause: err instanceof Error ? err : new Error(msg),
+    });
   }
 }
 
-function remoteCodeDir(host: RemoteHostConfig, layer: string): string {
-  return `/home/${host.user}/code/${layer}`;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
-function getRemoteLayers(config: EuclidConfig): string[] {
-  const layers: string[] = ['metagraph-l0'];
-  if (config.layers.includes('currency-l1')) layers.push('currency-l1');
-  if (config.layers.includes('data-l1')) layers.push('data-l1');
-  return layers;
-}
+/**
+ * Archive all existing layer directory contents before a fresh genesis deploy.
+ * Moves each layer directory to a timestamped archive folder
+ * so the previous state is preserved and recoverable, then recreates the empty dir.
+ */
+async function archiveExistingData(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  remoteLayers: string[],
+): Promise<void> {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const archiveBase = `/home/${host.user}/code/archive/${timestamp}`;
 
-async function hasExistingData(ssh: SSHManager, host: RemoteHostConfig): Promise<boolean> {
-  try {
-    const result = await ssh.exec(
+  await ssh.exec(host, `mkdir -p "${archiveBase}"`);
+
+  for (const layer of remoteLayers) {
+    const layerDir = remoteCodeDir(host, layer);
+    // Move entire layer directory to archive, then recreate it empty
+    await ssh.exec(
       host,
-      `test -d "${remoteCodeDir(host, 'metagraph-l0')}/data/incremental_snapshot" && echo "yes" || echo "no"`,
+      `if [ -d "${layerDir}" ] && [ "$(ls -A "${layerDir}" 2>/dev/null)" ]; then ` +
+        `mv "${layerDir}" "${archiveBase}/${layer}" && ` +
+        `mkdir -p "${layerDir}"; ` +
+        `fi`,
     );
-    return result.stdout.trim() === 'yes';
-  } catch {
+  }
+
+  logger.debug(`[${host.host}] Archived existing data to ${archiveBase}`);
+}
+
+/**
+ * Check if any layer code directory has existing content (JARs, data, keys, etc.).
+ */
+async function hasExistingData(
+  ssh: SSHManager,
+  host: RemoteHostConfig,
+  remoteLayers: string[],
+): Promise<boolean> {
+  try {
+    for (const layer of remoteLayers) {
+      const dir = remoteCodeDir(host, layer);
+      const result = await ssh.exec(
+        host,
+        `if [ -d "${dir}" ] && [ "$(ls -A "${dir}" 2>/dev/null)" ]; then echo "yes"; else echo "no"; fi`,
+      );
+      if (result.stdout.trim() === 'yes') return true;
+    }
+    return false;
+  } catch (err) {
+    logger.debug(
+      `Failed to check existing data on ${host.host}: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return false;
   }
 }

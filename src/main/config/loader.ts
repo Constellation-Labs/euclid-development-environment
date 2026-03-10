@@ -1,11 +1,16 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { EuclidConfigSchema, isLegacyConfig } from './schema.js';
 import type { EuclidConfig } from './schema.js';
 import { migrateV1toV2 } from './migration.js';
 import { writeConfigAtomic } from './writer.js';
-import { ConfigNotFoundError, ConfigValidationError, ConfigError } from '../shared/errors.js';
+import {
+  ConfigNotFoundError,
+  ConfigValidationError,
+  ConfigError,
+  errorMessage,
+} from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
 
 const CONFIG_FILENAME = 'euclid.json';
@@ -32,6 +37,19 @@ export function findConfigPath(startDir?: string): string | null {
 }
 
 /**
+ * Find the project root directory (the directory containing euclid.json).
+ * Walks up from cwd to find the config file and returns its parent directory.
+ * Falls back to cwd if no config file is found.
+ */
+export function findProjectRoot(): string {
+  const configPath = findConfigPath();
+  if (configPath) {
+    return dirname(configPath);
+  }
+  return process.cwd();
+}
+
+/**
  * Load and validate euclid.json. Automatically migrates v1 configs.
  *
  * @param configPath - Explicit path to euclid.json, or auto-detect from cwd.
@@ -49,9 +67,9 @@ export async function loadConfig(configPath?: string): Promise<EuclidConfig> {
     const content = await readFile(resolvedPath, 'utf-8');
     raw = JSON.parse(content) as Record<string, unknown>;
   } catch (err) {
-    throw new ConfigError(`Failed to parse ${resolvedPath}: ${(err as Error).message}`, {
+    throw new ConfigError(`Failed to parse ${resolvedPath}: ${errorMessage(err)}`, {
       suggestion: 'Ensure euclid.json contains valid JSON.',
-      cause: err as Error,
+      cause: err instanceof Error ? err : new Error(errorMessage(err)),
     });
   }
 

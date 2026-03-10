@@ -8,6 +8,7 @@ import {
 } from '../../../index.js';
 import type { LayerType } from '../../../index.js';
 import { formatError } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 export async function logsCommand(
   layer: string,
@@ -22,8 +23,10 @@ export async function logsCommand(
 
   // Validate layer
   if (!LAYER_TYPES.includes(layer as LayerType)) {
-    process.stderr.write(`\nError: Unknown layer '${layer}'.\n`);
-    process.stderr.write(`Valid layers: ${LAYER_TYPES.join(', ')}\n\n`);
+    process.stderr.write(
+      `\n  ${icon.error} ${t.error(`Unknown layer '${layer}'.`)}\n` +
+        `  ${t.muted('Valid layers:')} ${LAYER_TYPES.join(', ')}\n\n`,
+    );
     process.exit(1);
   }
 
@@ -37,15 +40,20 @@ export async function logsCommand(
     const node = config.nodes.find((n) => n.name === targetNode);
 
     if (!node) {
-      process.stderr.write(`\nError: Node '${targetNode}' not found.\n`);
-      process.stderr.write(`Available nodes: ${config.nodes.map((n) => n.name).join(', ')}\n\n`);
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error(`Node '${targetNode}' not found.`)}\n` +
+          `  ${t.muted('Available nodes:')} ${config.nodes.map((n) => n.name).join(', ')}\n\n`,
+      );
       process.exit(1);
     }
 
     // Check container is running
     const running = await docker.isContainerRunning(node.name);
     if (!running) {
-      process.stderr.write(`\nError: Container '${node.name}' is not running.\n\n`);
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error(`Container '${node.name}' is not running.`)}\n` +
+          `  ${t.muted("Run 'hydra start' to start the cluster.")}\n\n`,
+      );
       process.exit(1);
     }
 
@@ -58,23 +66,23 @@ export async function logsCommand(
 
     // Check if log file exists
     try {
-      execSync(`docker exec ${node.name} bash -c "test -f ${logPath}"`, { stdio: 'pipe' });
+      execSync(`docker exec "${node.name}" bash -c 'test -f "${logPath}"'`, { stdio: 'pipe' });
     } catch {
       process.stderr.write(
-        `\nNo logs found for ${LAYER_DISPLAY_NAMES[layer as LayerType]} on ${node.name}.\n`,
+        `\n  ${icon.error} ${t.error(`No logs found for ${LAYER_DISPLAY_NAMES[layer as LayerType]} on ${node.name}.`)}\n` +
+          `  ${t.muted('The layer may not have started yet.')}\n\n`,
       );
-      process.stderr.write(`The layer may not have started yet.\n\n`);
       process.exit(1);
     }
 
     process.stdout.write(
-      `\n  Tailing ${LAYER_DISPLAY_NAMES[layer as LayerType]} logs on ${node.name} (last ${lines} lines)\n\n`,
+      `\n  ${t.muted('Tailing')} ${t.white(LAYER_DISPLAY_NAMES[layer as LayerType])} ${t.muted('on')} ${t.white(node.name)} ${t.dim(`(last ${lines} lines)`)}\n\n`,
     );
 
     // Stream logs to stdout
     const proc = spawn(
       'docker',
-      ['exec', node.name, 'bash', '-c', `tail ${followFlag} -n ${lines} ${logPath}`],
+      ['exec', node.name, 'bash', '-c', `tail ${followFlag} -n ${lines} "${logPath}"`],
       { stdio: 'inherit' },
     );
 

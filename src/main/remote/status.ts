@@ -1,6 +1,7 @@
 import { fetchNodeInfo } from '../cluster/health.js';
 import type { NodeInfo } from '../cluster/health.js';
 import type { EuclidConfig } from '../config/schema.js';
+import { DEFAULT_REMOTE_PORTS } from './defaults.js';
 
 export interface RemoteNodeStatus {
   host: string;
@@ -16,13 +17,7 @@ export async function remoteStatus(config: EuclidConfig): Promise<RemoteNodeStat
   const deploy = config.deploy;
   if (!deploy) return [];
 
-  const _results: RemoteNodeStatus[] = [];
-
-  const remotePorts = deploy.remote_ports ?? {
-    metagraph_l0: { public: 9100, p2p: 9101, cli: 9102 },
-    currency_l1: { public: 9200, p2p: 9201, cli: 9202 },
-    data_l1: { public: 9300, p2p: 9301, cli: 9302 },
-  };
+  const remotePorts = deploy.remote_ports ?? DEFAULT_REMOTE_PORTS;
 
   const layerPorts: Array<{ layer: string; port: number }> = [];
 

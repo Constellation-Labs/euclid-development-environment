@@ -45,7 +45,7 @@ export async function getOwnerAddress(ctx: LayerContext, layerDir: string): Prom
     const result = await dockerExec(
       docker,
       leadNode.name,
-      ['bash', '-c', `cd ${layerDir} && java -jar cl-wallet.jar show-address`],
+      ['bash', '-c', `cd "${layerDir}" && java -jar cl-wallet.jar show-address`],
       {
         CL_KEYSTORE: ownerKey.name,
         CL_KEYALIAS: ownerKey.alias,
@@ -59,7 +59,7 @@ export async function getOwnerAddress(ctx: LayerContext, layerDir: string): Prom
   const result = await dockerExec(
     docker,
     leadNode.name,
-    ['bash', '-c', `cd ${layerDir} && java -jar cl-wallet.jar show-address`],
+    ['bash', '-c', `cd "${layerDir}" && java -jar cl-wallet.jar show-address`],
     {
       CL_KEYSTORE: leadNode.key_file.name,
       CL_KEYALIAS: leadNode.key_file.alias,
@@ -97,7 +97,7 @@ export async function createMultiNodeSignedMessage(
       [
         'bash',
         '-c',
-        `cd ${layerDir} && java -jar cl-wallet.jar ${commandType} ` +
+        `cd "${layerDir}" && java -jar cl-wallet.jar ${commandType} ` +
           `--address "${address}" ` +
           `--metagraphId "${metagraphId}" ` +
           `--parentOrdinal ${parentOrdinal}`,
@@ -119,7 +119,7 @@ export async function createMultiNodeSignedMessage(
       const fileCheck = await docker.exec(node.name, [
         'bash',
         '-c',
-        `cd ${layerDir} && for f in owner_message.txt signed_message.json owner-message; do ` +
+        `cd "${layerDir}" && for f in owner_message.txt signed_message.json owner-message; do ` +
           `  if [ -f "$f" ]; then cat "$f"; exit 0; fi; ` +
           `done; echo ""`,
       ]);
@@ -176,7 +176,7 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     const genesisOutput = await dockerExec(
       docker,
       leadNode.name,
-      ['bash', '-c', `cd ${layerDir} && java -jar ${jar} create-genesis genesis.csv`],
+      ['bash', '-c', `cd "${layerDir}" && java -jar "${jar}" create-genesis genesis.csv`],
       envBase,
     );
     if (genesisOutput.trim()) {
@@ -187,7 +187,7 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     const genesisCheck = await dockerExec(docker, leadNode.name, [
       'bash',
       '-c',
-      `ls -la ${layerDir}/genesis.address ${layerDir}/genesis.snapshot 2>&1`,
+      `ls -la "${layerDir}/genesis.address" "${layerDir}/genesis.snapshot" 2>&1`,
     ]);
     logger.debug(`Genesis files: ${genesisCheck.trim()}`);
 
@@ -204,15 +204,15 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     await dockerExec(docker, leadNode.name, [
       'bash',
       '-c',
-      `cp ${layerDir}/genesis.address shared_genesis/genesis.address && ` +
-        `cp ${layerDir}/genesis.snapshot shared_genesis/genesis.snapshot`,
+      `cp "${layerDir}/genesis.address" shared_genesis/genesis.address && ` +
+        `cp "${layerDir}/genesis.snapshot" shared_genesis/genesis.snapshot`,
     ]);
 
     // Read metagraph ID for later use
     const metagraphIdOutput = await dockerExec(docker, leadNode.name, [
       'bash',
       '-c',
-      `tr -d '\\r\\n' < ${layerDir}/genesis.address`,
+      `tr -d '\\r\\n' < "${layerDir}/genesis.address"`,
     ]);
     ctx.metagraphId = metagraphIdOutput.trim();
     logger.debug(`Metagraph ID: ${ctx.metagraphId}`);
@@ -228,8 +228,11 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     try {
       const { execSync } = await import('node:child_process');
       execSync(`mkdir -p "${resolve(dockerPath, 'artifacts', 'genesis')}"`, { stdio: 'pipe' });
-    } catch {
+    } catch (err) {
       // Non-critical — shared volume should already have it
+      logger.debug('Failed to create genesis artifacts dir on host (non-critical)', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
 
     // Start genesis (owner message is submitted via API after node is ready)
@@ -247,10 +250,10 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     // Rollback mode
     ctx.onProgress?.('Reading metagraph ID...');
     const genesisAddressPath = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
-    if (existsSync(genesisAddressPath)) {
+    try {
       ctx.metagraphId = (await readFile(genesisAddressPath, 'utf-8')).trim();
-    } else {
-      // Try reading from container
+    } catch {
+      // File doesn't exist on host — try reading from container
       const result = await dockerExec(docker, leadNode.name, [
         'bash',
         '-c',
@@ -300,12 +303,18 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     const ownerAddress = await getOwnerAddress(ctx, layerDir);
     logger.debug(`Owner address: ${ownerAddress}`);
 
+    if (!ctx.metagraphId) {
+      throw new LayerStartError(
+        'Cannot submit owner message — metagraph ID is not set. This is a bug.',
+      );
+    }
+
     const ownerMessage = await createMultiNodeSignedMessage(
       ctx,
       layerDir,
       'create-owner-signing-message',
       ownerAddress,
-      ctx.metagraphId!,
+      ctx.metagraphId,
       0,
     );
     logger.debug(`Owner message created with ${ownerMessage.proofs.length} proof(s)`);
@@ -341,10 +350,16 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
 
     await copyP12(docker, projectRoot, valNode, valNode.name, layerDir);
 
+    if (!ctx.metagraphId) {
+      throw new LayerStartError(
+        `Cannot start validator ${valNode.name} — metagraph ID is not set. Run genesis first.`,
+      );
+    }
+
     const valEnv = {
       ...baseEnv(valNode, valPorts),
       ...globalL0PeerEnv(config, ctx.leadNodeId),
-      CL_L0_TOKEN_IDENTIFIER: ctx.metagraphId!,
+      CL_L0_TOKEN_IDENTIFIER: ctx.metagraphId,
     };
 
     await startJavaProcess(

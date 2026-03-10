@@ -124,7 +124,7 @@ export async function cleanLayerDirs(
   await dockerExec(docker, containerName, [
     'bash',
     '-c',
-    `cd ${layerDir} && rm -rf data logs 2>/dev/null; true`,
+    `cd "${layerDir}" && rm -rf data logs 2>/dev/null; true`,
   ]);
 }
 
@@ -141,7 +141,7 @@ export async function ensureGenesisCsv(
   const result = await docker.exec(containerName, [
     'bash',
     '-c',
-    `test -f ${layerDir}/genesis.csv && echo "ok" || echo "missing"`,
+    `test -f "${layerDir}/genesis.csv" && echo "ok" || echo "missing"`,
   ]);
   if (result.stdout.trim() === 'ok') return;
 
@@ -173,7 +173,7 @@ export async function startJavaProcess(
     [
       'bash',
       '-c',
-      `cd ${layerDir} && nohup java -jar ${jar} ${javaArgs} > ${logFile} 2>&1 & echo $! > ${logFile}.pid`,
+      `cd "${layerDir}" && nohup java -jar "${jar}" ${javaArgs} > "${logFile}" 2>&1 & echo $! > "${logFile}.pid"`,
     ],
     env,
   );
@@ -197,8 +197,8 @@ export async function checkProcessHealth(
   const pidCheck = await docker.exec(containerName, [
     'bash',
     '-c',
-    `cd ${layerDir} && ` +
-      `PID=$(cat ${logFile}.pid 2>/dev/null) && ` +
+    `cd "${layerDir}" && ` +
+      `PID=$(cat "${logFile}.pid" 2>/dev/null) && ` +
       `if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then echo "alive"; else echo "dead"; fi`,
   ]);
 
@@ -206,7 +206,7 @@ export async function checkProcessHealth(
     const logTail = await docker.exec(containerName, [
       'bash',
       '-c',
-      `cd ${layerDir} && tail -40 ${logFile} 2>/dev/null || echo "(no log output)"`,
+      `cd "${layerDir}" && tail -40 "${logFile}" 2>/dev/null || echo "(no log output)"`,
     ]);
 
     const logContent = logTail.stdout.trim();
@@ -246,6 +246,18 @@ export function extractErrorFromLog(logContent: string): string {
   return lines.slice(-10).join('\n     ') || '(no output captured)';
 }
 
+/** Maximum polling attempts for local container readiness (120 × 1s = 2min). */
+const LOCAL_READY_MAX_RETRIES = 120;
+
+/** Polling interval for local container readiness (milliseconds). */
+const LOCAL_READY_POLL_INTERVAL_MS = 1000;
+
+/** Check process health every N polling attempts. */
+const HEALTH_CHECK_INTERVAL = 10;
+
+/** Report progress to the user every N polling attempts. */
+const PROGRESS_REPORT_INTERVAL = 5;
+
 export async function waitForReady(
   docker: DockerClient,
   containerName: string,
@@ -255,8 +267,8 @@ export async function waitForReady(
   targetState: string,
   onProgress?: (msg: string) => void,
 ): Promise<void> {
-  const maxRetries = 120;
-  const intervalMs = 1000;
+  const maxRetries = LOCAL_READY_MAX_RETRIES;
+  const intervalMs = LOCAL_READY_POLL_INTERVAL_MS;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const info = await fetchNodeInfo('localhost', port);
@@ -264,11 +276,11 @@ export async function waitForReady(
       return;
     }
 
-    if (attempt > 0 && attempt % 10 === 0) {
+    if (attempt > 0 && attempt % HEALTH_CHECK_INTERVAL === 0) {
       await checkProcessHealth(docker, containerName, layerDir, logFile);
     }
 
-    if (onProgress && attempt % 5 === 0 && attempt > 0) {
+    if (onProgress && attempt % PROGRESS_REPORT_INTERVAL === 0 && attempt > 0) {
       onProgress(`Waiting for ${targetState}... ${Math.round(attempt)}s`);
     }
 
@@ -280,7 +292,7 @@ export async function waitForReady(
     const logTail = await docker.exec(containerName, [
       'bash',
       '-c',
-      `cd ${layerDir} && tail -20 ${logFile} 2>/dev/null || echo "(no log)"`,
+      `cd "${layerDir}" && tail -20 "${logFile}" 2>/dev/null || echo "(no log)"`,
     ]);
     const errorLines = extractErrorFromLog(logTail.stdout.trim());
     logHint = `\n     Last log output:\n     ${errorLines}`;
@@ -305,12 +317,13 @@ export async function joinCluster(
     p2pPort: leadNodeP2pPort,
   });
 
+  // Use heredoc to pass JSON payload safely (avoids shell quoting issues with single/double quotes)
   await dockerExec(docker, containerName, [
     'bash',
     '-c',
-    `curl -s -X POST http://localhost:${cliPort}/cluster/join ` +
+    `curl -s -X POST "http://localhost:${cliPort}/cluster/join" ` +
       `-H 'Content-Type: application/json' ` +
-      `-d '${payload}'`,
+      `--data-raw '${payload.replace(/'/g, "'\\''")}'`,
   ]);
 }
 
@@ -322,9 +335,7 @@ export async function joinCluster(
  *   data/incremental_snapshot/hash/<prefix1>/<prefix2>/<full_hash>
  *   data/snapshot/hash/<prefix1>/<prefix2>/<full_hash>
  *
- * We use the ordinal/ directory (sibling of hash/) to find the highest ordinal,
- * then read the hash value from that file.
- * Falls back to listing hash/ leaves sorted by modification time.
+ * We find the leaf files under hash/ sorted by modification time (most recent first).
  * Returns null if no snapshot data exists (e.g. fresh container).
  */
 export async function findLatestSnapshot(
@@ -334,20 +345,21 @@ export async function findLatestSnapshot(
 ): Promise<string | null> {
   for (const dir of ['incremental_snapshot', 'snapshot']) {
     try {
-      // Strategy: find the leaf files under hash/ sorted by mtime (most recent first)
-      // Uses ls -ltR to recursively list, then grep for 64-char hex filenames
       const hashDir = `${layerDir}/data/${dir}/hash`;
       const result = await docker.exec(containerName, [
         'bash',
         '-c',
-        `find ${hashDir} -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1 | xargs -I{} basename {}`,
+        `find "${hashDir}" -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1 | xargs -I{} basename {}`,
       ]);
       const hash = result.stdout.trim();
       if (hash && /^[a-f0-9]{64}$/i.test(hash)) {
         return hash;
       }
-    } catch {
+    } catch (err) {
       // Directory doesn't exist, try next
+      logger.debug(
+        `Snapshot dir ${dir} not found in ${layerDir}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
   return null;

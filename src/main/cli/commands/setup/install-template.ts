@@ -1,65 +1,21 @@
 import { resolve } from 'node:path';
 import { readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
-import { loadConfig, writeConfigAtomic, logger, LogLevel } from '../../../index.js';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, renameSync } from 'node:fs';
+import {
+  loadConfig,
+  writeConfigAtomic,
+  findProjectRoot,
+  logger,
+  LogLevel,
+} from '../../../index.js';
 import { formatError, formatSuccess, formatHeader } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
+import { GITIGNORE_CONTENT } from '../../../shared/gitignore.js';
 
 const DEFAULT_REPO = 'https://github.com/Constellation-Labs/metagraph-examples.git';
 const DEFAULT_PATH = 'examples';
-
-const GITIGNORE_CONTENT = `# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-
-# Scala build artifacts
-.metals/
-.bloop/
-.bsp/
-.scala-build/
-target/
-metals.sbt
-**/metals.sbt
-project/metals.sbt
-project/project/metals.sbt
-.scalafmt-cache
-.scalafix-cache
-
-# Node
-node_modules/
-dist/
-
-# Jars (downloaded during build)
-docker/artifacts/jars/*.jar
-
-# Genesis files (generated)
-data/metagraph-l0/genesis/genesis.address
-data/metagraph-l0/genesis/genesis.snapshot
-docker/artifacts/genesis/*
-
-# Grafana data
-docker/grafana/grafana/config/
-docker/grafana/prometheus/data/
-docker/grafana/prometheus/monitoring/
-
-# Monitoring service
-data/*-monitoring-service/node_modules
-data/*-monitoring-service/config/config.json
-data/*-monitoring-service/config/id_monitoring
-
-# Project config (contains p12 passwords)
-euclid.json
-
-# Private key files
-data/p12-files/*
-!data/p12-files/.gitkeep
-`;
 
 export async function installTemplateCommand(options: {
   name?: string;
@@ -77,7 +33,7 @@ export async function installTemplateCommand(options: {
   const _repoName = repoNameWithGit.replace(/\.git$/, '');
 
   try {
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
     const tmpDir = resolve(projectRoot, '.hydra-tmp');
 
     // Clean up any previous temp directory
@@ -87,11 +43,11 @@ export async function installTemplateCommand(options: {
 
     // Clone the repository
     process.stdout.write('\n  Cloning template repository...\n');
-    execSync(`git clone --quiet "${repo}" "${tmpDir}"`, { stdio: 'pipe' });
+    execFileSync('git', ['clone', '--quiet', repo, tmpDir], { stdio: 'pipe' });
 
     // Checkout branch if specified
     if (options.branch) {
-      execSync(`git checkout --quiet "${options.branch}"`, {
+      execFileSync('git', ['checkout', '--quiet', options.branch], {
         cwd: tmpDir,
         stdio: 'pipe',
       });
@@ -102,7 +58,8 @@ export async function installTemplateCommand(options: {
       const templatesDir = resolve(tmpDir, templatePath);
       if (!existsSync(templatesDir)) {
         process.stderr.write(
-          `\nError: Template path '${templatePath}' not found in repository.\n\n`,
+          `\n  ${icon.error} ${t.error(`Template path '${templatePath}' not found in repository.`)}\n` +
+            `  ${t.muted('Check the --path option or verify the repository structure.')}\n\n`,
         );
         await rm(tmpDir, { recursive: true, force: true });
         process.exit(1);
@@ -123,8 +80,10 @@ export async function installTemplateCommand(options: {
 
     // Name is required for install
     if (!options.name) {
-      process.stderr.write('\nError: You must provide a template name with --name.\n');
-      process.stderr.write(`  Use 'hydra install-template --list' to see available templates.\n\n`);
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error('You must provide a template name with --name.')}\n` +
+          `  ${t.muted('Use')} ${t.cyan("'hydra install-template --list'")} ${t.muted('to see available templates.')}\n\n`,
+      );
       await rm(tmpDir, { recursive: true, force: true });
       process.exit(1);
     }
@@ -132,16 +91,16 @@ export async function installTemplateCommand(options: {
     const templateDir = resolve(tmpDir, templatePath, options.name);
     if (!existsSync(templateDir)) {
       process.stderr.write(
-        `\nError: Template '${options.name}' not found at ${templatePath}/${options.name}\n`,
+        `\n  ${icon.error} ${t.error(`Template '${options.name}' not found at ${templatePath}/${options.name}`)}\n` +
+          `  ${t.muted('Use')} ${t.cyan("'hydra install-template --list'")} ${t.muted('to see available templates.')}\n\n`,
       );
-      process.stderr.write(`  Use 'hydra install-template --list' to see available templates.\n\n`);
       await rm(tmpDir, { recursive: true, force: true });
       process.exit(1);
     }
 
     // Ensure data/project directory exists
     const projectsDir = resolve(projectRoot, 'data', 'project');
-    execSync(`mkdir -p "${projectsDir}"`, { stdio: 'pipe' });
+    mkdirSync(projectsDir, { recursive: true });
 
     // Remove old project directory if exists
     const destDir = resolve(projectsDir, options.name);
@@ -151,7 +110,7 @@ export async function installTemplateCommand(options: {
 
     // Move template to projects directory
     process.stdout.write(`  Moving template to data/project/${options.name}...\n`);
-    execSync(`mv "${templateDir}" "${destDir}"`, { stdio: 'pipe' });
+    renameSync(templateDir, destDir);
 
     // Update euclid.json with project name
     process.stdout.write(`  Updating euclid.json...\n`);
@@ -184,23 +143,28 @@ export async function installTemplateCommand(options: {
 
     const gitDir = resolve(projectRoot, '.git');
     if (existsSync(gitDir)) {
-      execSync(`chmod -R +w "${gitDir}" && rm -rf "${gitDir}"`, { stdio: 'pipe' });
+      await rm(gitDir, { recursive: true, force: true });
     }
 
-    execSync('git init', { cwd: projectRoot, stdio: 'pipe' });
-    execSync('git add -A', { cwd: projectRoot, stdio: 'pipe' });
-    execSync(`git commit -m "Initial commit after hydra install-template (${options.name})"`, {
-      cwd: projectRoot,
-      stdio: 'pipe',
-    });
+    execFileSync('git', ['init'], { cwd: projectRoot, stdio: 'pipe' });
+    execFileSync('git', ['add', '-A'], { cwd: projectRoot, stdio: 'pipe' });
+    execFileSync(
+      'git',
+      ['commit', '-m', `Initial commit after hydra install-template (${options.name})`],
+      { cwd: projectRoot, stdio: 'pipe' },
+    );
     process.stdout.write(`  ${formatSuccess('Git repository initialized with initial commit')}\n`);
 
     process.stdout.write(`\n  Template '${options.name}' installed successfully!\n\n`);
   } catch (err) {
     // Cleanup on error
-    const tmpDir = resolve(process.cwd(), '.hydra-tmp');
+    const tmpDir = resolve(findProjectRoot(), '.hydra-tmp');
     if (existsSync(tmpDir)) {
-      await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      await rm(tmpDir, { recursive: true, force: true }).catch((e) => {
+        logger.debug(
+          `Failed to clean up temp directory: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
     }
     process.stderr.write('\n' + formatError(err) + '\n');
     process.exit(1);

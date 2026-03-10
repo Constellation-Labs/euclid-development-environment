@@ -1,6 +1,7 @@
-import { writeFile, rename } from 'node:fs/promises';
+import { writeFile, rename, unlink } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { logger } from '../shared/logger.js';
 
 /**
  * Write a JSON config file atomically using the temp-file + rename pattern.
@@ -16,6 +17,16 @@ export async function writeConfigAtomic(filePath: string, data: unknown): Promis
   // Write to temp file first — if this fails, the original is untouched
   await writeFile(tempPath, content, 'utf-8');
 
-  // Atomic rename — on POSIX this is guaranteed atomic
-  await rename(tempPath, resolve(filePath));
+  try {
+    // Atomic rename — on POSIX this is guaranteed atomic
+    await rename(tempPath, resolve(filePath));
+  } catch (err) {
+    // Clean up orphaned temp file on rename failure
+    await unlink(tempPath).catch((e) => {
+      logger.debug(
+        `Failed to clean up temp file ${tempPath}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    });
+    throw err;
+  }
 }

@@ -9,13 +9,17 @@ import {
   LogLevel,
 } from '../../../index.js';
 import { formatError, formatSuccess } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 export async function configMigrateCommand(options: { verbose?: boolean }): Promise<void> {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
 
   const configPath = findConfigPath();
   if (!configPath) {
-    process.stderr.write('Error: euclid.json not found in current directory or parents.\n');
+    process.stderr.write(
+      `\n  ${icon.error} ${t.error('euclid.json not found in current directory or parents.')}\n` +
+        `  ${t.muted("Run 'hydra install-template' to set up a project first.")}\n\n`,
+    );
     process.exit(1);
   }
 

@@ -1,6 +1,8 @@
+import chalk from 'chalk';
 import { loadConfig, logger, LogLevel } from '../../../index.js';
 import { SSHManager } from '../../../remote/index.js';
-import { formatError, formatSuccess } from '../../ui/format.js';
+import { formatError } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 export async function remoteStartMonitoringCommand(options: {
   forceRestart?: boolean;
@@ -12,17 +14,17 @@ export async function remoteStartMonitoringCommand(options: {
     const config = await loadConfig();
 
     if (!config.deploy) {
-      process.stderr.write('\nError: No deploy configuration found in euclid.json.\n');
       process.stderr.write(
-        '  Add a "deploy" section with "hosts" to enable remote operations.\n\n',
+        `\n  ${icon.error} ${t.error('No deploy configuration found in euclid.json.')}\n` +
+          `  ${t.muted('Add a "deploy" section with "hosts" to enable remote operations.')}\n\n`,
       );
       process.exit(1);
     }
 
     if (!config.deploy.monitoring_host) {
-      process.stderr.write('\nError: No monitoring_host configured in deploy section.\n');
       process.stderr.write(
-        '  Add a "monitoring_host" with host, user, and ssh_key to euclid.json.\n\n',
+        `\n  ${icon.error} ${t.error('No monitoring_host configured in deploy section.')}\n` +
+          `  ${t.muted('Add a "monitoring_host" with host, user, and ssh_key to euclid.json.')}\n\n`,
       );
       process.exit(1);
     }
@@ -31,27 +33,28 @@ export async function remoteStartMonitoringCommand(options: {
     const ssh = new SSHManager();
     const remoteDir = `/home/${host.user}/monitoring-service`;
 
-    process.stdout.write('\n  Starting monitoring service...\n\n');
+    process.stdout.write(
+      `\n  ${chalk.bold('Start Monitoring')} ${t.dim('—')} ${t.white(host.host)}\n\n`,
+    );
 
     try {
-      process.stdout.write(`  Connecting to ${host.host}...\n`);
+      process.stdout.write(`  ${icon.arrow} ${t.muted('Connecting to')} ${host.host}${t.dim('...')}\n`);
       await ssh.connect(host);
 
       if (options.forceRestart) {
-        process.stdout.write('  Stopping existing monitoring service...\n');
+        process.stdout.write(`  ${icon.arrow} ${t.muted('Stopping existing service...')}\n`);
         await ssh.exec(host, `cd "${remoteDir}" && npm run stop 2>/dev/null || true`);
-        // Also kill by port or process if needed
         await ssh.exec(host, 'pkill -f "node.*monitoring" 2>/dev/null || true');
-        process.stdout.write(`  ${formatSuccess('Existing service stopped')}\n`);
+        process.stdout.write(`  ${icon.pass} Existing service stopped\n`);
       }
 
-      process.stdout.write('  Starting monitoring service...\n');
+      process.stdout.write(`  ${icon.arrow} ${t.muted('Starting monitoring service...')}\n`);
       await ssh.exec(host, `cd "${remoteDir}" && nohup npm start > monitoring.log 2>&1 &`);
-      process.stdout.write(`  ${formatSuccess('Monitoring service started')}\n`);
+      process.stdout.write(`  ${icon.pass} Monitoring service started\n`);
 
-      process.stdout.write('\n  Monitoring service is running!\n');
+      process.stdout.write(`\n  ${icon.pass} ${chalk.bold('Monitoring service is running')}\n`);
       process.stdout.write(
-        `  Logs: ssh ${host.user}@${host.host} "tail -f ${remoteDir}/monitoring.log"\n\n`,
+        `  ${t.dim('Logs:')} ${t.cyan(`ssh ${host.user}@${host.host} "tail -f ${remoteDir}/monitoring.log"`)}\n\n`,
       );
     } finally {
       await ssh.disconnectAll();

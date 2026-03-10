@@ -45,7 +45,7 @@ export function formatDoctorReport(report: DoctorReport): string {
   const fixes = report.sections
     .flatMap((s) => s.results)
     .filter((r) => r.status !== 'pass' && r.fix)
-    .map((r) => r.fix!);
+    .map((r) => r.fix as string);
 
   if (fixes.length > 0) {
     lines.push('');

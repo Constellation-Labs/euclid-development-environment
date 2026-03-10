@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { confirm } from '@inquirer/prompts';
-import { loadConfig, logger, LogLevel } from '../../../index.js';
+import { loadConfig, findProjectRoot, logger, LogLevel } from '../../../index.js';
 import { formatError, formatSuccess, formatWarning, formatHeader } from '../../ui/format.js';
+import { t, icon } from '../../ui/theme.js';
 
 const SEEDLIST_URLS: Record<string, string> = {
   testnet: 'https://constellationlabs-dag.s3.us-west-1.amazonaws.com/testnet-seedlist',
@@ -24,12 +25,14 @@ export async function checkSeedlistCommand(options: {
     const network = options.network;
 
     if (!SEEDLIST_URLS[network]) {
-      process.stderr.write(`\nError: Unknown network '${network}'.\n`);
-      process.stderr.write('  Valid networks: testnet, integrationnet, mainnet\n\n');
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error(`Unknown network '${network}'.`)}\n` +
+          `  ${t.muted('Valid networks: testnet, integrationnet, mainnet')}\n\n`,
+      );
       process.exit(1);
     }
 
-    const projectRoot = process.cwd();
+    const projectRoot = findProjectRoot();
     const walletJar = resolve(projectRoot, 'docker', 'artifacts', 'jars', 'cl-wallet.jar');
     const p12Dir = resolve(projectRoot, 'data', 'p12-files');
 
@@ -50,13 +53,15 @@ export async function checkSeedlistCommand(options: {
     });
 
     if (!response.ok) {
-      process.stderr.write(`\nError: Failed to fetch seedlist. HTTP ${response.status}\n\n`);
+      process.stderr.write(
+        `\n  ${icon.error} ${t.error(`Failed to fetch seedlist. HTTP ${response.status}`)}\n\n`,
+      );
       process.exit(1);
     }
 
     const seedlist = await response.text();
     if (!seedlist.trim()) {
-      process.stderr.write('\nError: Empty seedlist received.\n\n');
+      process.stderr.write(`\n  ${icon.error} ${t.error('Empty seedlist received.')}\n\n`);
       process.exit(1);
     }
 
@@ -79,7 +84,7 @@ export async function checkSeedlistCommand(options: {
 
       try {
         // Extract peer ID using cl-wallet.jar
-        const peerId = execSync(`java -jar "${walletJar}" show-id`, {
+        const peerId = execFileSync('java', ['-jar', walletJar, 'show-id'], {
           cwd: p12Dir,
           env: {
             ...process.env,
@@ -109,7 +114,7 @@ export async function checkSeedlistCommand(options: {
         }
       } catch (err) {
         process.stdout.write(
-          `  ${formatWarning(`${node.name}: Error extracting peer ID — ${(err as Error).message}`)}\n`,
+          `  ${formatWarning(`${node.name}: Error extracting peer ID — ${err instanceof Error ? err.message : String(err)}`)}\n`,
         );
         allFound = false;
       }

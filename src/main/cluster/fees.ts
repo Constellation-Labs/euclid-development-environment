@@ -1,4 +1,4 @@
-import { LayerStartError } from '../shared/errors.js';
+import { LayerStartError, errorMessage } from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ export function combineSignedMessages(signedOutputs: string[]): SignedMessage {
       return JSON.parse(raw.trim()) as SignedMessage;
     } catch (err) {
       throw new LayerStartError(
-        `Failed to parse signed message from node ${i}: ${(err as Error).message}\n` +
+        `Failed to parse signed message from node ${i}: ${errorMessage(err)}\n` +
           `     Output (truncated): ${raw.slice(0, 200)}`,
       );
     }

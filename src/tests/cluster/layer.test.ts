@@ -21,6 +21,16 @@ describe('computeNodePorts', () => {
     const result = computeNodePorts({ public: 9000, p2p: 9001, cli: 9002 }, 1, 5);
     expect(result).toEqual({ public: 9005, p2p: 9006, cli: 9007 });
   });
+
+  it('throws RangeError when computed port exceeds 65535', () => {
+    expect(() => computeNodePorts({ public: 60000, p2p: 60001, cli: 60002 }, 10, 1000)).toThrow(
+      RangeError,
+    );
+  });
+
+  it('throws RangeError when computed port is less than 1', () => {
+    expect(() => computeNodePorts({ public: 0, p2p: 0, cli: 0 }, 0, 10)).toThrow(RangeError);
+  });
 });
 
 describe('computeNodeIp', () => {
