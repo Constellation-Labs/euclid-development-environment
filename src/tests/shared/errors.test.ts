@@ -124,9 +124,9 @@ describe('ConfigNotFoundError', () => {
     expect(err).toBeInstanceOf(HydraError);
   });
 
-  it('has suggestion about hydra init', () => {
+  it('has suggestion about hydra install-template', () => {
     const err = new ConfigNotFoundError('euclid.json');
-    expect(err.suggestion).toContain('hydra init');
+    expect(err.suggestion).toContain('hydra install-template');
   });
 });
 

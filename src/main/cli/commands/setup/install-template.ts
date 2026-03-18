@@ -7,12 +7,57 @@ import {
   loadConfig,
   writeConfigAtomic,
   findProjectRoot,
+  findConfigPath,
   logger,
   LogLevel,
 } from '../../../index.js';
 import { formatError, formatSuccess, formatHeader } from '../../ui/format.js';
 import { t, icon } from '../../ui/theme.js';
 import { GITIGNORE_CONTENT } from '../../../shared/gitignore.js';
+
+/** Default euclid.json for new projects (created by install-template). */
+function createDefaultConfig(projectName: string, tessellationVersion?: string) {
+  return {
+    config_version: 2,
+    project_name: projectName,
+    tessellation_version: tessellationVersion ?? '2.0.0',
+    tessellation_ref_type: 'tag',
+    framework: {
+      name: 'currency',
+      modules: ['data'],
+      version: 'v3.6.0',
+      ref_type: 'tag',
+    },
+    layers: ['global-l0', 'metagraph-l0', 'currency-l1', 'data-l1'],
+    nodes: [
+      {
+        name: 'metagraph-node-1',
+        key_file: { name: 'token-key.p12', alias: 'token-key', password: 'password' },
+      },
+      {
+        name: 'metagraph-node-2',
+        key_file: { name: 'token-key-1.p12', alias: 'token-key-1', password: 'password' },
+      },
+      {
+        name: 'metagraph-node-3',
+        key_file: { name: 'token-key-2.p12', alias: 'token-key-2', password: 'password' },
+      },
+    ],
+    docker: {
+      start_grafana_container: false,
+      network_subnet: '172.50.0.0/24',
+      base_ip_prefix: '172.50.0.',
+      ip_offset: 10,
+    },
+    ports: {
+      global_l0: { public: 9000, p2p: 9001, cli: 9002 },
+      dag_l1: { public: 9100, p2p: 9101, cli: 9102 },
+      metagraph_l0: { public: 9200, p2p: 9201, cli: 9202 },
+      currency_l1: { public: 9300, p2p: 9301, cli: 9302 },
+      data_l1: { public: 9400, p2p: 9401, cli: 9402 },
+    },
+  };
+}
 
 const DEFAULT_REPO = 'https://github.com/Constellation-Labs/metagraph-examples.git';
 const DEFAULT_PATH = 'examples';
@@ -112,23 +157,36 @@ export async function installTemplateCommand(options: {
     process.stdout.write(`  Moving template to data/project/${options.name}...\n`);
     renameSync(templateDir, destDir);
 
-    // Update euclid.json with project name
-    process.stdout.write(`  Updating euclid.json...\n`);
-    const _config = await loadConfig();
-
-    const configPath = resolve(projectRoot, 'euclid.json');
-    const rawConfig = JSON.parse(await readFile(configPath, 'utf-8'));
-    rawConfig.project_name = options.name;
-
     // Try to extract tessellation version from the template's Dependencies.scala
+    let tessellationVersion: string | undefined;
     const depsFile = resolve(destDir, 'project', 'Dependencies.scala');
     if (existsSync(depsFile)) {
       const depsContent = await readFile(depsFile, 'utf-8');
       const match = depsContent.match(/val tessellation\s*=\s*"([^"]+)"/);
       if (match) {
-        rawConfig.tessellation_version = match[1];
-        process.stdout.write(`  ${formatSuccess(`Tessellation version set to ${match[1]}`)}\n`);
+        tessellationVersion = match[1];
       }
+    }
+
+    // Update or create euclid.json with project name
+    process.stdout.write(`  Updating euclid.json...\n`);
+    const configPath = resolve(projectRoot, 'euclid.json');
+    const existingConfigPath = findConfigPath(projectRoot);
+    let rawConfig: Record<string, unknown>;
+
+    if (existingConfigPath) {
+      rawConfig = JSON.parse(await readFile(existingConfigPath, 'utf-8'));
+      rawConfig.project_name = options.name;
+      if (tessellationVersion) {
+        rawConfig.tessellation_version = tessellationVersion;
+      }
+    } else {
+      rawConfig = createDefaultConfig(options.name, tessellationVersion);
+      process.stdout.write(`  ${formatSuccess('Created euclid.json with default configuration')}\n`);
+    }
+
+    if (tessellationVersion) {
+      process.stdout.write(`  ${formatSuccess(`Tessellation version set to ${tessellationVersion}`)}\n`);
     }
 
     await writeConfigAtomic(configPath, rawConfig);

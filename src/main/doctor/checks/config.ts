@@ -20,7 +20,7 @@ export async function checkConfiguration(
       name: 'euclid.json',
       status: 'error',
       message: 'not found',
-      fix: "Run 'hydra init' to create a new project.",
+      fix: "Run 'hydra install-template' to set up a new project.",
     });
     return results;
   }
@@ -102,7 +102,7 @@ export async function checkConfiguration(
       name: 'project',
       status: 'warn',
       message: `data/project/${config.project_name} not found`,
-      fix: "Run 'hydra init' to scaffold a project.",
+      fix: "Run 'hydra install-template' to set up a project.",
     });
   }
 

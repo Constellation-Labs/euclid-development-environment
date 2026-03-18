@@ -47,7 +47,7 @@ export class ConfigNotFoundError extends ConfigError {
   constructor(path: string) {
     super(`Configuration file not found: ${path}`, {
       suggestion:
-        "Run 'hydra init' to create a new project, or ensure you're in the project root directory.",
+        "Run 'hydra install-template' to set up a new project, or ensure you're in the project root directory.",
     });
     this.name = 'ConfigNotFoundError';
   }

@@ -76,7 +76,7 @@ function runDocker(
     const proc = execFile(
       'docker',
       args,
-      { cwd, env, maxBuffer: 50 * 1024 * 1024 },
+      { cwd, env, maxBuffer: 50 * 1024 * 1024, shell: true },
       (error, stdout, stderr) => {
         if (error) {
           const raw = stderr.trim() || stdout.trim() || error.message;
