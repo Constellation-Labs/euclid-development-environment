@@ -2,13 +2,16 @@ import { z } from 'zod';
 
 // ─── Shared Schemas ──────────────────────────────────────────────────────────
 
+/** Zod schema for P12 key file configuration (name, alias, password). */
 export const KeyFileSchema = z.object({
   name: z.string().min(1, 'Key file name is required'),
   alias: z.string().min(1, 'Key alias is required'),
   password: z.string().min(1, 'Key password is required'),
 });
+/** Validated P12 key file configuration. */
 export type KeyFileConfig = z.infer<typeof KeyFileSchema>;
 
+/** Zod schema for a cluster node definition (name + key file). */
 export const NodeSchema = z.object({
   name: z
     .string()
@@ -19,8 +22,10 @@ export const NodeSchema = z.object({
     ),
   key_file: KeyFileSchema,
 });
+/** Validated cluster node configuration. */
 export type NodeConfig = z.infer<typeof NodeSchema>;
 
+/** Zod schema for the metagraph framework configuration (name, modules, version). */
 export const FrameworkSchema = z.object({
   name: z.enum(['currency'], {
     errorMap: () => ({ message: "Framework must be 'currency'" }),
@@ -29,8 +34,10 @@ export const FrameworkSchema = z.object({
   version: z.string().min(1, 'Framework version is required'),
   ref_type: z.enum(['tag', 'branch']).default('tag'),
 });
+/** Validated metagraph framework configuration. */
 export type FrameworkConfig = z.infer<typeof FrameworkSchema>;
 
+/** All supported Constellation Network layer types. */
 export const LAYER_TYPES = [
   'global-l0',
   'dag-l1',
@@ -39,18 +46,23 @@ export const LAYER_TYPES = [
   'data-l1',
 ] as const;
 
+/** Zod schema for validating layer type enum values. */
 export const LayerTypeSchema = z.enum(LAYER_TYPES);
+/** Union type of all supported layer type strings. */
 export type LayerType = z.infer<typeof LayerTypeSchema>;
 
 // ─── Port Schemas ────────────────────────────────────────────────────────────
 
+/** Zod schema for a set of three ports (public, p2p, cli). */
 export const PortTripleSchema = z.object({
   public: z.number().int().min(1).max(65535),
   p2p: z.number().int().min(1).max(65535),
   cli: z.number().int().min(1).max(65535),
 });
+/** Validated set of three ports (public, p2p, cli). */
 export type PortTriple = z.infer<typeof PortTripleSchema>;
 
+/** Zod schema for all layer port assignments with sensible defaults. */
 export const PortsSchema = z
   .object({
     global_l0: PortTripleSchema.default({ public: 9000, p2p: 9001, cli: 9002 }),
@@ -60,10 +72,12 @@ export const PortsSchema = z
     data_l1: PortTripleSchema.default({ public: 9400, p2p: 9401, cli: 9402 }),
   })
   .default({});
+/** Validated port assignments for all layers. */
 export type PortsConfig = z.infer<typeof PortsSchema>;
 
 // ─── Docker Schema ───────────────────────────────────────────────────────────
 
+/** Zod schema for Docker infrastructure settings (Grafana, network subnet, IPs). */
 export const DockerConfigSchema = z
   .object({
     start_grafana_container: z.boolean().default(false),
@@ -72,6 +86,7 @@ export const DockerConfigSchema = z
     ip_offset: z.number().int().positive().default(10),
   })
   .default({});
+/** Validated Docker infrastructure settings. */
 export type DockerConfig = z.infer<typeof DockerConfigSchema>;
 
 // ─── JVM Schema ──────────────────────────────────────────────────────────────
@@ -112,6 +127,7 @@ export const LayerJvmConfigSchema = z
     data_l1: jvmLayerSchema('4g', '4g'),
   })
   .default({});
+/** Validated per-layer JVM heap configuration. */
 export type LayerJvmConfig = z.infer<typeof LayerJvmConfigSchema>;
 
 /**
@@ -126,24 +142,29 @@ export function resolveJvmConfig(
 
 // ─── Deploy Schema ───────────────────────────────────────────────────────────
 
+/** Zod schema for a Global L0 node reference in deploy config. */
 export const Gl0NodeSchema = z.object({
   ip: z.string().min(1, 'GL0 node IP is required'),
   id: z.string().min(1, 'GL0 node ID is required'),
   public_port: z.union([z.string(), z.number()]),
 });
 
+/** Zod schema for the deploy target network (name + GL0 node). */
 export const DeployNetworkSchema = z.object({
   name: z.string().min(1, 'Network name is required'),
   gl0_node: Gl0NodeSchema,
 });
 
+/** Zod schema for an SSH-accessible remote host (host, user, ssh_key). */
 export const RemoteHostSchema = z.object({
   host: z.string().min(1),
   user: z.string().min(1),
   ssh_key: z.string().min(1),
 });
+/** Validated remote host configuration. */
 export type RemoteHostConfig = z.infer<typeof RemoteHostSchema>;
 
+/** Zod schema for remote deployment port assignments per metagraph layer. */
 export const RemotePortsSchema = z
   .object({
     metagraph_l0: z
@@ -169,8 +190,10 @@ export const RemotePortsSchema = z
       .default({}),
   })
   .default({});
+/** Validated remote deployment port assignments. */
 export type RemotePortsConfig = z.infer<typeof RemotePortsSchema>;
 
+/** Zod schema for the full remote deployment configuration. */
 export const DeploySchema = z.object({
   network: DeployNetworkSchema,
   jvm: LayerJvmConfigSchema,
@@ -178,18 +201,22 @@ export const DeploySchema = z.object({
   remote_ports: RemotePortsSchema,
   monitoring_host: RemoteHostSchema.optional(),
 });
+/** Validated remote deployment configuration. */
 export type DeployConfig = z.infer<typeof DeploySchema>;
 
 // ─── Snapshot Fees Schema ────────────────────────────────────────────────────
 
+/** Zod schema for snapshot fee key configuration (owner + staking key files). */
 export const SnapshotFeesSchema = z.object({
   owner: z.object({ key_file: KeyFileSchema }),
   staking: z.object({ key_file: KeyFileSchema }),
 });
+/** Validated snapshot fee configuration. */
 export type SnapshotFeesConfig = z.infer<typeof SnapshotFeesSchema>;
 
 // ─── Top-Level Config (v2 — new TypeScript CLI) ─────────────────────────────
 
+/** Zod schema for the top-level euclid.json configuration (v2). */
 export const EuclidConfigSchema = z.object({
   // Meta
   $schema: z.string().optional(),
@@ -219,11 +246,13 @@ export const EuclidConfigSchema = z.object({
   deploy: DeploySchema.optional(),
 });
 
+/** Validated top-level euclid.json configuration. */
 export type EuclidConfig = z.infer<typeof EuclidConfigSchema>;
 
 // ─── Legacy Config (v1 — current Hydra CLI) ─────────────────────────────────
 // Used only for migration detection; not enforced via Zod.
 
+/** Legacy v1 configuration format, used only for migration detection. */
 export interface LegacyEuclidConfig {
   version?: string;
   tessellation_version: string;

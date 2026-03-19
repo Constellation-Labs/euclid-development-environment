@@ -4,9 +4,7 @@ import { existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, renameSync } from 'node:fs';
 import {
-  loadConfig,
   writeConfigAtomic,
-  findProjectRoot,
   findConfigPath,
   logger,
   LogLevel,
@@ -79,7 +77,9 @@ export async function installTemplateCommand(options: {
   const _repoName = repoNameWithGit.replace(/\.git$/, '');
 
   try {
-    const projectRoot = findProjectRoot();
+    // Always use cwd — install-template bootstraps a new project in the current directory,
+    // not in a parent directory that happens to have an existing euclid.json.
+    const projectRoot = process.cwd();
     const tmpDir = resolve(projectRoot, '.hydra-tmp');
 
     // Clean up any previous temp directory
@@ -210,10 +210,15 @@ export async function installTemplateCommand(options: {
     }
 
     execFileSync('git', ['init'], { cwd: projectRoot, stdio: 'pipe' });
-    execFileSync('git', ['add', '-A'], { cwd: projectRoot, stdio: 'pipe' });
+    // Only add the specific project files we created (not the entire directory tree)
     execFileSync(
       'git',
-      ['commit', '-m', `Initial commit after hydra install-template (${options.name})`],
+      ['add', '-f', '.gitignore', 'euclid.json', 'docker/', 'data/'],
+      { cwd: projectRoot, stdio: 'pipe' },
+    );
+    execFileSync(
+      'git',
+      ['commit', '--no-gpg-sign', '-m', `Initial commit after hydra install-template (${options.name})`],
       { cwd: projectRoot, stdio: 'pipe' },
     );
     process.stdout.write(`  ${formatSuccess('Git repository initialized with initial commit')}\n`);
@@ -221,7 +226,7 @@ export async function installTemplateCommand(options: {
     process.stdout.write(`\n  Template '${options.name}' installed successfully!\n\n`);
   } catch (err) {
     // Cleanup on error
-    const tmpDir = resolve(findProjectRoot(), '.hydra-tmp');
+    const tmpDir = resolve(process.cwd(), '.hydra-tmp');
     if (existsSync(tmpDir)) {
       await rm(tmpDir, { recursive: true, force: true }).catch((e) => {
         logger.debug(

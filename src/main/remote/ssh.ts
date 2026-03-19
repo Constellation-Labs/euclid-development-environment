@@ -6,6 +6,7 @@ import { SSHConnectionError, errorMessage, shellEscape } from '../shared/errors.
 import { logger } from '../shared/logger.js';
 import type { RemoteHostConfig } from '../config/schema.js';
 
+/** Result of a remote command execution (stdout, stderr, exit code). */
 export interface ExecResult {
   stdout: string;
   stderr: string;

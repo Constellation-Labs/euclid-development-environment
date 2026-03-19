@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { logger } from '../shared/logger.js';
 import { DockerError } from '../shared/errors.js';
 
+/** Options for running docker compose commands. */
 export interface ComposeRunOptions {
   cwd: string;
   file?: string;
@@ -38,6 +39,7 @@ export async function composeBuild(options: ComposeRunOptions): Promise<void> {
   await runDocker(args, options.cwd, options.env, options.onOutput);
 }
 
+/** Run `docker compose up -d` to start services in detached mode. */
 export async function composeUp(options: ComposeRunOptions): Promise<void> {
   const args = ['compose'];
 
@@ -50,6 +52,7 @@ export async function composeUp(options: ComposeRunOptions): Promise<void> {
   await runDocker(args, options.cwd, options.env, options.onOutput);
 }
 
+/** Run `docker compose down` to stop and remove services. */
 export async function composeDown(options: ComposeRunOptions): Promise<void> {
   const args = ['compose'];
 

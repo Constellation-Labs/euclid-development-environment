@@ -2,6 +2,7 @@ import chalk from 'chalk';
 
 // ─── Theme Colors ───────────────────────────────────────────────────────────
 
+/** Theme color palette for CLI output (chalk hex colors). */
 export const t = {
   primary: chalk.hex('#818CF8'), // Indigo-400
   accent: chalk.hex('#34D399'), // Emerald-400
@@ -16,6 +17,7 @@ export const t = {
 
 // ─── Status Icons ───────────────────────────────────────────────────────────
 
+/** Colored status icons for CLI output (checkmark, warning, error, info). */
 export const icon = {
   pass: t.accent('✓'),
   warn: t.warn('!'),

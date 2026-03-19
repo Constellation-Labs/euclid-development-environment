@@ -36,6 +36,7 @@ export class HydraError extends Error {
   }
 }
 
+/** Base error for configuration issues. */
 export class ConfigError extends HydraError {
   constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
     super(message, { code: 'CONFIG_ERROR', ...options });
@@ -43,6 +44,7 @@ export class ConfigError extends HydraError {
   }
 }
 
+/** Thrown when euclid.json is not found. */
 export class ConfigNotFoundError extends ConfigError {
   constructor(path: string) {
     super(`Configuration file not found: ${path}`, {
@@ -53,6 +55,7 @@ export class ConfigNotFoundError extends ConfigError {
   }
 }
 
+/** Thrown when euclid.json fails Zod validation. */
 export class ConfigValidationError extends ConfigError {
   public readonly issues: Array<{ path: string; message: string }>;
 
@@ -81,6 +84,7 @@ export class ConfigValidationError extends ConfigError {
   }
 }
 
+/** Base error for Docker operations. */
 export class DockerError extends HydraError {
   constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
     super(message, { code: 'DOCKER_ERROR', ...options });
@@ -103,6 +107,7 @@ export class DockerError extends HydraError {
   }
 }
 
+/** Thrown when the Docker daemon is not running. */
 export class DockerNotRunningError extends DockerError {
   constructor() {
     super('Docker is not running', {
@@ -118,6 +123,7 @@ export class DockerNotRunningError extends DockerError {
   }
 }
 
+/** Thrown when the installed Docker version is too old. */
 export class DockerVersionError extends DockerError {
   constructor(found: string, required: string) {
     super(`Docker version ${found} is too old (required: >= ${required})`, {
@@ -128,6 +134,7 @@ export class DockerVersionError extends DockerError {
   }
 }
 
+/** Base error for local cluster operations. */
 export class ClusterError extends HydraError {
   constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
     super(message, { code: 'CLUSTER_ERROR', ...options });
@@ -135,6 +142,7 @@ export class ClusterError extends HydraError {
   }
 }
 
+/** Thrown when a layer fails to start. */
 export class LayerStartError extends ClusterError {
   constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
     super(message, options);
@@ -142,6 +150,7 @@ export class LayerStartError extends ClusterError {
   }
 }
 
+/** Base error for remote deployment operations. */
 export class RemoteError extends HydraError {
   constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
     super(message, { code: 'REMOTE_ERROR', ...options });
@@ -149,6 +158,7 @@ export class RemoteError extends HydraError {
   }
 }
 
+/** Thrown when SSH connection to a remote host fails. */
 export class SSHConnectionError extends RemoteError {
   constructor(host: string, options?: { cause?: Error }) {
     super(`Cannot connect to ${host}`, {
@@ -164,6 +174,7 @@ export class SSHConnectionError extends RemoteError {
   }
 }
 
+/** Thrown when a remote deployment operation fails. */
 export class RemoteDeployError extends RemoteError {
   constructor(host: string, detail: string, options?: { cause?: Error }) {
     super(`Deploy failed on ${host}: ${detail}`, {
@@ -179,6 +190,7 @@ export class RemoteDeployError extends RemoteError {
   }
 }
 
+/** Thrown when a remote layer fails to start. */
 export class RemoteStartError extends RemoteError {
   constructor(host: string, layer: string, options?: { cause?: Error }) {
     super(`Failed to start ${layer} on ${host}`, {
@@ -194,6 +206,7 @@ export class RemoteStartError extends RemoteError {
   }
 }
 
+/** Thrown when a required TCP port is already in use. */
 export class PortInUseError extends HydraError {
   constructor(port: number, layer?: string) {
     const context = layer ? ` (needed for ${layer})` : '';
@@ -205,6 +218,7 @@ export class PortInUseError extends HydraError {
   }
 }
 
+/** Thrown when a required system binary is not on PATH. */
 export class BinaryNotFoundError extends HydraError {
   constructor(binary: string, installHint?: string) {
     super(`Required binary not found: ${binary}`, {

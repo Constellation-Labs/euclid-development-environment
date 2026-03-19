@@ -10,6 +10,7 @@ const DEFAULT_MAX_RETRIES = 120;
 /** Default interval between polling attempts (milliseconds). */
 const DEFAULT_POLL_INTERVAL_MS = 1000;
 
+/** Response from a node's /node/info endpoint. */
 export interface NodeInfo {
   state: string;
   id?: string;
@@ -21,6 +22,7 @@ export interface NodeInfo {
   version?: string;
 }
 
+/** Response from a node's /cluster/info endpoint. */
 export interface ClusterInfo {
   peers: Array<{
     id: string;

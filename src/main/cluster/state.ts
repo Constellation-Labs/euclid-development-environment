@@ -5,9 +5,12 @@ import { createHash } from 'node:crypto';
 import { writeConfigAtomic } from '../config/writer.js';
 import type { LayerType } from '../config/schema.js';
 
+/** Overall cluster lifecycle state. */
 export type ClusterStatus = 'stopped' | 'starting' | 'running' | 'degraded' | 'stopping';
+/** Lifecycle state of an individual layer. */
 export type LayerStatus = 'stopped' | 'starting' | 'ready' | 'error';
 
+/** Runtime state of a layer including its nodes, IPs, and ports. */
 export interface LayerState {
   status: LayerStatus;
   nodes: Record<
@@ -20,11 +23,13 @@ export interface LayerState {
   >;
 }
 
+/** Genesis address and snapshot path for the cluster. */
 export interface GenesisState {
   address: string | null;
   snapshotPath: string | null;
 }
 
+/** Full persisted cluster state (status, layers, genesis, config hash). */
 export interface ClusterState {
   status: ClusterStatus;
   mode: 'genesis' | 'rollback' | null;

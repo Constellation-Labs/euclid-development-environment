@@ -4,6 +4,7 @@ import { logger } from '../shared/logger.js';
 
 const MIN_DOCKER_VERSION = '26.0.0';
 
+/** Client for interacting with the local Docker daemon via the Docker socket. */
 export class DockerClient {
   private docker: Dockerode;
 

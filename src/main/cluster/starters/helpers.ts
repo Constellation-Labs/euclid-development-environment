@@ -9,6 +9,7 @@ import { logger } from '../../shared/logger.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+/** Shared context passed to all layer starter functions. */
 export interface LayerContext {
   docker: DockerClient;
   config: EuclidConfig;
@@ -21,6 +22,7 @@ export interface LayerContext {
 
 type LayerPortKey = keyof EuclidConfig['ports'];
 
+/** Maps each LayerType to its key in the ports config object. */
 export const LAYER_PORT_KEYS: Record<LayerType, LayerPortKey> = {
   'global-l0': 'global_l0',
   'dag-l1': 'dag_l1',
@@ -29,6 +31,7 @@ export const LAYER_PORT_KEYS: Record<LayerType, LayerPortKey> = {
   'data-l1': 'data_l1',
 };
 
+/** Maps each LayerType to its directory name inside the Docker container. */
 export const LAYER_DIRS: Record<LayerType, string> = {
   'global-l0': 'global-l0',
   'dag-l1': 'dag-l1',
@@ -37,6 +40,7 @@ export const LAYER_DIRS: Record<LayerType, string> = {
   'data-l1': 'data-l1',
 };
 
+/** Maps each LayerType to its compiled JAR filename. */
 export const LAYER_JARS: Record<LayerType, string> = {
   'global-l0': 'global-l0.jar',
   'dag-l1': 'dag-l1.jar',
@@ -47,15 +51,18 @@ export const LAYER_JARS: Record<LayerType, string> = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/** Compute the Docker network IP address for a node by index. */
 export function nodeIp(config: EuclidConfig, nodeIndex: number): string {
   return computeNodeIp(config.docker.base_ip_prefix, nodeIndex, config.docker.ip_offset);
 }
 
+/** Compute the port triple for a layer and node index. */
 export function nodePorts(config: EuclidConfig, layer: LayerType, nodeIndex: number): PortTriple {
   const portKey = LAYER_PORT_KEYS[layer];
   return computeNodePorts(config.ports[portKey], nodeIndex, config.docker.ip_offset);
 }
 
+/** Build the base environment variables for a Java node process. */
 export function baseEnv(node: NodeConfig, ports: PortTriple): Record<string, string> {
   return {
     CL_PUBLIC_HTTP_PORT: String(ports.public),
@@ -69,6 +76,7 @@ export function baseEnv(node: NodeConfig, ports: PortTriple): Record<string, str
   };
 }
 
+/** Build environment variables for connecting to the Global L0 lead node. */
 export function globalL0PeerEnv(config: EuclidConfig, leadNodeId: string): Record<string, string> {
   return {
     CL_GLOBAL_L0_PEER_HTTP_HOST: nodeIp(config, 0),
@@ -77,6 +85,7 @@ export function globalL0PeerEnv(config: EuclidConfig, leadNodeId: string): Recor
   };
 }
 
+/** Build environment variables for connecting to the Metagraph L0 lead node. */
 export function metagraphL0PeerEnv(
   config: EuclidConfig,
   leadNodeId: string,
@@ -88,6 +97,7 @@ export function metagraphL0PeerEnv(
   };
 }
 
+/** Execute a command in a Docker container, throwing on non-zero exit. */
 export async function dockerExec(
   docker: DockerClient,
   container: string,
@@ -102,6 +112,7 @@ export async function dockerExec(
   return result.stdout.trim();
 }
 
+/** Copy a P12 keystore file from the host into a container. */
 export async function copyP12(
   docker: DockerClient,
   projectRoot: string,
@@ -116,6 +127,7 @@ export async function copyP12(
   await docker.copyToContainer(containerName, p12Path, `code/${layerDir}/${node.key_file.name}`);
 }
 
+/** Remove data and log directories inside a container's layer directory. */
 export async function cleanLayerDirs(
   docker: DockerClient,
   containerName: string,
@@ -158,6 +170,7 @@ export async function ensureGenesisCsv(
   await docker.copyToContainer(containerName, hostGenesisCsv, `code/${layerDir}/genesis.csv`);
 }
 
+/** Start a Java JAR as a background process inside a container. */
 export async function startJavaProcess(
   docker: DockerClient,
   containerName: string,
@@ -258,6 +271,7 @@ const HEALTH_CHECK_INTERVAL = 10;
 /** Report progress to the user every N polling attempts. */
 const PROGRESS_REPORT_INTERVAL = 5;
 
+/** Poll a node's HTTP endpoint until it reaches the target state. */
 export async function waitForReady(
   docker: DockerClient,
   containerName: string,
@@ -303,6 +317,7 @@ export async function waitForReady(
   throw new LayerStartError(`Node did not reach '${targetState}' after ${maxRetries}s.${logHint}`);
 }
 
+/** Send a cluster join request to a node via its CLI port. */
 export async function joinCluster(
   docker: DockerClient,
   containerName: string,

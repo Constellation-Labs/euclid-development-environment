@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 
+/** Severity levels for log output. */
 export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
@@ -8,6 +9,7 @@ export enum LogLevel {
   SILENT = 4,
 }
 
+/** Structured log entry with level, message, context, and timestamp. */
 export interface LogEntry {
   level: LogLevel;
   message: string;
@@ -33,6 +35,7 @@ const LEVEL_STYLES: Record<LogLevel, (s: string) => string> = {
   [LogLevel.SILENT]: (s: string) => s,
 };
 
+/** Structured logger with secret redaction and text/JSON output formats. */
 export class Logger {
   private level: LogLevel;
   private format: 'text' | 'json';

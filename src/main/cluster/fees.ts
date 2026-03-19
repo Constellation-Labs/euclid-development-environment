@@ -3,11 +3,13 @@ import { logger } from '../shared/logger.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+/** A cryptographic proof containing a node ID and signature. */
 export interface SignedProof {
   id: string;
   signature: string;
 }
 
+/** A message with its value payload and array of signed proofs. */
 export interface SignedMessage {
   value: Record<string, unknown>;
   proofs: SignedProof[];

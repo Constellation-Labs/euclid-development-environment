@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
+/** A warning or error found during pre-flight checks. */
 export interface PreflightIssue {
   level: 'error' | 'warn';
   message: string;

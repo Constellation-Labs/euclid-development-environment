@@ -4,8 +4,10 @@ import { checkBinaries } from './checks/binaries.js';
 import { checkPorts } from './checks/ports.js';
 import { checkConfiguration } from './checks/config.js';
 
+/** Result status for an individual doctor check. */
 export type CheckStatus = 'pass' | 'warn' | 'error';
 
+/** A single doctor check result with name, status, message, and optional fix. */
 export interface CheckResult {
   name: string;
   status: CheckStatus;
@@ -13,11 +15,13 @@ export interface CheckResult {
   fix?: string;
 }
 
+/** A group of related doctor check results under a title. */
 export interface CheckSection {
   title: string;
   results: CheckResult[];
 }
 
+/** Complete doctor report with sections and issue counts. */
 export interface DoctorReport {
   sections: CheckSection[];
   errorCount: number;

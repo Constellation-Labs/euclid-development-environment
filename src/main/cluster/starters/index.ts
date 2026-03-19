@@ -8,6 +8,7 @@ import { startDataL1 } from './data-l1.js';
 
 // ─── Dispatch Map ───────────────────────────────────────────────────────────
 
+/** Dispatch map from LayerType to its async start function. */
 export const LAYER_STARTERS: Record<LayerType, (ctx: LayerContext) => Promise<void>> = {
   'global-l0': startGlobalL0,
   'dag-l1': startDagL1,

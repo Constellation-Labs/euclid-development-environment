@@ -44,11 +44,16 @@ export async function installCommand(options: { verbose?: boolean }): Promise<vo
 
     // Create initial commit
     process.stdout.write(`  [3/3] Creating initial commit...\n`);
-    execFileSync('git', ['add', '-A'], { cwd: projectRoot, stdio: 'pipe' });
-    execFileSync('git', ['commit', '-m', 'Initial commit after hydra install'], {
-      cwd: projectRoot,
-      stdio: 'pipe',
-    });
+    execFileSync(
+      'git',
+      ['add', '-f', '.gitignore', 'euclid.json', 'docker/', 'data/'],
+      { cwd: projectRoot, stdio: 'pipe' },
+    );
+    execFileSync(
+      'git',
+      ['commit', '--no-gpg-sign', '-m', 'Initial commit after hydra install'],
+      { cwd: projectRoot, stdio: 'pipe' },
+    );
     process.stdout.write(`  ${formatSuccess('Initial commit created')}\n`);
 
     process.stdout.write('\n  Install complete!\n\n');
