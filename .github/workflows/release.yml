@@ -1,41 +1,47 @@
+name: Release
+
 on:
   push:
     tags:
       - 'v*'
 
-name: Create Release
-
 jobs:
-  build:
+  release:
     if: startsWith(github.ref, 'refs/tags/')
-    name: Create Release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Install jq
-        shell: bash
-        run: |
-          sudo apt install -y jq
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Build Changelog
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build changelog
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v2.4.2
+        uses: mikepenz/release-changelog-builder-action@v5
         with:
           configuration: ".github/config/changelog.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: little-core-labs/get-git-tag@v3.0.1
-        id: tagName
-        with:
-          tagRegex: "v(.*)"
-          tagRegexGroup: 1
+      - name: Extract tag version
+        id: tag
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Release tag
-        uses: softprops/action-gh-release@v1
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Euclid Release ${{ steps.tagName.outputs.tag }}
+          name: Hydra ${{ steps.tag.outputs.version }}
           draft: false
           prerelease: true
           body: ${{ steps.build_changelog.outputs.changelog }}
