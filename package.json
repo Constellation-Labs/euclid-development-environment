@@ -1,5 +1,5 @@
 {
-  "name": "euclid-development-environment",
+  "name": "@constellation-network/hydra-cli",
   "version": "2.0.0",
   "description": "Hydra CLI — build, run, and deploy Constellation Network metagraphs locally and remotely",
   "type": "module",
@@ -9,6 +9,11 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "docker",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && mkdir -p dist/assets && rsync -a --exclude='artifacts/' --exclude='.DS_Store' docker/ dist/assets/docker/",
     "dev": "tsc -p tsconfig.json --watch",
@@ -20,7 +25,8 @@
     "format": "prettier --write 'src/**/*.ts'",
     "format:check": "prettier --check 'src/**/*.ts'",
     "hydra": "node --enable-source-maps ./dist/cli/index.js",
-    "postinstall": "npm run build 2>/dev/null || true"
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "deploy-package": "npm run clean && npm run build && npm test && npm publish --access public"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.0.0",
