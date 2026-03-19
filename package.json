@@ -10,7 +10,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && mkdir -p dist/assets && rsync -a --exclude='artifacts/' --exclude='.DS_Store' docker/ dist/assets/docker/",
     "dev": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

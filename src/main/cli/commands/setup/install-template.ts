@@ -14,6 +14,7 @@ import {
 import { formatError, formatSuccess, formatHeader } from '../../ui/format.js';
 import { t, icon } from '../../ui/theme.js';
 import { GITIGNORE_CONTENT } from '../../../shared/gitignore.js';
+import { scaffoldProject } from '../../../shared/scaffold.js';
 
 /** Default euclid.json for new projects (created by install-template). */
 function createDefaultConfig(projectName: string, tessellationVersion?: string) {
@@ -152,6 +153,10 @@ export async function installTemplateCommand(options: {
     if (existsSync(destDir)) {
       await rm(destDir, { recursive: true, force: true });
     }
+
+    // Scaffold project structure (docker files, data dirs, genesis CSVs)
+    process.stdout.write(`  Scaffolding project structure...\n`);
+    scaffoldProject(projectRoot);
 
     // Move template to projects directory
     process.stdout.write(`  Moving template to data/project/${options.name}...\n`);

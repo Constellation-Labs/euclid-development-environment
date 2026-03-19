@@ -90,6 +90,9 @@ export {
   shellEscape,
 } from './shared/errors.js';
 
+// ─── Scaffold ──────────────────────────────────────────────────────────────
+export { scaffoldProject } from './shared/scaffold.js';
+
 // ─── Logger ─────────────────────────────────────────────────────────────────
 export { Logger, LogLevel, logger } from './shared/logger.js';
 
