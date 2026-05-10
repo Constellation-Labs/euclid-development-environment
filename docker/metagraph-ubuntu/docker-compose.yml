@@ -5,4 +5,5 @@ services:
       args:
         - CHECKOUT_TESSELLATION_VERSION
         - TESSELLATION_VERSION_IS_TAG_OR_BRANCH
+        - JDK_VERSION
     image: "metagraph-ubuntu-${TESSELLATION_VERSION_NAME}"
