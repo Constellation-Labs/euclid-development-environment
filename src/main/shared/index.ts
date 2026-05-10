@@ -7,6 +7,7 @@ export {
   DockerError,
   DockerNotRunningError,
   DockerVersionError,
+  ScaffoldMigrationBlockedError,
   ClusterError,
   LayerStartError,
   RemoteError,
