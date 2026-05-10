@@ -4,6 +4,7 @@ WORKDIR /code
 
 ARG CHECKOUT_TESSELLATION_VERSION
 ARG TESSELLATION_VERSION_IS_TAG_OR_BRANCH
+ARG JDK_VERSION=21
 
 ENV LC_ALL=C.UTF-8 \
     LANG=en_US.UTF-8 \
@@ -12,7 +13,7 @@ ENV LC_ALL=C.UTF-8 \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      openjdk-21-jre curl gnupg lsof ca-certificates git && \
+      openjdk-${JDK_VERSION}-jre curl gnupg lsof ca-certificates git && \
     echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list && \
     echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | tee /etc/apt/sources.list.d/sbt_old.list && \
     curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add - && \
