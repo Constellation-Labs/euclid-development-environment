@@ -12,6 +12,7 @@ import {
   errorMessage,
 } from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
+import { isLegacyScaffold, migrateScaffoldV1toV2 } from '../shared/scaffold-migration.js';
 
 const CONFIG_FILENAME = 'euclid.json';
 
@@ -88,6 +89,28 @@ export async function loadConfig(configPath?: string): Promise<EuclidConfig> {
     await writeConfigAtomic(resolvedPath, migrated);
     logger.info('Migration complete.');
     raw = migrated as unknown as Record<string, unknown>;
+  }
+
+  // Auto-migrate legacy v1 (Bash Hydra) scaffold layout to v2 (TS Hydra).
+  // Detection is filesystem-based (presence of infra/<image>/Dockerfile);
+  // after migration the infra/ directory is renamed so the trigger no
+  // longer fires on subsequent runs.
+  const projectRoot = dirname(resolvedPath);
+  if (isLegacyScaffold(projectRoot)) {
+    logger.info('Detected legacy (v1) scaffold layout — migrating to v2...');
+    migrateScaffoldV1toV2(projectRoot);
+    logger.info(
+      'Project layout is now:\n' +
+        '    data/             (was source/) — your code, wallets, genesis files\n' +
+        '    docker/           Docker build assets\n' +
+        '    infra.v1.backup/  old Docker build assets, kept for reference\n' +
+        '\n' +
+        '  Note: the old infra/<image>/Dockerfile and docker-compose.yml files are\n' +
+        '  NOT compatible with current Hydra build orchestration. Do not copy them into\n' +
+        '  docker/ directly. If you had customizations (volume mounts, port mappings,\n' +
+        '  env additions, etc.), re-express them in docker/custom/<image>/<file>.\n' +
+        '  Once verified, you can delete infra.v1.backup/.',
+    );
   }
 
   return validateConfig(raw);
