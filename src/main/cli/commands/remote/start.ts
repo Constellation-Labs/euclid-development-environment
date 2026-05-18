@@ -1,6 +1,7 @@
 import chalk from 'chalk';
-import { loadConfig, logger, LogLevel } from '../../../index.js';
+import { loadConfig, findProjectRoot, logger, LogLevel } from '../../../index.js';
 import { remoteStart } from '../../../remote/index.js';
+import { runSeedlistPreflight } from '../setup/check-seedlist.js';
 import { DEFAULT_REMOTE_PORTS } from '../../../remote/defaults.js';
 import { t, icon } from '../../ui/theme.js';
 import { formatError } from '../../ui/format.js';
@@ -47,6 +48,7 @@ function renderProgress(step: string): void {
 
 export async function remoteStartCommand(options: {
   genesis?: boolean;
+  skipSeedlist?: boolean;
   verbose?: boolean;
 }): Promise<void> {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
@@ -61,6 +63,11 @@ export async function remoteStartCommand(options: {
       );
       process.exit(1);
     }
+
+    const projectRoot = findProjectRoot();
+    await runSeedlistPreflight(config, config.deploy.network.name, projectRoot, {
+      skipSeedlist: options.skipSeedlist,
+    });
 
     const modeLabel = options.genesis ? t.warn('Genesis') : t.accent('Rollback');
     process.stdout.write(`\n  ${chalk.bold('Remote Start')} ${t.dim('—')} ${modeLabel} mode\n`);
