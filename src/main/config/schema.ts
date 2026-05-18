@@ -204,6 +204,20 @@ export const DeploySchema = z.object({
 /** Validated remote deployment configuration. */
 export type DeployConfig = z.infer<typeof DeploySchema>;
 
+// ─── Custom Env Vars Schema ──────────────────────────────────────────────────
+
+/**
+ * Zod schema for user-defined env vars — a flat string→string map applied to
+ * every metagraph layer (metagraph-l0, currency-l1, data-l1, dag-l1).
+ *
+ * Not applied to `global-l0`: that's the Constellation network L0, not part of
+ * the user's metagraph. User-set vars override the defaults built by `baseEnv`
+ * and the peer-env helpers.
+ */
+export const EnvVarsConfigSchema = z.record(z.string(), z.string());
+/** Validated user-defined env vars (flat string → string map). */
+export type EnvVarsConfig = z.infer<typeof EnvVarsConfigSchema>;
+
 // ─── Snapshot Fees Schema ────────────────────────────────────────────────────
 
 /** Zod schema for snapshot fee key configuration (owner + staking key files). */
@@ -241,6 +255,9 @@ export const EuclidConfigSchema = z.object({
 
   // Fees
   snapshot_fees: SnapshotFeesSchema.optional(),
+
+  // Custom env vars applied to every metagraph layer (not global-l0)
+  env_vars: EnvVarsConfigSchema.optional(),
 
   // Deployment (optional — only needed for remote operations)
   deploy: DeploySchema.optional(),
