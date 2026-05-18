@@ -76,6 +76,9 @@
       "cli": 9402
     }
   },
+  "env_vars": {
+    "CL_COLLATERAL": "0"
+  },
   "snapshot_fees": {
     "owner": {
       "key_file": {

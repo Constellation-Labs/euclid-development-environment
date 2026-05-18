@@ -175,6 +175,38 @@ describe('EuclidConfigSchema', () => {
     const result = EuclidConfigSchema.safeParse(withFees);
     expect(result.success).toBe(true);
   });
+
+  it('accepts env_vars as a flat string→string map', () => {
+    const withEnv = {
+      ...validConfig,
+      env_vars: {
+        CL_LOG_LEVEL: 'INFO',
+        CL_COLLATERAL: '250000',
+      },
+    };
+    const result = EuclidConfigSchema.safeParse(withEnv);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.env_vars?.CL_LOG_LEVEL).toBe('INFO');
+      expect(result.data.env_vars?.CL_COLLATERAL).toBe('250000');
+    }
+  });
+
+  it('rejects env_vars with non-string values', () => {
+    const result = EuclidConfigSchema.safeParse({
+      ...validConfig,
+      env_vars: { CL_COLLATERAL: 250000 },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('treats omitted env_vars as undefined', () => {
+    const result = EuclidConfigSchema.safeParse(validConfig);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.env_vars).toBeUndefined();
+    }
+  });
 });
 
 describe('isLegacyConfig', () => {
