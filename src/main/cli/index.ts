@@ -30,6 +30,7 @@ import { createRemoteGenesisCommand } from './commands/remote/create-genesis.js'
 import { updateCommand } from './commands/setup/update.js';
 import { checkSeedlistCommand } from './commands/setup/check-seedlist.js';
 import { keygenCommand } from './commands/setup/keygen.js';
+import { keystoreInfoCommand } from './commands/setup/keystore-info.js';
 import { remoteDeployCommand } from './commands/remote/deploy.js';
 import { remoteStartCommand } from './commands/remote/start.js';
 import { remoteStatusCommand } from './commands/remote/status.js';
@@ -272,6 +273,16 @@ program
   .action(async (network) => {
     const opts = program.opts();
     await checkSeedlistCommand({ network, verbose: opts.verbose });
+  });
+
+// ─── keystore-info ──────────────────────────────────────────────────────────
+
+program
+  .command('keystore-info')
+  .description('Show DAG addresses and peer IDs for keystores')
+  .action(async () => {
+    const opts = program.opts();
+    await keystoreInfoCommand({ verbose: opts.verbose });
   });
 
 // ─── keygen ─────────────────────────────────────────────────────────────────
