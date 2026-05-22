@@ -329,11 +329,16 @@ remoteCmd
   .description('Start the remote metagraph cluster')
   .option('--genesis', 'Start from genesis (erases history)')
   .option('--skip-seedlist', 'Skip the integrationnet/mainnet seedlist preflight check')
+  .option(
+    '--resend-messages',
+    'Rollback recovery: re-send owner+staking messages with background spammer to defend the consensus-round-2 race',
+  )
   .action(async (cmdOpts) => {
     const opts = program.opts();
     await remoteStartCommand({
       genesis: cmdOpts.genesis,
       skipSeedlist: cmdOpts.skipSeedlist,
+      resendMessages: cmdOpts.resendMessages,
       verbose: opts.verbose,
     });
   });
