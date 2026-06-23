@@ -7,6 +7,8 @@
 # ─── JARs (built/downloaded — never commit binaries) ────────────────────────
 *.jar
 docker/artifacts/jars/
+# Vendored tessellation source — the burn demo clones it at build time (PR #1526); never commit it
+docker/metagraph-ubuntu/tessellation-src/
 
 # ─── Legacy paths (removed in v2) ───────────────────────────────────────────
 jars/
@@ -16,9 +18,17 @@ scripts/argc
 docker/grafana/grafana/config/
 docker/grafana/prometheus/data/
 docker/grafana/prometheus/monitoring/
+# Grafana runtime store (grafana.db, installed plugins, render output) — keep the dir, drop its contents
+docker/grafana/grafana/storage/*
+!docker/grafana/grafana/storage/.gitkeep
 
 # ─── Runtime data (user-specific, generated at runtime) ─────────────────────
 data/project/*
+# Bundle the burn-demo metagraph project (source only) so the demo is self-contained;
+# keep its heavy build artifacts (target/, .bloop/ — ~2GB) out of git.
+!data/project/burn-demo
+data/project/burn-demo/**/target/
+data/project/burn-demo/**/.bloop/
 data/metagraph-l0/genesis/genesis.address
 data/metagraph-l0/genesis/genesis.snapshot
 data/*-monitoring-service

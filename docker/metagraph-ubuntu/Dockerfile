@@ -21,6 +21,11 @@ RUN apt-get update && \
     apt-get install -y sbt && \
     rm -rf /var/lib/apt/lists/*
 
+# BURN-ENABLED TESSELLATION (burn demo): companion to Constellation-Labs/tessellation#1526
+# (the BurnTransaction/BurnAction L0 primitive). The burn-enabled source is cloned from the
+# PR branch at build time, so this repo stays lean and references the PR rather than vendoring
+# the full tessellation source tree.
+
 RUN set -eux; \
     if [ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" = "tag" ]; then \
         BASE_URL="https://github.com/Constellation-Labs/tessellation/releases/download/${CHECKOUT_TESSELLATION_VERSION}"; \
@@ -29,14 +34,12 @@ RUN set -eux; \
         curl -f -L -o dag-l1.jar "${BASE_URL}/cl-dag-l1.jar"; \
         curl -f -L -o global-l0.jar "${BASE_URL}/cl-node.jar"; \
     else \
-        git clone https://github.com/Constellation-Labs/tessellation.git; \
+        # Clone the burn-enabled tessellation from the PR #1526 branch (kept lean; not vendored). \
+        git clone --branch feat/l0-burn-transaction --depth 1 https://github.com/Tech0001/tessellation.git tessellation; \
         cd tessellation; \
-        git checkout "$CHECKOUT_TESSELLATION_VERSION" || exit 1; \
-        if [ "$TESSELLATION_VERSION_IS_TAG_OR_BRANCH" = "branch" ]; then \
         export RELEASE_TAG=99.99.99; \
-        sbt -Dversion.override=99.99.99 sdk/publishM2; \
-        fi; \
-        sbt wallet/assembly dagL1/assembly keytool/assembly dagL0/assembly; \
+        sbt -Dversion.override=99.99.99 'set sdk / Compile / doc / sources := Seq.empty' sdk/publishM2; \
+        sbt -Dversion.override=99.99.99 wallet/assembly dagL1/assembly keytool/assembly dagL0/assembly; \
         mv modules/wallet/target/scala-2.13/tessellation-wallet-assembly-* /code/cl-wallet.jar; \
         mv modules/keytool/target/scala-2.13/tessellation-keytool-assembly-* /code/cl-keytool.jar; \
         mv modules/dag-l1/target/scala-2.13/tessellation-dag-l1-assembly-* /code/dag-l1.jar; \

@@ -7,14 +7,14 @@ services:
     ports:
       - '9090:9090'
     command:
-      - --storage.tsdb.path=monitoring/prometheus/data
+      - --storage.tsdb.path=/prometheus/data
       - --storage.tsdb.retention.time=200h
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus:/prometheus
     networks:
       custom-network:
-        ipv4_address: 172.50.0.7
+        ipv4_address: 172.60.0.7
   grafana:
     container_name: grafana
     image: grafana/grafana-oss:latest
@@ -29,13 +29,23 @@ services:
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE="Admin"
-      - GF_AUTH_ANONYMOUS_ORG_ROLE="Viewer"
-      - GF_AUTH_ANONYMOUS_ORG_NAME="Constellation"
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_INSTALL_PLUGINS=natel-discrete-panel
     networks:
       custom-network:
-        ipv4_address: 172.50.0.8
+        ipv4_address: 172.60.0.8
+  burn-exporter:
+    container_name: burn-exporter
+    build: ./burn-exporter
+    restart: unless-stopped
+    environment:
+      # Current cluster's metagraph L0 (node-1) + metagraph id. Supply/burn metrics work
+      # regardless of id; only the balance metric uses METAGRAPH_ID (update on re-genesis).
+      - META_L0_URL=http://172.60.0.10:8200
+      - METAGRAPH_ID=DAG1gkPw7bjMVpZ3pkFwTTBSKVfpQURBQUVopKSQ
+    networks:
+      custom-network:
+        ipv4_address: 172.60.0.9
 networks:
   custom-network:
     external: true
