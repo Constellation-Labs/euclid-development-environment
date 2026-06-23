@@ -1,34 +1,29 @@
 global:
-  scrape_interval: 15s
-  scrape_timeout: 10s
+  scrape_interval: 10s
+  scrape_timeout: 8s
   evaluation_interval: 15s
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets: []
-      scheme: http
-      timeout: 10s
 scrape_configs:
   - job_name: prometheus
-    scrape_interval: 15s
-    scrape_timeout: 10s
-    metrics_path: /metrics
-    scheme: http
     static_configs:
       - targets:
           - localhost:9090
-  - job_name: dynamic-targets
-    http_sd_configs:
-      - url: http://172.50.0.10:9000/targets
-      - url: http://172.50.0.10:9100/targets
-      - url: http://172.50.0.20:9110/targets
-      - url: http://172.50.0.30:9120/targets
-      - url: http://172.50.0.10:9200/targets
-      - url: http://172.50.0.20:9210/targets
-      - url: http://172.50.0.30:9220/targets
-      - url: http://172.50.0.10:9300/targets
-      - url: http://172.50.0.20:9310/targets
-      - url: http://172.50.0.30:9320/targets
-      - url: http://172.50.0.10:9400/targets
-      - url: http://172.50.0.20:9410/targets
-      - url: http://172.50.0.30:9420/targets
+
+  # Burn demo supply/burn metrics (sidecar exporter polling the metagraph L0 HTTP API).
+  - job_name: burn-exporter
+    static_configs:
+      - targets:
+          - 172.60.0.9:9464
+
+  # Metagraph node /metrics (consensus + snapshot gauges) for the stock dashboards.
+  # Targets are this cluster's custom-network (172.60.0.0/24) layer ports.
+  - job_name: metagraph-nodes
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 172.60.0.10:8000  # node-1 global-l0
+          - 172.60.0.10:8100  # node-1 dag-l1
+          - 172.60.0.10:8200  # node-1 metagraph-l0
+          - 172.60.0.10:8300  # node-1 currency-l1
+          - 172.60.0.10:8400  # node-1 data-l1
+          - 172.60.0.20:8200  # node-2 metagraph-l0
+          - 172.60.0.30:8200  # node-3 metagraph-l0
