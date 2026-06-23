@@ -44,36 +44,36 @@
     }
   ],
   "docker": {
-    "start_grafana_container": false,
-    "network_subnet": "172.50.0.0/24",
-    "base_ip_prefix": "172.50.0.",
+    "start_grafana_container": true,
+    "network_subnet": "172.60.0.0/24",
+    "base_ip_prefix": "172.60.0.",
     "ip_offset": 10
   },
   "ports": {
     "global_l0": {
-      "public": 9000,
-      "p2p": 9001,
-      "cli": 9002
+      "public": 8000,
+      "p2p": 8001,
+      "cli": 8002
     },
     "dag_l1": {
-      "public": 9100,
-      "p2p": 9101,
-      "cli": 9102
+      "public": 8100,
+      "p2p": 8101,
+      "cli": 8102
     },
     "metagraph_l0": {
-      "public": 9200,
-      "p2p": 9201,
-      "cli": 9202
+      "public": 8200,
+      "p2p": 8201,
+      "cli": 8202
     },
     "currency_l1": {
-      "public": 9300,
-      "p2p": 9301,
-      "cli": 9302
+      "public": 8300,
+      "p2p": 8301,
+      "cli": 8302
     },
     "data_l1": {
-      "public": 9400,
-      "p2p": 9401,
-      "cli": 9402
+      "public": 8400,
+      "p2p": 8401,
+      "cli": 8402
     }
   },
   "env_vars": {
