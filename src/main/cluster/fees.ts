@@ -52,12 +52,29 @@ export function combineSignedMessages(signedOutputs: string[]): SignedMessage {
     }
   }
 
+  // Merge proofs, dropping any repeated signer id. A single distinct proof per
+  // signer is what Tessellation expects.
+  const seen = new Set<string>();
+  const proofs: SignedProof[] = [];
+  for (const message of parsed) {
+    for (const proof of message.proofs) {
+      if (seen.has(proof.id)) {
+        logger.debug(`Skipping duplicate proof from signer ${proof.id}`);
+        continue;
+      }
+      seen.add(proof.id);
+      proofs.push(proof);
+    }
+  }
+
   const combined: SignedMessage = {
     value: parsed[0].value,
-    proofs: parsed.flatMap((m) => m.proofs),
+    proofs,
   };
 
-  logger.debug(`Combined ${parsed.length} signed messages → ${combined.proofs.length} proofs`);
+  logger.debug(
+    `Combined ${parsed.length} signed messages → ${combined.proofs.length} distinct proofs`,
+  );
   return combined;
 }
 
