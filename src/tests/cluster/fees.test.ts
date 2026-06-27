@@ -31,7 +31,7 @@ describe('combineSignedMessages', () => {
     expect(result.proofs.map((p) => p.id)).toEqual(['peer1', 'peer2', 'peer3']);
   });
 
-  it('flattens multiple proofs from same message', () => {
+  it('dedupes repeated signer ids within a single message, keeping the first', () => {
     const value = { amount: 50 };
     const msg1 = makeSignedMessage(value, [
       { id: 'peer1', signature: 'sig1a' },
@@ -40,7 +40,23 @@ describe('combineSignedMessages', () => {
     const msg2 = makeSignedMessage(value, [{ id: 'peer2', signature: 'sig2' }]);
 
     const result = combineSignedMessages([msg1, msg2]);
+    expect(result.proofs).toHaveLength(2);
+    expect(result.proofs.map((p) => p.id)).toEqual(['peer1', 'peer2']);
+    // first occurrence wins
+    expect(result.proofs.find((p) => p.id === 'peer1')?.signature).toBe('sig1a');
+  });
+
+  it('dedupes the same signer across separate messages (owner key == node key)', () => {
+    // Tessellation rejects the duplicate with DuplicateSigners, combine must collapse it.
+    const value = { address: 'DAG_owner', metagraphId: 'DAG_mg', parentOrdinal: 0 };
+    const ownerSigned = makeSignedMessage(value, [{ id: 'node1', signature: 'owner-sig' }]);
+    const node1Signed = makeSignedMessage(value, [{ id: 'node1', signature: 'node1-sig' }]);
+    const node2Signed = makeSignedMessage(value, [{ id: 'node2', signature: 'node2-sig' }]);
+    const node3Signed = makeSignedMessage(value, [{ id: 'node3', signature: 'node3-sig' }]);
+
+    const result = combineSignedMessages([ownerSigned, node1Signed, node2Signed, node3Signed]);
     expect(result.proofs).toHaveLength(3);
+    expect(result.proofs.map((p) => p.id)).toEqual(['node1', 'node2', 'node3']);
   });
 
   it('throws LayerStartError for empty input', () => {
