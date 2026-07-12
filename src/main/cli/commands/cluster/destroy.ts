@@ -6,6 +6,7 @@ import {
   LogLevel,
   DockerClient,
   updateClusterState,
+  localGenesisDir,
 } from '../../../index.js';
 import { formatError, formatSuccess } from '../../ui/format.js';
 
@@ -23,7 +24,10 @@ export async function destroyCommand(options: { yes?: boolean; verbose?: boolean
       process.stdout.write('\n  This will destroy:\n');
       process.stdout.write(`    - ${config.nodes.length} Docker containers (${containerNames})\n`);
       process.stdout.write("    - Docker network 'custom-network'\n");
-      process.stdout.write('    - Genesis files in docker/artifacts/genesis/\n\n');
+      process.stdout.write('    - Local genesis files in docker/artifacts/genesis-local/\n');
+      process.stdout.write(
+        '      (the remote genesis in docker/artifacts/genesis/ is NOT touched)\n\n',
+      );
 
       const { confirm } = await import('@inquirer/prompts');
       const confirmed = await confirm({ message: 'Are you sure?', default: false });
@@ -50,9 +54,10 @@ export async function destroyCommand(options: { yes?: boolean; verbose?: boolean
     await docker.removeNetwork('custom-network');
     process.stdout.write(`  ${formatSuccess("Removed network 'custom-network'")}\n`);
 
-    // Clean genesis files
+    // Clean local genesis files only — the remote genesis (docker/artifacts/genesis/)
+    // defines the whitelisted metagraph ID and must survive local cluster destroys
     const { rmSync, existsSync } = await import('node:fs');
-    const genesisDir = resolve(findProjectRoot(), 'docker', 'artifacts', 'genesis');
+    const genesisDir = localGenesisDir(findProjectRoot());
     for (const file of ['genesis.address', 'genesis.snapshot']) {
       const filePath = resolve(genesisDir, file);
       if (existsSync(filePath)) {
