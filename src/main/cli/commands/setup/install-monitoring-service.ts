@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { readFile, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { loadConfig, findProjectRoot, logger, LogLevel } from '../../../index.js';
+import { loadConfig, findProjectRoot, logger, LogLevel, remoteGenesisDir } from '../../../index.js';
 import { formatError, formatSuccess } from '../../ui/format.js';
 import { t, icon } from '../../ui/theme.js';
 
@@ -17,14 +17,13 @@ export async function installMonitoringServiceCommand(options: {
     const config = await loadConfig();
     const projectRoot = findProjectRoot();
     const dataPath = resolve(projectRoot, 'data');
-    const dockerPath = resolve(projectRoot, 'docker');
 
-    // Check genesis files exist
-    const genesisAddressPath = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
+    // The monitoring service only ever targets a remote deployment
+    const genesisAddressPath = resolve(remoteGenesisDir(projectRoot), 'genesis.address');
     if (!existsSync(genesisAddressPath)) {
       process.stderr.write(
         `\n  ${icon.error} ${t.error('genesis.address not found.')}\n` +
-          `  ${t.muted("Run 'hydra build' and 'hydra start --genesis' first to generate genesis files.")}\n\n`,
+          `  ${t.muted("Run 'hydra create-remote-genesis' first to generate the remote genesis.")}\n\n`,
       );
       process.exit(1);
     }

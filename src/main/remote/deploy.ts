@@ -1,8 +1,10 @@
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { SSHManager } from './ssh.js';
 import { remoteCodeDir, getConfiguredRemoteLayers } from './paths.js';
 import { RemoteDeployError } from '../shared/errors.js';
+import { remoteGenesisDir, GENESIS_META_FILE } from '../shared/scaffold.js';
+import type { GenesisMeta } from '../shared/scaffold.js';
 import { logger } from '../shared/logger.js';
 import type { EuclidConfig, NodeConfig, RemoteHostConfig } from '../config/schema.js';
 
@@ -40,6 +42,42 @@ export async function remoteDeploy(options: DeployOptions): Promise<void> {
     }
   }
 
+  // Validate genesis artifacts before touching any host — a --force-genesis
+  // deploy without them would leave the cluster unable to start, and a genesis
+  // created for a different network would sync from the wrong global snapshot.
+  const genesisDir = remoteGenesisDir(projectRoot);
+  if (forceGenesis) {
+    for (const file of ['genesis.snapshot', 'genesis.address']) {
+      if (!existsSync(resolve(genesisDir, file))) {
+        throw new RemoteDeployError(
+          '(local)',
+          `Missing ${file} in docker/artifacts/genesis/. Run 'hydra create-remote-genesis' first.`,
+        );
+      }
+    }
+
+    const meta = readGenesisMeta(genesisDir);
+    if (meta) {
+      logger.info(
+        `Deploying genesis for metagraph ${meta.metagraphId} ` +
+          `(network: ${meta.network}, created: ${meta.createdAt})`,
+      );
+      if (meta.network !== deploy.network.name) {
+        throw new RemoteDeployError(
+          '(local)',
+          `Genesis was created for network '${meta.network}' but euclid.json targets ` +
+            `'${deploy.network.name}'. Run 'hydra create-remote-genesis' to create a genesis ` +
+            `for the target network.`,
+        );
+      }
+    } else {
+      logger.warn(
+        `No ${GENESIS_META_FILE} found next to the genesis — cannot verify it was created ` +
+          `for network '${deploy.network.name}'. Re-run 'hydra create-remote-genesis' to generate it.`,
+      );
+    }
+  }
+
   const remoteLayers = getConfiguredRemoteLayers(config);
 
   try {
@@ -55,7 +93,7 @@ export async function remoteDeploy(options: DeployOptions): Promise<void> {
         config,
         jarsDir,
         dataPath,
-        dockerPath,
+        genesisDir,
         remoteLayers,
         forceGenesis,
         onProgress: (step) => options.onProgress?.(host.host, step),
@@ -95,14 +133,14 @@ interface HostDeployOptions {
   config: EuclidConfig;
   jarsDir: string;
   dataPath: string;
-  dockerPath: string;
+  genesisDir: string;
   remoteLayers: string[];
   forceGenesis?: boolean;
   onProgress: (step: string) => void;
 }
 
 async function deployToHost(opts: HostDeployOptions): Promise<void> {
-  const { ssh, host, node, config, jarsDir, dataPath, dockerPath, remoteLayers, forceGenesis } =
+  const { ssh, host, node, config, jarsDir, dataPath, genesisDir, remoteLayers, forceGenesis } =
     opts;
   const progress = opts.onProgress;
 
@@ -163,14 +201,12 @@ async function deployToHost(opts: HostDeployOptions): Promise<void> {
         await ssh.upload(host, genesisCsv, `${ml0Dir}/genesis.csv`);
       }
 
-      const genesisSnapshot = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.snapshot');
-      if (existsSync(genesisSnapshot)) {
-        await ssh.upload(host, genesisSnapshot, `${ml0Dir}/genesis.snapshot`);
-      }
+      await ssh.upload(host, resolve(genesisDir, 'genesis.snapshot'), `${ml0Dir}/genesis.snapshot`);
+      await ssh.upload(host, resolve(genesisDir, 'genesis.address'), `${ml0Dir}/genesis.address`);
 
-      const genesisAddress = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
-      if (existsSync(genesisAddress)) {
-        await ssh.upload(host, genesisAddress, `${ml0Dir}/genesis.address`);
+      const genesisMeta = resolve(genesisDir, GENESIS_META_FILE);
+      if (existsSync(genesisMeta)) {
+        await ssh.upload(host, genesisMeta, `${ml0Dir}/${GENESIS_META_FILE}`);
       }
 
       // Upload snapshot fee keys if configured
@@ -208,6 +244,23 @@ async function deployToHost(opts: HostDeployOptions): Promise<void> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Read genesis.meta.json written by create-remote-genesis, if present.
+ * Legacy genesis directories (created before meta files existed) return null.
+ */
+function readGenesisMeta(genesisDir: string): GenesisMeta | null {
+  const metaPath = resolve(genesisDir, GENESIS_META_FILE);
+  if (!existsSync(metaPath)) return null;
+  try {
+    return JSON.parse(readFileSync(metaPath, 'utf-8')) as GenesisMeta;
+  } catch (err) {
+    logger.warn(
+      `Failed to parse ${GENESIS_META_FILE}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return null;
+  }
+}
 
 /**
  * Archive all existing layer directory contents before a fresh genesis deploy.
