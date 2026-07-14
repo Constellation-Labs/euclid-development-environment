@@ -105,9 +105,9 @@
       }
     },
     "jvm": {
-      "metagraph_l0": { "xms": "8g", "xmx": "8g" },
-      "currency_l1": { "xms": "4g", "xmx": "4g" },
-      "data_l1": { "xms": "4g", "xmx": "4g" }
+      "metagraph_l0": { "xms": "1g", "xmx": "4g" },
+      "currency_l1": { "xms": "1g", "xmx": "2g" },
+      "data_l1": { "xms": "1g", "xmx": "2g" }
     },
     "monitoring_host": {
       "host": "13.14.15.16",

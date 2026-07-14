@@ -116,15 +116,15 @@ export type JvmLayerConfig = { xms: string; xmx: string };
  * Per-layer JVM config. Each layer has its own -Xms and -Xmx settings.
  *
  * Defaults:
- *   metagraph_l0: xms=8g, xmx=8g
- *   currency_l1:  xms=4g, xmx=4g
- *   data_l1:      xms=4g, xmx=4g
+ *   metagraph_l0: xms=1g, xmx=4g
+ *   currency_l1:  xms=1g, xmx=2g
+ *   data_l1:      xms=1g, xmx=2g
  */
 export const LayerJvmConfigSchema = z
   .object({
-    metagraph_l0: jvmLayerSchema('8g', '8g'),
-    currency_l1: jvmLayerSchema('4g', '4g'),
-    data_l1: jvmLayerSchema('4g', '4g'),
+    metagraph_l0: jvmLayerSchema('1g', '4g'),
+    currency_l1: jvmLayerSchema('1g', '2g'),
+    data_l1: jvmLayerSchema('1g', '2g'),
   })
   .default({});
 /** Validated per-layer JVM heap configuration. */
