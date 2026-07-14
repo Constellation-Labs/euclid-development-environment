@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { LayerStartError } from '../../shared/errors.js';
+import { localGenesisDir } from '../../shared/scaffold.js';
 import { logger } from '../../shared/logger.js';
 import { combineSignedMessages } from '../fees.js';
 import type { SignedMessage } from '../fees.js';
@@ -154,7 +155,6 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
   const leadPorts = nodePorts(config, 'metagraph-l0', 0);
   const layerDir = LAYER_DIRS['metagraph-l0'];
   const jar = LAYER_JARS['metagraph-l0'];
-  const dockerPath = resolve(projectRoot, 'docker');
 
   // ── Genesis / Initial node ─────────────────────────────────────────
   ctx.onProgress?.('Copying keystore...');
@@ -229,7 +229,7 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     // Also write genesis.address to host for persistence
     try {
       const { execSync } = await import('node:child_process');
-      execSync(`mkdir -p "${resolve(dockerPath, 'artifacts', 'genesis')}"`, { stdio: 'pipe' });
+      execSync(`mkdir -p "${localGenesisDir(projectRoot)}"`, { stdio: 'pipe' });
     } catch (err) {
       // Non-critical — shared volume should already have it
       logger.debug('Failed to create genesis artifacts dir on host (non-critical)', {
@@ -251,7 +251,7 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
   } else {
     // Rollback mode
     ctx.onProgress?.('Reading metagraph ID...');
-    const genesisAddressPath = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
+    const genesisAddressPath = resolve(localGenesisDir(projectRoot), 'genesis.address');
     try {
       ctx.metagraphId = (await readFile(genesisAddressPath, 'utf-8')).trim();
     } catch {

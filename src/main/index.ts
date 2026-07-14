@@ -90,8 +90,14 @@ export {
   shellEscape,
 } from './shared/errors.js';
 
-// ─── Scaffold ──────────────────────────────────────────────────────────────
-export { scaffoldProject } from './shared/scaffold.js';
+// ─── Scaffold / project layout ──────────────────────────────────────────────
+export {
+  scaffoldProject,
+  remoteGenesisDir,
+  localGenesisDir,
+  GENESIS_META_FILE,
+} from './shared/scaffold.js';
+export type { GenesisMeta } from './shared/scaffold.js';
 
 // ─── Logger ─────────────────────────────────────────────────────────────────
 export { Logger, LogLevel, logger } from './shared/logger.js';

@@ -1,4 +1,3 @@
-import { resolve } from 'node:path';
 import {
   loadConfig,
   findProjectRoot,
@@ -14,6 +13,7 @@ import {
   getLeadNodeId,
   updateClusterState,
   hashConfig,
+  localGenesisDir,
 } from '../../../index.js';
 import type { LayerContext } from '../../../index.js';
 import { formatError, formatStep } from '../../ui/format.js';
@@ -57,7 +57,6 @@ export async function startCommand(options: {
 
     const mode = options.genesis ? 'genesis' : 'rollback';
     const projectRoot = findProjectRoot();
-    const dockerPath = resolve(projectRoot, 'docker');
 
     process.stdout.write(`\n  Starting metagraph cluster ${t.dim(`(${mode} mode)`)}\n`);
 
@@ -76,9 +75,11 @@ export async function startCommand(options: {
 
     process.stdout.write(`\n  ${formatStep(step, totalSteps, 'Starting Docker containers')}\n`);
 
-    // Ensure shared genesis directory exists (used as a Docker volume mount)
+    // Ensure the local genesis directory exists (used as a Docker volume mount).
+    // Deliberately separate from docker/artifacts/genesis, which holds the
+    // remote genesis created by create-remote-genesis.
     const { mkdirSync } = await import('node:fs');
-    mkdirSync(resolve(dockerPath, 'artifacts', 'genesis'), { recursive: true });
+    mkdirSync(localGenesisDir(projectRoot), { recursive: true });
 
     // Ensure network
     await docker.ensureNetwork('custom-network', config.docker.network_subnet);
@@ -113,7 +114,7 @@ export async function startCommand(options: {
         ports,
         volumes: [
           {
-            host: resolve(dockerPath, 'artifacts', 'genesis'),
+            host: localGenesisDir(projectRoot),
             container: '/code/shared_genesis',
           },
         ],
