@@ -4,13 +4,14 @@ import { DEFAULT_REMOTE_PORTS } from './defaults.js';
 import { RemoteStartError, errorMessage, shellEscape } from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
 import { fetchNodeInfo } from '../cluster/health.js';
-import { combineSignedMessages } from '../cluster/fees.js';
+import { combineSignedMessages, type SignedMessage } from '../cluster/fees.js';
 import type { EuclidConfig, RemoteHostConfig, DeployConfig } from '../config/schema.js';
 import { resolveJvmConfig } from '../config/schema.js';
 
 export interface RemoteStartOptions {
   config: EuclidConfig;
   genesis?: boolean;
+  resendMessages?: boolean;
   onProgress?: (step: string) => void;
 }
 
@@ -85,15 +86,57 @@ export async function remoteStart(options: RemoteStartOptions): Promise<void> {
     if (config.layers.includes('metagraph-l0')) {
       progress('phase:Metagraph L0');
       const ml0Ports = remotePorts.metagraph_l0;
-      const ml0NodeId = await startLayer(ssh, {
-        deploy,
-        config,
-        layer: 'metagraph-l0',
-        ports: ml0Ports,
-        genesis: genesis ?? false,
-        metagraphId,
-        onProgress: progress,
-      });
+
+      // ── Rollback-only: silently spam owner/staking messages while
+      // metagraph-l0 is starting, then stop when it reaches Ready.
+      // Defends the mainnet consensus-round-2 race window.
+      const resendMessages = !genesis && options.resendMessages === true;
+      let ownerSpammer: SpammerHandle | undefined;
+      let stakingSpammer: SpammerHandle | undefined;
+
+      if (resendMessages && deploy.network.name !== 'dev') {
+        progress('Preparing resend-messages spammers...');
+        const messageUrl = `http://${firstHost.host}:${ml0Ports.public}/currency/message`;
+        const msgOpts = {
+          hosts: deploy.hosts,
+          config,
+          metagraphId,
+          codeDir: remoteCodeDir(firstHost, 'metagraph-l0'),
+        };
+        try {
+          const ownerMessage = await prepareOwnerMessage(ssh, msgOpts);
+          ownerSpammer = startMessageSpammer(messageUrl, ownerMessage, { label: 'owner' });
+        } catch (err) {
+          logger.warn(`Could not prepare owner message for spammer: ${errorMessage(err)}`);
+        }
+        if (config.snapshot_fees?.staking) {
+          try {
+            const stakingMessage = await prepareStakingMessage(ssh, msgOpts);
+            stakingSpammer = startMessageSpammer(messageUrl, stakingMessage, { label: 'staking' });
+          } catch (err) {
+            logger.warn(`Could not prepare staking message for spammer: ${errorMessage(err)}`);
+          }
+        }
+      }
+
+      let ml0NodeId: string;
+      try {
+        ml0NodeId = await startLayer(ssh, {
+          deploy,
+          config,
+          layer: 'metagraph-l0',
+          ports: ml0Ports,
+          genesis: genesis ?? false,
+          metagraphId,
+          onProgress: progress,
+        });
+      } finally {
+        if (ownerSpammer || stakingSpammer) {
+          ownerSpammer?.stop();
+          stakingSpammer?.stop();
+          progress('done:Resend-messages spammers stopped');
+        }
+      }
 
       // ─── Currency L1 ───────────────────────────────────────────
       if (config.layers.includes('currency-l1')) {
@@ -377,19 +420,20 @@ async function remoteSign(
 }
 
 /**
- * Create the owner signing message file on the genesis host (host-1).
- * The message is signed by BOTH the owner keystore AND all node keystores,
- * then proofs are combined into a single message file.
+ * Sign and combine the owner signing message — does NOT write to file or POST.
+ * Returns the combined SignedMessage object ready to be embedded into genesis
+ * or POSTed via HTTP.
  */
-async function createRemoteOwnerMessage(ssh: SSHManager, opts: OwnerMessageOptions): Promise<void> {
+async function prepareOwnerMessage(
+  ssh: SSHManager,
+  opts: OwnerMessageOptions,
+): Promise<SignedMessage> {
   const { hosts, config, metagraphId } = opts;
   const firstHost = hosts[0];
   const codeDir = opts.codeDir;
 
-  // Determine the owner keystore — if snapshot_fees.owner is set use that, else use node-1
   const ownerKey = config.snapshot_fees?.owner?.key_file ?? config.nodes[0].key_file;
 
-  // Get owner address from the first host
   opts.onProgress?.('Getting owner address...');
   const addrResult = await ssh.exec(firstHost, `java -jar cl-wallet.jar show-address`, {
     cwd: codeDir,
@@ -417,7 +461,6 @@ async function createRemoteOwnerMessage(ssh: SSHManager, opts: OwnerMessageOptio
 
   const signedOutputs: string[] = [];
 
-  // 1. Sign with the OWNER keystore (on genesis host where owner p12 is deployed)
   opts.onProgress?.('Signing owner message with owner key...');
   const ownerSigned = await remoteSign(
     ssh,
@@ -430,7 +473,6 @@ async function createRemoteOwnerMessage(ssh: SSHManager, opts: OwnerMessageOptio
   signedOutputs.push(ownerSigned);
   logger.debug(`Owner key signed (${ownerSigned.length} chars)`);
 
-  // 2. Sign with each node's keystore
   for (let i = 0; i < hosts.length; i++) {
     const host = hosts[i];
     const node = config.nodes[i];
@@ -454,37 +496,44 @@ async function createRemoteOwnerMessage(ssh: SSHManager, opts: OwnerMessageOptio
     logger.debug(`Node-${i + 1} signed (${nodeSigned.length} chars)`);
   }
 
-  // Combine all proofs (owner + all nodes) into one message
   const combined = combineSignedMessages(signedOutputs);
+  logger.debug(`Owner message prepared (${combined.proofs.length} proofs)`);
+  return combined;
+}
+
+/**
+ * Create the owner signing message file on the genesis host (host-1).
+ * The message is signed by BOTH the owner keystore AND all node keystores,
+ * then proofs are combined and written to a JSON file for the genesis startup.
+ */
+async function createRemoteOwnerMessage(ssh: SSHManager, opts: OwnerMessageOptions): Promise<void> {
+  const firstHost = opts.hosts[0];
+  const combined = await prepareOwnerMessage(ssh, opts);
   const messageJson = JSON.stringify(combined);
 
-  // Write combined message to genesis host
   opts.onProgress?.('Writing owner message file...');
   await ssh.exec(firstHost, `cat > owner_message.json << 'EOFMSG'\n${messageJson}\nEOFMSG`, {
-    cwd: codeDir,
+    cwd: opts.codeDir,
   });
   logger.debug(
-    `Owner message written to ${codeDir}/owner_message.json (${combined.proofs.length} proofs)`,
+    `Owner message written to ${opts.codeDir}/owner_message.json (${combined.proofs.length} proofs)`,
   );
 }
 
 /**
- * Submit the staking signing message via HTTP after the metagraph L0 cluster is running.
- * The message is signed by BOTH the staking keystore AND all node keystores,
- * then proofs are combined and submitted via HTTP.
+ * Sign and combine the staking signing message — does NOT POST.
+ * Returns the combined SignedMessage object.
  */
-async function submitRemoteStakingMessage(
+async function prepareStakingMessage(
   ssh: SSHManager,
-  opts: OwnerMessageOptions & { ml0Port: number },
-): Promise<void> {
-  const { hosts, config, metagraphId, ml0Port } = opts;
+  opts: OwnerMessageOptions,
+): Promise<SignedMessage> {
+  const { hosts, config, metagraphId } = opts;
   const firstHost = hosts[0];
   const codeDir = opts.codeDir;
 
-  // Determine staking keystore
   const stakingKey = config.snapshot_fees?.staking?.key_file ?? config.nodes[0].key_file;
 
-  // Get staking address
   opts.onProgress?.('Getting staking address...');
   const addrResult = await ssh.exec(firstHost, `java -jar cl-wallet.jar show-address`, {
     cwd: codeDir,
@@ -506,7 +555,6 @@ async function submitRemoteStakingMessage(
 
   const signedOutputs: string[] = [];
 
-  // 1. Sign with the STAKING keystore (on genesis host where staking p12 is deployed)
   opts.onProgress?.('Signing staking message with staking key...');
   const stakingSigned = await remoteSign(
     ssh,
@@ -523,7 +571,6 @@ async function submitRemoteStakingMessage(
   signedOutputs.push(stakingSigned);
   logger.debug(`Staking key signed (${stakingSigned.length} chars)`);
 
-  // 2. Sign with each node's keystore
   for (let i = 0; i < hosts.length; i++) {
     const host = hosts[i];
     const node = config.nodes[i];
@@ -547,28 +594,130 @@ async function submitRemoteStakingMessage(
     logger.debug(`Node-${i + 1} signed (${nodeSigned.length} chars)`);
   }
 
-  // Combine all proofs (staking + all nodes) and submit via HTTP
   const combined = combineSignedMessages(signedOutputs);
+  logger.debug(`Staking message prepared (${combined.proofs.length} proofs)`);
+  return combined;
+}
+
+/**
+ * Submit the staking signing message via HTTP after the metagraph L0 cluster is running.
+ */
+async function submitRemoteStakingMessage(
+  ssh: SSHManager,
+  opts: OwnerMessageOptions & { ml0Port: number },
+): Promise<void> {
+  const combined = await prepareStakingMessage(ssh, opts);
   opts.onProgress?.('Submitting staking message...');
 
-  const messageUrl = `http://${firstHost.host}:${ml0Port}/currency/message`;
-  const response = await fetch(messageUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(combined),
-    signal: AbortSignal.timeout(15000),
+  const messageUrl = `http://${opts.hosts[0].host}:${opts.ml0Port}/currency/message`;
+  const result = await postMessageTolerant(messageUrl, combined, { timeoutMs: 15000 });
+
+  if (!result.ok) {
+    logger.warn(`Staking message submission returned HTTP ${result.status}: ${result.body.slice(0, 300)}`);
+  } else {
+    logger.debug(`Staking signing message submitted successfully (${combined.proofs.length} proofs)`);
+  }
+}
+
+// ─── Spammer + tolerant POST helpers ─────────────────────────────────────────
+
+interface PostResult {
+  ok: boolean;
+  status: number;
+  body: string;
+  alreadySubmitted: boolean;
+}
+
+/**
+ * Single-shot POST that classifies "already submitted" responses as success.
+ * Mainnet may return non-200 if the message was already accepted in an earlier
+ * spammer attempt — that's a feature, not a failure.
+ */
+async function postMessageTolerant(
+  url: string,
+  body: SignedMessage,
+  options: { timeoutMs?: number } = {},
+): Promise<PostResult> {
+  const timeoutMs = options.timeoutMs ?? 5000;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const text = await response.text().catch(() => '');
+    const alreadySubmitted = /already.*submit|duplicate|exists/i.test(text);
+    return {
+      ok: response.ok || alreadySubmitted,
+      status: response.status,
+      body: text,
+      alreadySubmitted,
+    };
+  } catch (err) {
+    return { ok: false, status: 0, body: errorMessage(err), alreadySubmitted: false };
+  }
+}
+
+interface SpammerHandle {
+  /** Signal the loop to stop on its next iteration. */
+  stop(): void;
+}
+
+/**
+ * Fire-and-forget background loop that POSTs `body` to `url` repeatedly until
+ * the caller calls stop() or `maxAttempts` is reached.
+ *
+ * Intentionally KEEPS POSTING even after the server returns 200, mirroring the
+ * v1 ansible curl-spammer behavior. A 200 only means the endpoint accepted the
+ * request — it doesn't guarantee the message lands in the next snapshot. Keep
+ * spamming to maximize the chance the message is fresh in the mempool when
+ * consensus builds the snapshot.
+ */
+function startMessageSpammer(
+  url: string,
+  body: SignedMessage,
+  options: {
+    label: string;
+    maxAttempts?: number;
+    sleepMs?: number;
+    fetchTimeoutMs?: number;
+    onProgress?: (step: string) => void;
+  },
+): SpammerHandle {
+  const maxAttempts = options.maxAttempts ?? 600;
+  const sleepMs = options.sleepMs ?? 200;
+  const fetchTimeoutMs = options.fetchTimeoutMs ?? 4000;
+  let stopRequested = false;
+
+  const run = async (): Promise<void> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (stopRequested) {
+        logger.debug(`Spammer ${options.label} stopped after ${attempt - 1} attempts`);
+        return;
+      }
+      const result = await postMessageTolerant(url, body, { timeoutMs: fetchTimeoutMs });
+      logger.debug(
+        `Spammer ${options.label} attempt ${attempt} → ${result.ok ? 'ok' : 'fail'} (status ${result.status})`,
+      );
+      await new Promise((r) => setTimeout(r, sleepMs));
+    }
+    logger.debug(`Spammer ${options.label} exhausted ${maxAttempts} attempts`);
+  };
+
+  options.onProgress?.(
+    `${options.label} spammer started (up to ${maxAttempts} attempts, ${sleepMs}ms apart)`,
+  );
+
+  void run().catch((err) => {
+    logger.warn(`Spammer ${options.label} crashed: ${errorMessage(err)}`);
   });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    logger.warn(
-      `Staking message submission returned HTTP ${response.status}: ${body.slice(0, 300)}`,
-    );
-  } else {
-    logger.debug(
-      `Staking signing message submitted successfully (${combined.proofs.length} proofs)`,
-    );
-  }
+  return {
+    stop: () => {
+      stopRequested = true;
+    },
+  };
 }
 
 /**

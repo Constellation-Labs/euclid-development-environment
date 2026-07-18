@@ -49,6 +49,7 @@ function renderProgress(step: string): void {
 export async function remoteStartCommand(options: {
   genesis?: boolean;
   skipSeedlist?: boolean;
+  resendMessages?: boolean;
   verbose?: boolean;
 }): Promise<void> {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
@@ -74,9 +75,16 @@ export async function remoteStartCommand(options: {
 
     const t0 = Date.now();
 
+    if (options.resendMessages && options.genesis) {
+      process.stdout.write(
+        `  ${icon.warn} ${t.warn('--resend-messages is ignored during genesis mode.')}\n`,
+      );
+    }
+
     await remoteStart({
       config,
       genesis: options.genesis,
+      resendMessages: options.resendMessages,
       onProgress: renderProgress,
     });
 
