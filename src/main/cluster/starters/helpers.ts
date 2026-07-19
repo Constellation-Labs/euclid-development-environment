@@ -112,12 +112,24 @@ export async function dockerExec(
   cmd: string[],
   env?: Record<string, string>,
 ): Promise<string> {
-  const result = await docker.exec(container, cmd, { env });
+  // Route logback's init/status output to stderr via a clean config so it never
+  // contaminates parsed stdout (e.g. `show-id` -> CL_GLOBAL_L0_PEER_ID). The clean
+  // logback.xml is baked into the image at /code/clean-logback.xml.
+  const envWithLogback = {
+    JAVA_TOOL_OPTIONS: '-Dlogback.configurationFile=/code/clean-logback.xml',
+    ...env,
+  };
+  const result = await docker.exec(container, cmd, { env: envWithLogback });
   if (result.exitCode !== 0) {
     const errMsg = result.stderr.trim() || result.stdout.trim() || `exit code ${result.exitCode}`;
     throw new LayerStartError(`Command failed in ${container}: ${errMsg}`);
   }
-  return result.stdout.trim();
+  // Strip the JVM's "Picked up JAVA_TOOL_OPTIONS" banner if it lands on stdout.
+  return result.stdout
+    .split('\n')
+    .filter((l) => !l.startsWith('Picked up JAVA_TOOL_OPTIONS'))
+    .join('\n')
+    .trim();
 }
 
 /** Copy a P12 keystore file from the host into a container. */

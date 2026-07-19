@@ -102,4 +102,10 @@ RUN rm -r -f cl-keytool.jar && \
     rm -r -f tessellation && \
     rm -r -f $TEMPLATE_NAME
 
+# Clean logback config: routes all log output to stderr so stdout stays clean for
+# parsed CLI output (e.g. `cl-wallet.jar show-id` -> CL_GLOBAL_L0_PEER_ID). Referenced
+# via -Dlogback.configurationFile in src/main/cluster/starters/helpers.ts. Placed last
+# so it does not invalidate the cached assembly layers above.
+COPY clean-logback.xml /code/clean-logback.xml
+
 CMD ["sh", "-c", "while true; do sleep 86400; done"]

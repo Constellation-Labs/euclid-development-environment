@@ -173,12 +173,31 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     // Ensure genesis.csv exists in the container (may be missing from stale image)
     await ensureGenesisCsv(docker, leadNode.name, layerDir, projectRoot);
 
-    // Create genesis files
+    // Create genesis files.
+    //
+    // On alpha.157 `create-genesis` writes genesis.address + genesis.snapshot but
+    // then does NOT exit (a lingering non-daemon thread keeps the JVM alive), so
+    // awaiting process exit hangs `start` indefinitely. Instead, run it in the
+    // background, poll for the output files to appear, then reap the process. The
+    // explicit file check below still validates that genesis actually succeeded.
     ctx.onProgress?.('Creating genesis files...');
     const genesisOutput = await dockerExec(
       docker,
       leadNode.name,
-      ['bash', '-c', `cd "${layerDir}" && java -jar "${jar}" create-genesis genesis.csv`],
+      [
+        'bash',
+        '-c',
+        `cd "${layerDir}" && ` +
+          `nohup java -jar "${jar}" create-genesis genesis.csv > create-genesis.log 2>&1 & ` +
+          `cg_pid=$!; ` +
+          `for _ in $(seq 1 90); do ` +
+          `[ -f genesis.address ] && [ -f genesis.snapshot ] && break; ` +
+          `sleep 2; ` +
+          `done; ` +
+          `sleep 2; ` +
+          `kill "$cg_pid" 2>/dev/null || true; ` +
+          `tail -n 20 create-genesis.log 2>/dev/null || true`,
+      ],
       envBase,
     );
     if (genesisOutput.trim()) {
