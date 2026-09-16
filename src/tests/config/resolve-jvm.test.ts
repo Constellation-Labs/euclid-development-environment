@@ -14,22 +14,22 @@ import {
 // ─── resolveJvmConfig ────────────────────────────────────────────────────────
 
 describe('resolveJvmConfig', () => {
-  it('returns metagraph_l0 defaults (8g)', () => {
+  it('returns metagraph_l0 defaults (1g/4g)', () => {
     const jvm = LayerJvmConfigSchema.parse({});
     const result = resolveJvmConfig(jvm, 'metagraph_l0');
-    expect(result).toEqual({ xms: '8g', xmx: '8g' });
+    expect(result).toEqual({ xms: '1g', xmx: '4g' });
   });
 
-  it('returns currency_l1 defaults (4g)', () => {
+  it('returns currency_l1 defaults (1g/2g)', () => {
     const jvm = LayerJvmConfigSchema.parse({});
     const result = resolveJvmConfig(jvm, 'currency_l1');
-    expect(result).toEqual({ xms: '4g', xmx: '4g' });
+    expect(result).toEqual({ xms: '1g', xmx: '2g' });
   });
 
-  it('returns data_l1 defaults (4g)', () => {
+  it('returns data_l1 defaults (1g/2g)', () => {
     const jvm = LayerJvmConfigSchema.parse({});
     const result = resolveJvmConfig(jvm, 'data_l1');
-    expect(result).toEqual({ xms: '4g', xmx: '4g' });
+    expect(result).toEqual({ xms: '1g', xmx: '2g' });
   });
 
   it('uses custom values per layer', () => {
@@ -40,15 +40,15 @@ describe('resolveJvmConfig', () => {
     expect(resolveJvmConfig(jvm, 'metagraph_l0')).toEqual({ xms: '16g', xmx: '16g' });
     expect(resolveJvmConfig(jvm, 'currency_l1')).toEqual({ xms: '2g', xmx: '6g' });
     // data_l1 untouched — keeps defaults
-    expect(resolveJvmConfig(jvm, 'data_l1')).toEqual({ xms: '4g', xmx: '4g' });
+    expect(resolveJvmConfig(jvm, 'data_l1')).toEqual({ xms: '1g', xmx: '2g' });
   });
 
   it('partial override fills remaining from defaults', () => {
     const jvm = LayerJvmConfigSchema.parse({
       metagraph_l0: { xmx: '12g' },
     });
-    // xms comes from metagraph_l0 default (8g), xmx from override (12g)
-    expect(resolveJvmConfig(jvm, 'metagraph_l0')).toEqual({ xms: '8g', xmx: '12g' });
+    // xms comes from metagraph_l0 default (1g), xmx from override (12g)
+    expect(resolveJvmConfig(jvm, 'metagraph_l0')).toEqual({ xms: '1g', xmx: '12g' });
   });
 });
 
@@ -58,9 +58,9 @@ describe('LayerJvmConfigSchema', () => {
   it('provides full defaults when given empty object', () => {
     const result = LayerJvmConfigSchema.safeParse({});
     expect(result.success).toBe(true);
-    expect(result.data?.metagraph_l0).toEqual({ xms: '8g', xmx: '8g' });
-    expect(result.data?.currency_l1).toEqual({ xms: '4g', xmx: '4g' });
-    expect(result.data?.data_l1).toEqual({ xms: '4g', xmx: '4g' });
+    expect(result.data?.metagraph_l0).toEqual({ xms: '1g', xmx: '4g' });
+    expect(result.data?.currency_l1).toEqual({ xms: '1g', xmx: '2g' });
+    expect(result.data?.data_l1).toEqual({ xms: '1g', xmx: '2g' });
   });
 
   it('accepts partial layer overrides', () => {
@@ -68,7 +68,7 @@ describe('LayerJvmConfigSchema', () => {
       metagraph_l0: { xmx: '12g' },
     });
     expect(result.success).toBe(true);
-    expect(result.data?.metagraph_l0.xms).toBe('8g'); // default
+    expect(result.data?.metagraph_l0.xms).toBe('1g'); // default
     expect(result.data?.metagraph_l0.xmx).toBe('12g'); // overridden
   });
 

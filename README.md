@@ -439,9 +439,9 @@ Hydra uses `euclid.json` at the project root. The CLI auto-discovers it by walki
       }
     },
     "jvm": {
-      "metagraph_l0": { "xms": "8g", "xmx": "8g" },
-      "currency_l1":  { "xms": "4g", "xmx": "4g" },
-      "data_l1":      { "xms": "4g", "xmx": "4g" }
+      "metagraph_l0": { "xms": "1g", "xmx": "4g" },
+      "currency_l1":  { "xms": "1g", "xmx": "2g" },
+      "data_l1":      { "xms": "1g", "xmx": "2g" }
     },
     "hosts": [
       { "host": "1.2.3.4",    "user": "ubuntu", "ssh_key": "~/.ssh/id_rsa" },
@@ -466,7 +466,7 @@ Hydra uses `euclid.json` at the project root. The CLI auto-discovers it by walki
 
 - **`hosts` ↔ `nodes`** — They map 1:1. Host-1 runs node-1, host-2 runs node-2, etc.
 - **`remote_ports`** — Different from local ports because each remote host runs one node (not multiple containers).
-- **`jvm`** — Each layer has its own `-Xms` / `-Xmx` heap settings. Defaults: 8g for Metagraph L0, 4g for Currency L1 and Data L1. Values must be like `"8g"` or `"512m"`.
+- **`jvm`** — Each layer has its own `-Xms` / `-Xmx` heap settings. Defaults: 1g min for all layers; max 4g for Metagraph L0, 2g for Currency L1 and Data L1. Values must be like `"8g"` or `"512m"`.
 - **`monitoring_host`** — Used by `remote deploy-monitoring` and `remote start-monitoring`.
 - **`docker`**, **`ports`**, **`jvm`**, and **`remote_ports`** all have sensible defaults — you only need to set them if you want to customize.
 

@@ -83,16 +83,16 @@ function migrateDeployConfig(oldDeploy: LegacyEuclidConfig['deploy']): DeployCon
     },
     jvm: {
       metagraph_l0: {
-        xms: oldDeploy.jvm?.min_heap ?? '8g',
-        xmx: oldDeploy.jvm?.max_heap ?? '8g',
+        xms: oldDeploy.jvm?.min_heap ?? '1g',
+        xmx: oldDeploy.jvm?.max_heap ?? '4g',
       },
       currency_l1: {
-        xms: oldDeploy.jvm?.min_heap ?? '4g',
-        xmx: oldDeploy.jvm?.max_heap ?? '4g',
+        xms: oldDeploy.jvm?.min_heap ?? '1g',
+        xmx: oldDeploy.jvm?.max_heap ?? '2g',
       },
       data_l1: {
-        xms: oldDeploy.jvm?.min_heap ?? '4g',
-        xmx: oldDeploy.jvm?.max_heap ?? '4g',
+        xms: oldDeploy.jvm?.min_heap ?? '1g',
+        xmx: oldDeploy.jvm?.max_heap ?? '2g',
       },
     },
     // ansible is stripped — v2 uses native SSH via deploy.hosts
