@@ -3,19 +3,19 @@ import { readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, renameSync } from 'node:fs';
-import {
-  writeConfigAtomic,
-  findConfigPath,
-  logger,
-  LogLevel,
-} from '../../../index.js';
+import { writeConfigAtomic, findConfigPath, logger, LogLevel } from '../../../index.js';
 import { formatError, formatSuccess, formatHeader } from '../../ui/format.js';
 import { t, icon } from '../../ui/theme.js';
 import { GITIGNORE_CONTENT } from '../../../shared/gitignore.js';
 import { scaffoldProject } from '../../../shared/scaffold.js';
 
 /** Default euclid.json for new projects (created by install-template). */
-function createDefaultConfig(projectName: string, tessellationVersion?: string) {
+function createDefaultConfig(
+  projectName: string,
+  tessellationVersion?: string,
+  hasDataL1?: boolean,
+) {
+  const baseLayers = ['global-l0', 'metagraph-l0', 'currency-l1'];
   return {
     config_version: 2,
     project_name: projectName,
@@ -27,7 +27,7 @@ function createDefaultConfig(projectName: string, tessellationVersion?: string) 
       version: 'v3.6.0',
       ref_type: 'tag',
     },
-    layers: ['global-l0', 'metagraph-l0', 'currency-l1', 'data-l1'],
+    layers: hasDataL1 ? [...baseLayers, 'data-l1'] : baseLayers,
     nodes: [
       {
         name: 'metagraph-node-1',
@@ -186,12 +186,22 @@ export async function installTemplateCommand(options: {
         rawConfig.tessellation_version = tessellationVersion;
       }
     } else {
-      rawConfig = createDefaultConfig(options.name, tessellationVersion);
-      process.stdout.write(`  ${formatSuccess('Created euclid.json with default configuration')}\n`);
+      const hasDataL1 = existsSync(resolve(destDir, 'modules', 'data_l1'));
+      rawConfig = createDefaultConfig(options.name, tessellationVersion, hasDataL1);
+      process.stdout.write(
+        `  ${formatSuccess('Created euclid.json with default configuration')}\n`,
+      );
+      if (!hasDataL1) {
+        process.stdout.write(
+          `  ${formatSuccess("Template has no data_l1 subproject, omitting 'data-l1' layer")}\n`,
+        );
+      }
     }
 
     if (tessellationVersion) {
-      process.stdout.write(`  ${formatSuccess(`Tessellation version set to ${tessellationVersion}`)}\n`);
+      process.stdout.write(
+        `  ${formatSuccess(`Tessellation version set to ${tessellationVersion}`)}\n`,
+      );
     }
 
     await writeConfigAtomic(configPath, rawConfig);
@@ -211,14 +221,18 @@ export async function installTemplateCommand(options: {
 
     execFileSync('git', ['init'], { cwd: projectRoot, stdio: 'pipe' });
     // Only add the specific project files we created (not the entire directory tree)
+    execFileSync('git', ['add', '-f', '.gitignore', 'euclid.json', 'docker/', 'data/'], {
+      cwd: projectRoot,
+      stdio: 'pipe',
+    });
     execFileSync(
       'git',
-      ['add', '-f', '.gitignore', 'euclid.json', 'docker/', 'data/'],
-      { cwd: projectRoot, stdio: 'pipe' },
-    );
-    execFileSync(
-      'git',
-      ['commit', '--no-gpg-sign', '-m', `Initial commit after hydra install-template (${options.name})`],
+      [
+        'commit',
+        '--no-gpg-sign',
+        '-m',
+        `Initial commit after hydra install-template (${options.name})`,
+      ],
       { cwd: projectRoot, stdio: 'pipe' },
     );
     process.stdout.write(`  ${formatSuccess('Git repository initialized with initial commit')}\n`);
