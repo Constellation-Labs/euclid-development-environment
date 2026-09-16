@@ -33,28 +33,61 @@
       - "Should run Genesis: {{ should_run_genesis }}"
       - "Should run Rollback: {{ should_run_rollback }}"
 
-# A genesis embeds a reference to the global L0 snapshot it was created against.
-# 'hydra create-remote-genesis' records that network in genesis.network; 'hydra start-genesis'
-# records 'local'. A local genesis can never produce snapshot 2 on the deploy network.
-- name: Read which network the genesis files were created against
-  set_fact:
-    genesis_network: "{{ lookup('file', lookup('env', 'INFRA_PATH') ~ '/shared/genesis/genesis.network', errors='ignore') | default('', true) | trim }}"
+# Validate the files on node-1, which are the files run-genesis will actually consume.
+- name: Check remote genesis.address
+  stat:
+    path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
+    checksum_algorithm: sha256
+  register: remote_genesis_address
   when: should_run_genesis
 
-- name: Warn when genesis provenance is unknown
-  debug:
-    msg: "WARNING: infra/shared/genesis/genesis.network not found. Cannot verify the genesis was created with 'hydra create-remote-genesis' against {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}."
-  when: should_run_genesis and genesis_network == ''
+- name: Check remote genesis.snapshot
+  stat:
+    path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
+    checksum_algorithm: sha256
+  register: remote_genesis_snapshot
+  when: should_run_genesis
 
-- name: Refuse to run genesis created against another network
-  fail:
-    msg: >-
-      infra/shared/genesis was created against network '{{ genesis_network }}', not
-      '{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}'. Its global snapshot reference does not exist on
-      {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}, so the metagraph would stall at snapshot 1.
-      Regenerate it with 'hydra create-remote-genesis' (never 'hydra start-genesis'), then
+- name: Check remote genesis provenance
+  stat:
+    path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+  register: remote_genesis_provenance
+  when: should_run_genesis
+
+- name: Require complete remote genesis files
+  assert:
+    that:
+      - remote_genesis_address.stat.exists
+      - remote_genesis_snapshot.stat.exists
+      - remote_genesis_provenance.stat.exists
+    fail_msg: >-
+      The remote genesis is incomplete. Deploy genesis.address, genesis.snapshot, and
+      genesis.provenance.json together with 'hydra remote-deploy --force_genesis'.
+  when: should_run_genesis
+
+- name: Read remote genesis provenance
+  slurp:
+    src: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+  register: remote_genesis_provenance_file
+  when: should_run_genesis
+
+- name: Parse remote genesis provenance
+  set_fact:
+    remote_genesis_provenance_data: "{{ remote_genesis_provenance_file.content | b64decode | from_json }}"
+  when: should_run_genesis
+
+- name: Validate remote genesis provenance
+  assert:
+    that:
+      - (remote_genesis_provenance_data.version | default(0) | int) == 1
+      - (remote_genesis_provenance_data.network | default('')) == lookup('env', 'DEPLOY_NETWORK_NAME')
+      - (remote_genesis_provenance_data.address_sha256 | default('')) == remote_genesis_address.stat.checksum
+      - (remote_genesis_provenance_data.snapshot_sha256 | default('')) == remote_genesis_snapshot.stat.checksum
+    fail_msg: >-
+      The remote genesis files do not match their provenance or the target network. Regenerate
+      them with 'hydra create-remote-genesis', then deploy with
       'hydra remote-deploy --force_genesis'. Note: this produces a new metagraph ID.
-  when: should_run_genesis and genesis_network != '' and genesis_network != lookup('env', 'DEPLOY_NETWORK_NAME')
+  when: should_run_genesis
 
 # Validate required files exist
 - name: Display file validation parameters

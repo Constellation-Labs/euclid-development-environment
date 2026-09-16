@@ -97,47 +97,160 @@
     - name: Check if genesis.snapshot exists
       stat:
         path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
+        checksum_algorithm: sha256
       register: genesis_snapshot_file_stat
-
-    # A genesis embeds a reference to the global L0 snapshot it was created against.
-    # 'hydra create-remote-genesis' records that network in genesis.network; 'hydra start-genesis'
-    # records 'local'. A local genesis can never produce snapshot 2 on the deploy network.
-    - name: Read which network the genesis files were created against
-      set_fact:
-        genesis_network: "{{ lookup('file', lookup('env', 'INFRA_PATH') ~ '/shared/genesis/genesis.network', errors='ignore') | default('', true) | trim }}"
-      when: (force_genesis | bool) or (not genesis_snapshot_file_stat.stat.exists)
-
-    - name: Warn when genesis provenance is unknown
-      debug:
-        msg: "WARNING: infra/shared/genesis/genesis.network not found. Cannot verify the genesis was created with 'hydra create-remote-genesis' against {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}."
-      when: genesis_network is defined and genesis_network == ''
-
-    - name: Refuse to deploy a genesis created against another network
-      fail:
-        msg: >-
-          infra/shared/genesis was created against network '{{ genesis_network }}', not
-          '{{ lookup('env', 'DEPLOY_NETWORK_NAME') }}'. Its global snapshot reference does not exist on
-          {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}, so the metagraph would stall at snapshot 1.
-          Regenerate it with 'hydra create-remote-genesis' (never 'hydra start-genesis').
-          Note: this produces a new metagraph ID.
-      when: genesis_network is defined and genesis_network != '' and genesis_network != lookup('env', 'DEPLOY_NETWORK_NAME')
-
-    - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
-      copy:
-        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.snapshot"
-        dest: /home/{{ ansible_user }}/code/metagraph-l0
-      when: (force_genesis | bool) or (not genesis_snapshot_file_stat.stat.exists)
 
     - name: Check if genesis.address exists
       stat:
         path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
+        checksum_algorithm: sha256
       register: genesis_address_file_stat
+
+    - name: Check if genesis provenance exists
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+      register: genesis_provenance_file_stat
+
+    - name: Determine whether the remote genesis is complete
+      set_fact:
+        remote_genesis_complete: >-
+          {{
+            genesis_snapshot_file_stat.stat.exists and
+            genesis_address_file_stat.stat.exists and
+            genesis_provenance_file_stat.stat.exists
+          }}
+        remote_genesis_absent: >-
+          {{
+            not genesis_snapshot_file_stat.stat.exists and
+            not genesis_address_file_stat.stat.exists and
+            not genesis_provenance_file_stat.stat.exists
+          }}
+
+    - name: Refuse to update an incomplete remote genesis without force_genesis
+      fail:
+        msg: >-
+          The remote genesis is incomplete: genesis.address, genesis.snapshot, and
+          genesis.provenance.json must be deployed together. Regenerate the local files with
+          'hydra create-remote-genesis', then run 'hydra remote-deploy --force_genesis'.
+      when:
+        - not (force_genesis | bool)
+        - not (remote_genesis_complete | bool)
+        - not (remote_genesis_absent | bool)
+
+    - name: Determine whether to deploy genesis files
+      set_fact:
+        should_deploy_genesis: "{{ (force_genesis | bool) or (remote_genesis_absent | bool) }}"
+
+    - name: Check local genesis.address
+      stat:
+        path: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.address"
+        checksum_algorithm: sha256
+      register: local_genesis_address
+      delegate_to: localhost
+      when: should_deploy_genesis
+
+    - name: Check local genesis.snapshot
+      stat:
+        path: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.snapshot"
+        checksum_algorithm: sha256
+      register: local_genesis_snapshot
+      delegate_to: localhost
+      when: should_deploy_genesis
+
+    - name: Check local genesis provenance
+      stat:
+        path: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.provenance.json"
+      register: local_genesis_provenance
+      delegate_to: localhost
+      when: should_deploy_genesis
+
+    - name: Require a complete local genesis
+      assert:
+        that:
+          - local_genesis_address.stat.exists
+          - local_genesis_snapshot.stat.exists
+          - local_genesis_provenance.stat.exists
+        fail_msg: >-
+          infra/shared/genesis must contain genesis.address, genesis.snapshot, and
+          genesis.provenance.json. Generate them with 'hydra create-remote-genesis'.
+      when: should_deploy_genesis
+
+    - name: Read local genesis provenance
+      slurp:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.provenance.json"
+      register: local_genesis_provenance_file
+      delegate_to: localhost
+      when: should_deploy_genesis
+
+    - name: Parse local genesis provenance
+      set_fact:
+        local_genesis_provenance_data: "{{ local_genesis_provenance_file.content | b64decode | from_json }}"
+      when: should_deploy_genesis
+
+    - name: Validate local genesis provenance
+      assert:
+        that:
+          - (local_genesis_provenance_data.version | default(0) | int) == 1
+          - (local_genesis_provenance_data.network | default('')) == lookup('env', 'DEPLOY_NETWORK_NAME')
+          - (local_genesis_provenance_data.address_sha256 | default('')) == local_genesis_address.stat.checksum
+          - (local_genesis_provenance_data.snapshot_sha256 | default('')) == local_genesis_snapshot.stat.checksum
+        fail_msg: >-
+          The local genesis provenance does not match the target network or artifact checksums.
+          Regenerate all genesis files with 'hydra create-remote-genesis'. Note: this produces a
+          new metagraph ID.
+      when: should_deploy_genesis
+
+    - name: Sending metagraph l0 genesis.snapshot to metagraph-l0
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.snapshot"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
+      when: should_deploy_genesis
 
     - name: Sending metagraph l0 genesis.address to metagraph-l0
       copy:
         src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.address"
-        dest: /home/{{ ansible_user }}/code/metagraph-l0
-      when: (force_genesis | bool) or (not genesis_address_file_stat.stat.exists)
+        dest: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
+      when: should_deploy_genesis
+
+    # Copy provenance last. If either artifact copy fails, an older provenance file cannot
+    # attest to the partially updated pair.
+    - name: Sending genesis provenance to metagraph-l0
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.provenance.json"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+      when: should_deploy_genesis
+
+    - name: Check deployed genesis.address
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
+        checksum_algorithm: sha256
+      register: deployed_genesis_address
+
+    - name: Check deployed genesis.snapshot
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
+        checksum_algorithm: sha256
+      register: deployed_genesis_snapshot
+
+    - name: Read deployed genesis provenance
+      slurp:
+        src: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+      register: deployed_genesis_provenance_file
+
+    - name: Parse deployed genesis provenance
+      set_fact:
+        deployed_genesis_provenance: "{{ deployed_genesis_provenance_file.content | b64decode | from_json }}"
+
+    - name: Validate deployed genesis provenance
+      assert:
+        that:
+          - (deployed_genesis_provenance.version | default(0) | int) == 1
+          - (deployed_genesis_provenance.network | default('')) == lookup('env', 'DEPLOY_NETWORK_NAME')
+          - (deployed_genesis_provenance.address_sha256 | default('')) == deployed_genesis_address.stat.checksum
+          - (deployed_genesis_provenance.snapshot_sha256 | default('')) == deployed_genesis_snapshot.stat.checksum
+        fail_msg: >-
+          The deployed genesis files do not match their provenance or the target network.
+          Refusing to leave an unverified genesis on this host.
       
 - name: Send p12 files to remote node-1
   hosts: node-1
