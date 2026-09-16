@@ -29,7 +29,6 @@ export async function updateOwnerCommand(options: {
     await docker.checkConnection();
 
     const projectRoot = findProjectRoot();
-    const dockerPath = resolve(projectRoot, 'docker');
 
     // ─── Banner ─────────────────────────────────────────────────────
     process.stdout.write(formatHeader(`Update Owner Address — ${config.project_name}`));
@@ -43,8 +42,8 @@ export async function updateOwnerCommand(options: {
 
     let metagraphId: string | undefined;
 
-    // Try host file first
-    const genesisAddressPath = resolve(dockerPath, 'artifacts', 'genesis', 'genesis.address');
+    // Try host file first (local cluster genesis)
+    const genesisAddressPath = resolve(localGenesisDir(projectRoot), 'genesis.address');
     if (existsSync(genesisAddressPath)) {
       metagraphId = (await readFile(genesisAddressPath, 'utf-8')).trim();
     }

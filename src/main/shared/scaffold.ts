@@ -2,6 +2,34 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cpSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 
+// ─── Genesis artifact locations ─────────────────────────────────────────────
+// Remote and local genesis files are kept in separate directories so a local
+// dev-cluster run (`hydra start --genesis`) can never overwrite the remote
+// genesis created by `create-remote-genesis` — the remote genesis determines
+// the metagraph ID that gets whitelisted on the target network, so losing it
+// forces a new ID and a new whitelisting round.
+
+/** Remote genesis artifacts — created by `create-remote-genesis`, uploaded by `remote deploy`. */
+export function remoteGenesisDir(projectRoot: string): string {
+  return resolve(projectRoot, 'docker', 'artifacts', 'genesis');
+}
+
+/** Local dev-cluster genesis artifacts — regenerated on every `start --genesis`. */
+export function localGenesisDir(projectRoot: string): string {
+  return resolve(projectRoot, 'docker', 'artifacts', 'genesis-local');
+}
+
+/** Metadata written next to the remote genesis for traceability and deploy-time validation. */
+export interface GenesisMeta {
+  metagraphId: string;
+  network: string;
+  gl0NodeIp: string;
+  gl0NodePort: number;
+  createdAt: string;
+}
+
+export const GENESIS_META_FILE = 'genesis.meta.json';
+
 /**
  * Resolve the path to the bundled assets directory shipped with the CLI.
  * Assets are copied to dist/assets/ during build.
@@ -36,9 +64,11 @@ export function scaffoldProject(projectRoot: string): void {
 
   // Create artifact output directories
   mkdirSync(resolve(dockerDest, 'artifacts', 'jars'), { recursive: true });
-  mkdirSync(resolve(dockerDest, 'artifacts', 'genesis'), { recursive: true });
+  mkdirSync(remoteGenesisDir(projectRoot), { recursive: true });
+  mkdirSync(localGenesisDir(projectRoot), { recursive: true });
   touchGitkeep(resolve(dockerDest, 'artifacts', 'jars'));
-  touchGitkeep(resolve(dockerDest, 'artifacts', 'genesis'));
+  touchGitkeep(remoteGenesisDir(projectRoot));
+  touchGitkeep(localGenesisDir(projectRoot));
   touchGitkeep(resolve(dockerDest, 'artifacts'));
 
   // Create grafana storage dir

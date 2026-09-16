@@ -198,6 +198,12 @@ hydra build
 hydra create-remote-genesis
 ```
 
+This writes `genesis.snapshot`, `genesis.address`, and `genesis.meta.json` to
+`docker/artifacts/genesis/`. **Back these files up (commit them to git)** — they
+define your metagraph ID and cannot be regenerated with the same ID. The local
+dev cluster uses a separate directory (`docker/artifacts/genesis-local/`), so
+`hydra start --genesis` and `hydra destroy` never touch the remote genesis.
+
 ### Step 4: Deploy and start
 
 ```bash
@@ -736,7 +742,8 @@ euclid-development-environment/
 │   ├── grafana/                      # Prometheus + Grafana monitoring stack
 │   └── artifacts/
 │       ├── jars/                     # Compiled JARs
-│       └── genesis/                  # Genesis snapshot and address files
+│       ├── genesis/                  # REMOTE genesis (defines metagraph ID — back it up!)
+│       └── genesis-local/            # Local dev-cluster genesis (throwaway)
 ├── data/
 │   ├── p12-files/                    # Node identity keys (.p12)
 │   ├── metagraph-l0/genesis/         # Genesis CSV

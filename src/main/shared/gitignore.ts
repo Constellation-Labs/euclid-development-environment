@@ -35,7 +35,13 @@ docker/artifacts/jars/*.jar
 # Genesis files (generated)
 data/metagraph-l0/genesis/genesis.address
 data/metagraph-l0/genesis/genesis.snapshot
-docker/artifacts/genesis/*
+
+# Local dev-cluster genesis (throwaway, regenerated on every start --genesis)
+docker/artifacts/genesis-local/*
+!docker/artifacts/genesis-local/.gitkeep
+
+# NOTE: docker/artifacts/genesis/ (the remote genesis) is deliberately NOT
+# ignored — it defines your metagraph ID and cannot be regenerated. Commit it.
 
 # Grafana data
 docker/grafana/grafana/config/
