@@ -68,6 +68,14 @@ export async function buildCommand(options: {
         ? `v${config.tessellation_version}`
         : config.tessellation_version;
 
+    // Tessellation 3 needs JDK 11, 4.x and beyond need JDK 21. Branch refs
+    // and other non-numeric versions default to 21.
+    const tessMajor = Number.parseInt(
+      config.tessellation_version.replace(/^v/, '').split('.')[0],
+      10,
+    );
+    const jdkVersion = Number.isFinite(tessMajor) && tessMajor < 4 ? '11' : '21';
+
     // Helper: update spinner text with Docker build output
     const streamTo =
       (spinner: ReturnType<typeof createSpinner>, prefix: string) => (line: string) => {
@@ -89,6 +97,7 @@ export async function buildCommand(options: {
         TESSELLATION_VERSION_NAME: tessVersionName,
         CHECKOUT_TESSELLATION_VERSION: checkoutVersion,
         TESSELLATION_VERSION_IS_TAG_OR_BRANCH: config.tessellation_ref_type,
+        JDK_VERSION: jdkVersion,
       },
       noCache: options.noCache,
       onOutput: streamTo(spinner1, 'metagraph-ubuntu:'),
