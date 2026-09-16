@@ -10,11 +10,13 @@ import {
 } from '../../../index.js';
 import type { PreflightIssue } from '../../../index.js';
 import { remoteDeploy } from '../../../remote/index.js';
+import { runSeedlistPreflight } from '../setup/check-seedlist.js';
 import { formatError } from '../../ui/format.js';
 import { t, icon } from '../../ui/theme.js';
 
 export async function remoteDeployCommand(options: {
   forceGenesis?: boolean;
+  skipSeedlist?: boolean;
   verbose?: boolean;
 }): Promise<void> {
   if (options.verbose) logger.setLevel(LogLevel.DEBUG);
@@ -59,6 +61,10 @@ export async function remoteDeployCommand(options: {
       process.stderr.write('\n');
       process.exit(1);
     }
+
+    await runSeedlistPreflight(config, config.deploy.network.name, projectRoot, {
+      skipSeedlist: options.skipSeedlist,
+    });
 
     const hostCount = config.deploy.hosts.length;
     const modeLabel = options.forceGenesis ? t.warn('Genesis') : t.accent('Update');

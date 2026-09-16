@@ -303,18 +303,28 @@ remoteCmd
   .command('deploy')
   .description('Deploy JARs and keys to remote hosts')
   .option('--force-genesis', 'Force genesis file upload even if data exists')
+  .option('--skip-seedlist', 'Skip the integrationnet/mainnet seedlist preflight check')
   .action(async (cmdOpts) => {
     const opts = program.opts();
-    await remoteDeployCommand({ forceGenesis: cmdOpts.forceGenesis, verbose: opts.verbose });
+    await remoteDeployCommand({
+      forceGenesis: cmdOpts.forceGenesis,
+      skipSeedlist: cmdOpts.skipSeedlist,
+      verbose: opts.verbose,
+    });
   });
 
 remoteCmd
   .command('start')
   .description('Start the remote metagraph cluster')
   .option('--genesis', 'Start from genesis (erases history)')
+  .option('--skip-seedlist', 'Skip the integrationnet/mainnet seedlist preflight check')
   .action(async (cmdOpts) => {
     const opts = program.opts();
-    await remoteStartCommand({ genesis: cmdOpts.genesis, verbose: opts.verbose });
+    await remoteStartCommand({
+      genesis: cmdOpts.genesis,
+      skipSeedlist: cmdOpts.skipSeedlist,
+      verbose: opts.verbose,
+    });
   });
 
 remoteCmd
