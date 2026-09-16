@@ -573,6 +573,8 @@ These files define the initial state of your Metagraph-L0 and will be deployed t
 
 > **Tip:** Ensure your `euclid.json` and key files are correctly configured before running this step.
 
+> **Warning:** A genesis embeds a reference to the latest global snapshot of the GL0 node it was created against, so `deploy.network.gl0_node` in `euclid.json` must be a reachable, Ready node of the target network. `hydra create-remote-genesis` verifies this and records the network in `infra/shared/genesis/genesis.network`. Never run `hydra start-genesis` afterwards: it regenerates the same files against the local docker hypergraph, and such a genesis can never produce snapshot 2 on the real network. `remote-deploy` and `remote-start` refuse a genesis whose recorded network does not match. Every genesis creation yields a **new metagraph ID**, which must be allowlisted again on IntegrationNet/MainNet.
+
 ---
 
 #### 2. Deploy to Remote Instances

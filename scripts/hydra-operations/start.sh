@@ -54,6 +54,15 @@ function try_start_dag_l1() {
     fi
 }
 
+# A genesis embeds a reference to the global L0 snapshot it was created against.
+# Record which network that was so remote-deploy / remote-start can refuse a
+# genesis generated against the local docker hypergraph.
+function record_genesis_network() {
+    local genesis_network="${GENESIS_NETWORK:-local}"
+    echo "$genesis_network" > "$INFRA_PATH/shared/genesis/genesis.network"
+    echo_white "Genesis created against network: $genesis_network (recorded in infra/shared/genesis/genesis.network)"
+}
+
 function try_start_metagraph_l0() {
     if [[ " ${LAYERS[*]} " =~ "metagraph-l0" ]]; then
         echo_white
@@ -65,6 +74,9 @@ function try_start_metagraph_l0() {
         ansible-playbook -e "force_genesis=$1" -e "network_host_ip=$NETWORK_HOST_IP" -e "network_host_id=$NETWORK_HOST_ID" -e "network_host_public_port=$NETWORK_HOST_PUBLIC_PORT" $ANSIBLE_LOCAL_METAGRAPH_L0_START_PLAYBOOK_FILE
         if [ $? -eq 0 ]; then
             echo_green "metagraph-l0 started successfully"
+            if [ "$1" = "true" ]; then
+                record_genesis_network
+            fi
         else
             echo_red "Failing when starting metagraph-l0, take a look at the logs."
             exit 1
