@@ -23,6 +23,7 @@ import { createRemoteGenesisCommand } from '../commands/remote/create-genesis.js
 import { updateCommand } from '../commands/setup/update.js';
 import { checkSeedlistCommand } from '../commands/setup/check-seedlist.js';
 import { keygenCommand } from '../commands/setup/keygen.js';
+import { keystoreInfoCommand } from '../commands/setup/keystore-info.js';
 import { remoteDeployCommand } from '../commands/remote/deploy.js';
 import { remoteStartCommand } from '../commands/remote/start.js';
 import { remoteStatusCommand } from '../commands/remote/status.js';
@@ -257,6 +258,10 @@ function buildMenuChoices() {
       name: `check-seedlist           ${t.dim('Verify seedlist registration')}`,
       value: 'check-seedlist',
     },
+    {
+      name: `keystore-info            ${t.dim('Show DAG addresses and peer IDs for keystores')}`,
+      value: 'keystore-info',
+    },
 
     new Separator(''),
     new Separator(`  ${t.dim('─'.repeat(44))}`),
@@ -436,6 +441,9 @@ async function executeCommand(command: string): Promise<void> {
 
     case 'keygen':
       return keygenCommand({ verbose });
+
+    case 'keystore-info':
+      return keystoreInfoCommand({ verbose });
 
     // ── Remote commands ───────────────────────────────────────────────
 
