@@ -1,4 +1,0 @@
-services:
-  metagraph-ubuntu:
-    build: .
-    image: "metagraph-ubuntu-${TESSELLATION_VERSION_NAME}"
