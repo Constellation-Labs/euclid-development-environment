@@ -97,6 +97,14 @@ export function metagraphL0PeerEnv(
   };
 }
 
+/**
+ * Resolve user-defined env vars from `config.env_vars`, applied to every
+ * metagraph layer. Returns `{}` when `env_vars` is unset.
+ */
+export function customEnv(config: EuclidConfig): Record<string, string> {
+  return config.env_vars ?? {};
+}
+
 /** Execute a command in a Docker container, throwing on non-zero exit. */
 export async function dockerExec(
   docker: DockerClient,

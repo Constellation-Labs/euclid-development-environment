@@ -6,6 +6,7 @@ import {
   nodeIp,
   nodePorts,
   baseEnv,
+  customEnv,
   globalL0PeerEnv,
   metagraphL0PeerEnv,
   copyP12,
@@ -43,6 +44,7 @@ export async function startL1Layer(
     ...baseEnv(leadNode, leadPorts),
     ...globalL0PeerEnv(config, ctx.leadNodeId),
     ...metagraphL0PeerEnv(config, ctx.leadNodeId),
+    ...customEnv(config),
     CL_L0_TOKEN_IDENTIFIER: ctx.metagraphId,
   };
 
@@ -83,6 +85,7 @@ export async function startL1Layer(
       ...baseEnv(valNode, valPorts),
       ...globalL0PeerEnv(config, ctx.leadNodeId),
       ...metagraphL0PeerEnv(config, ctx.leadNodeId),
+      ...customEnv(config),
       CL_L0_TOKEN_IDENTIFIER: ctx.metagraphId,
     };
 

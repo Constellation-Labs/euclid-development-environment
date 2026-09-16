@@ -12,6 +12,7 @@ import {
   nodeIp,
   nodePorts,
   baseEnv,
+  customEnv,
   globalL0PeerEnv,
   copyP12,
   cleanLayerDirs,
@@ -162,6 +163,7 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
   const envBase = {
     ...baseEnv(leadNode, leadPorts),
     ...globalL0PeerEnv(config, ctx.leadNodeId),
+    ...customEnv(config),
   };
 
   if (mode === 'genesis') {
@@ -359,6 +361,7 @@ export async function startMetagraphL0(ctx: LayerContext): Promise<void> {
     const valEnv = {
       ...baseEnv(valNode, valPorts),
       ...globalL0PeerEnv(config, ctx.leadNodeId),
+      ...customEnv(config),
       CL_L0_TOKEN_IDENTIFIER: ctx.metagraphId,
     };
 

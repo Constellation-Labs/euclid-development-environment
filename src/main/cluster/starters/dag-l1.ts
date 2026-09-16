@@ -5,6 +5,7 @@ import {
   nodeIp,
   nodePorts,
   baseEnv,
+  customEnv,
   copyP12,
   startJavaProcess,
   waitForReady,
@@ -32,6 +33,7 @@ export async function startDagL1(ctx: LayerContext): Promise<void> {
     CL_L0_PEER_HTTP_HOST: leadIp,
     CL_L0_PEER_HTTP_PORT: String(config.ports.global_l0.public),
     CL_L0_PEER_ID: ctx.leadNodeId,
+    ...customEnv(config),
   };
 
   ctx.onProgress?.('Starting DAG L1 initial validator...');
@@ -70,6 +72,7 @@ export async function startDagL1(ctx: LayerContext): Promise<void> {
       CL_L0_PEER_HTTP_HOST: leadIp,
       CL_L0_PEER_HTTP_PORT: String(config.ports.global_l0.public),
       CL_L0_PEER_ID: ctx.leadNodeId,
+      ...customEnv(config),
     };
 
     await startJavaProcess(
