@@ -134,6 +134,18 @@ export class DockerVersionError extends DockerError {
   }
 }
 
+/**
+ * Thrown when an automatic scaffold migration can't proceed safely without
+ * user intervention (e.g. both old and new layout directories are present).
+ * Aborts the migration before any state mutation.
+ */
+export class ScaffoldMigrationBlockedError extends HydraError {
+  constructor(message: string, options?: { suggestion?: string }) {
+    super(message, { code: 'SCAFFOLD_MIGRATION_BLOCKED', ...options });
+    this.name = 'ScaffoldMigrationBlockedError';
+  }
+}
+
 /** Base error for local cluster operations. */
 export class ClusterError extends HydraError {
   constructor(message: string, options?: { suggestion?: string; cause?: Error }) {
