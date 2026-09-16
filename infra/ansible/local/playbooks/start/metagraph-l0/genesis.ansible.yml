@@ -50,8 +50,11 @@
     container: "{{ node_info.name }}"
     command: |
       bash -c '
-      cp metagraph-l0/genesis.address shared_genesis
-      cp metagraph-l0/genesis.snapshot shared_genesis
+      set -euo pipefail
+      cp metagraph-l0/genesis.address shared_genesis/genesis.address.tmp
+      cp metagraph-l0/genesis.snapshot shared_genesis/genesis.snapshot.tmp
+      mv -f shared_genesis/genesis.address.tmp shared_genesis/genesis.address
+      mv -f shared_genesis/genesis.snapshot.tmp shared_genesis/genesis.snapshot
       '
 - name: (Metagraph-L0) Copy jars information to shared/jars
   community.docker.docker_container_exec:

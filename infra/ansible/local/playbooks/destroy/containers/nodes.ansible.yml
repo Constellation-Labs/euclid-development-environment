@@ -37,6 +37,7 @@
       loop:
         - "{{ infra_path }}/shared/genesis/genesis.address"
         - "{{ infra_path }}/shared/genesis/genesis.snapshot"
+        - "{{ infra_path }}/shared/genesis/genesis.provenance.json"
         
     - name: Destroy Network custom-network
       block:

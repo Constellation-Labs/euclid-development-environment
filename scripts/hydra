@@ -49,6 +49,7 @@ function load_scripts() {
   source ./hydra-operations/remote-snapshot-fee-config.sh
   source ./hydra-operations/update.sh
   source ./hydra-operations/create-remote-genesis.sh
+  source ./hydra-operations/adopt-genesis.sh
 
   source ./template/custom-template.sh
 
@@ -424,6 +425,20 @@ function create-remote-genesis() {
   check_if_docker_is_running
 
   start_containers_remote_genesis true
+
+  exit 0
+}
+
+# @cmd Record provenance for existing genesis files already running on the deploy network
+# @alias adopt_genesis
+function adopt-genesis() {
+  build_paths
+  check_if_should_run_update
+
+  ensure_permissions_on_files_and_directories
+  load_scripts
+
+  adopt_genesis_provenance
 
   exit 0
 }

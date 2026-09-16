@@ -33,6 +33,80 @@
       - "Should run Genesis: {{ should_run_genesis }}"
       - "Should run Rollback: {{ should_run_rollback }}"
 
+# Validate the files on node-1, which are the files run-genesis will actually consume.
+- name: Check remote genesis.address
+  stat:
+    path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.address
+    checksum_algorithm: sha256
+  register: remote_genesis_address
+  when: should_run_genesis
+
+- name: Check remote genesis.snapshot
+  stat:
+    path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.snapshot
+    checksum_algorithm: sha256
+  register: remote_genesis_snapshot
+  when: should_run_genesis
+
+- name: Check remote genesis provenance
+  stat:
+    path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+  register: remote_genesis_provenance
+  when: should_run_genesis
+
+- name: Require remote genesis artifacts
+  assert:
+    that:
+      - remote_genesis_address.stat.exists
+      - remote_genesis_snapshot.stat.exists
+    fail_msg: >-
+      genesis.address and genesis.snapshot are missing on this host. Deploy them with
+      'hydra remote-deploy --force_genesis'.
+  when: should_run_genesis
+
+# Hosts deployed before provenance existed have no genesis.provenance.json. Their genesis
+# cannot be verified, so warn and continue; a provenance file, when present, is enforced.
+- name: Warn about a legacy remote genesis without provenance
+  debug:
+    msg: >-
+      WARNING: genesis.provenance.json is missing on this host, so the genesis about to run
+      cannot be verified against {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}. If these files were
+      generated with 'hydra start-genesis' (local docker hypergraph) the metagraph will stall at
+      snapshot 1. To attach provenance, run 'hydra adopt-genesis' locally and 'hydra remote-deploy'.
+  when:
+    - should_run_genesis
+    - not remote_genesis_provenance.stat.exists
+
+- name: Read remote genesis provenance
+  slurp:
+    src: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+  register: remote_genesis_provenance_file
+  when:
+    - should_run_genesis
+    - remote_genesis_provenance.stat.exists
+
+- name: Parse remote genesis provenance
+  set_fact:
+    remote_genesis_provenance_data: "{{ remote_genesis_provenance_file.content | b64decode | from_json }}"
+  when:
+    - should_run_genesis
+    - remote_genesis_provenance.stat.exists
+
+- name: Validate remote genesis provenance
+  assert:
+    that:
+      - (remote_genesis_provenance_data.version | default(0) | int) == 1
+      - (remote_genesis_provenance_data.network | default('')) == lookup('env', 'DEPLOY_NETWORK_NAME')
+      - (remote_genesis_provenance_data.address_sha256 | default('')) == remote_genesis_address.stat.checksum
+      - (remote_genesis_provenance_data.snapshot_sha256 | default('')) == remote_genesis_snapshot.stat.checksum
+    fail_msg: >-
+      The remote genesis files do not match their provenance or the target network. Regenerate
+      them with 'hydra create-remote-genesis', then deploy with
+      'hydra remote-deploy --force_genesis'. Note: this produces a new metagraph ID.
+  when:
+    - should_run_genesis
+    - remote_genesis_provenance.stat.exists
+
 # Validate required files exist
 - name: Display file validation parameters
   debug:
