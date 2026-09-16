@@ -575,6 +575,8 @@ These files define the initial state of your Metagraph-L0 and will be deployed t
 
 > **Warning:** A genesis embeds a reference to the latest global snapshot of the GL0 node it was created against, so `deploy.network.gl0_node` in `euclid.json` must be a reachable, Ready node of the target network. `hydra create-remote-genesis` verifies this and records the network and artifact checksums in `infra/shared/genesis/genesis.provenance.json`. Never run `hydra start-genesis` afterwards: it regenerates the same files against the local docker hypergraph, and such a genesis can never produce snapshot 2 on the real network. `remote-deploy` and `remote-start` verify the provenance against the files on each remote host and refuse a mismatch. Every genesis creation yields a **new metagraph ID**, which must be allowlisted again on IntegrationNet/MainNet.
 
+> **Existing metagraphs:** hosts deployed before provenance existed keep working. Plain `hydra remote-deploy` (jar updates) and `hydra remote-start` leave their genesis untouched and print a warning that it cannot be verified. To attach provenance without changing the metagraph ID, run `./hydra adopt-genesis` against the local `infra/shared/genesis` files that are already running on the network, then `./hydra remote-deploy`; provenance is copied only to hosts whose genesis checksums match. `--force_genesis` always requires provenance.
+
 ---
 
 #### 2. Deploy to Remote Instances

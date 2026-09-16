@@ -37,6 +37,7 @@ function start_containers_remote_genesis() {
         exit 1
     fi
     echo_green "✅ $DEPLOY_NETWORK_NAME global L0 reachable (latest global snapshot ordinal: $gl0_latest_ordinal)"
+    check_gl0_node_on_network "$DEPLOY_NETWORK_NAME" "$DEPLOY_NETWORK_HOST_IP" "$DEPLOY_NETWORK_HOST_PUBLIC_PORT" "$DEPLOY_NETWORK_HOST_ID"
     export GENESIS_NETWORK=$DEPLOY_NETWORK_NAME
 
     try_start_docker_nodes

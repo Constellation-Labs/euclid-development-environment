@@ -125,21 +125,94 @@
             not genesis_address_file_stat.stat.exists and
             not genesis_provenance_file_stat.stat.exists
           }}
+        # Deployed before provenance existed: address + snapshot present, no provenance.
+        remote_genesis_legacy: >-
+          {{
+            genesis_snapshot_file_stat.stat.exists and
+            genesis_address_file_stat.stat.exists and
+            not genesis_provenance_file_stat.stat.exists
+          }}
 
-    - name: Refuse to update an incomplete remote genesis without force_genesis
+    - name: Refuse to update a torn remote genesis without force_genesis
       fail:
         msg: >-
-          The remote genesis is incomplete: genesis.address, genesis.snapshot, and
+          The remote genesis is torn: genesis.address, genesis.snapshot, and
           genesis.provenance.json must be deployed together. Regenerate the local files with
           'hydra create-remote-genesis', then run 'hydra remote-deploy --force_genesis'.
       when:
         - not (force_genesis | bool)
         - not (remote_genesis_complete | bool)
         - not (remote_genesis_absent | bool)
+        - not (remote_genesis_legacy | bool)
+
+    - name: Warn about a legacy remote genesis without provenance
+      debug:
+        msg: >-
+          WARNING: this host has genesis.address and genesis.snapshot but no genesis.provenance.json
+          (deployed before provenance existed). The genesis files are left untouched and cannot be
+          verified against {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}. If they are the genesis already
+          running on {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}, run 'hydra adopt-genesis' locally and
+          re-run 'hydra remote-deploy' to attach provenance.
+      when:
+        - not (force_genesis | bool)
+        - remote_genesis_legacy | bool
 
     - name: Determine whether to deploy genesis files
       set_fact:
         should_deploy_genesis: "{{ (force_genesis | bool) or (remote_genesis_absent | bool) }}"
+
+    # Legacy host adoption: attach local provenance to a legacy host only when the checksums
+    # in that provenance match the files already on the host.
+    - name: Check local genesis provenance for legacy adoption
+      stat:
+        path: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.provenance.json"
+      register: adoption_provenance_stat
+      delegate_to: localhost
+      when:
+        - not (force_genesis | bool)
+        - remote_genesis_legacy | bool
+
+    - name: Read local genesis provenance for legacy adoption
+      slurp:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.provenance.json"
+      register: adoption_provenance_file
+      delegate_to: localhost
+      when:
+        - not (force_genesis | bool)
+        - remote_genesis_legacy | bool
+        - adoption_provenance_stat.stat.exists
+
+    - name: Decide whether the local provenance matches the legacy remote genesis
+      set_fact:
+        adoption_provenance_data: "{{ adoption_provenance_file.content | b64decode | from_json }}"
+      when:
+        - not (force_genesis | bool)
+        - remote_genesis_legacy | bool
+        - adoption_provenance_stat.stat.exists
+
+    - name: Attach provenance to a legacy remote genesis with matching checksums
+      copy:
+        src: "{{ lookup('env', 'INFRA_PATH') }}/shared/genesis/genesis.provenance.json"
+        dest: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+      when:
+        - adoption_provenance_data is defined
+        - (adoption_provenance_data.version | default(0) | int) == 1
+        - (adoption_provenance_data.network | default('')) == lookup('env', 'DEPLOY_NETWORK_NAME')
+        - (adoption_provenance_data.address_sha256 | default('')) == genesis_address_file_stat.stat.checksum
+        - (adoption_provenance_data.snapshot_sha256 | default('')) == genesis_snapshot_file_stat.stat.checksum
+
+    - name: Warn when local provenance does not match the legacy remote genesis
+      debug:
+        msg: >-
+          WARNING: local genesis.provenance.json does not describe the genesis files on this host
+          (network or checksum mismatch); provenance was not attached.
+      when:
+        - adoption_provenance_data is defined
+        - >-
+          (adoption_provenance_data.version | default(0) | int) != 1 or
+          (adoption_provenance_data.network | default('')) != lookup('env', 'DEPLOY_NETWORK_NAME') or
+          (adoption_provenance_data.address_sha256 | default('')) != genesis_address_file_stat.stat.checksum or
+          (adoption_provenance_data.snapshot_sha256 | default('')) != genesis_snapshot_file_stat.stat.checksum
 
     - name: Check local genesis.address
       stat:
@@ -172,7 +245,9 @@
           - local_genesis_provenance.stat.exists
         fail_msg: >-
           infra/shared/genesis must contain genesis.address, genesis.snapshot, and
-          genesis.provenance.json. Generate them with 'hydra create-remote-genesis'.
+          genesis.provenance.json. Generate them with 'hydra create-remote-genesis' (new metagraph ID),
+          or, if these files are the genesis already running on
+          {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}, run 'hydra adopt-genesis' first.
       when: should_deploy_genesis
 
     - name: Read local genesis provenance
@@ -232,14 +307,21 @@
         checksum_algorithm: sha256
       register: deployed_genesis_snapshot
 
+    - name: Check deployed genesis provenance
+      stat:
+        path: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
+      register: deployed_genesis_provenance_stat
+
     - name: Read deployed genesis provenance
       slurp:
         src: /home/{{ ansible_user }}/code/metagraph-l0/genesis.provenance.json
       register: deployed_genesis_provenance_file
+      when: deployed_genesis_provenance_stat.stat.exists
 
     - name: Parse deployed genesis provenance
       set_fact:
         deployed_genesis_provenance: "{{ deployed_genesis_provenance_file.content | b64decode | from_json }}"
+      when: deployed_genesis_provenance_stat.stat.exists
 
     - name: Validate deployed genesis provenance
       assert:
@@ -251,7 +333,15 @@
         fail_msg: >-
           The deployed genesis files do not match their provenance or the target network.
           Refusing to leave an unverified genesis on this host.
-      
+      when: deployed_genesis_provenance_stat.stat.exists
+
+    - name: Warn when the deployed genesis remains unverified
+      debug:
+        msg: "WARNING: no genesis.provenance.json on this host; the deployed genesis is not verified against {{ lookup('env', 'DEPLOY_NETWORK_NAME') }}."
+      when:
+        - deployed_genesis_address.stat.exists
+        - not deployed_genesis_provenance_stat.stat.exists
+
 - name: Send p12 files to remote node-1
   hosts: node-1
   gather_facts: false

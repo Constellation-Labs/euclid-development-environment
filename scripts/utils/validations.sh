@@ -266,15 +266,60 @@ function check_metagraph_staking_fees_information() {
     fi
 }
 
+function seedlist_url_for_network() {
+    case "$1" in
+    "integrationnet") echo "https://constellationlabs-dag.s3.us-west-1.amazonaws.com/integrationnet-seedlist" ;;
+    "mainnet") echo "https://github.com/Constellation-Labs/tessellation/releases/latest/download/mainnet-seedlist" ;;
+    *) echo "" ;;
+    esac
+}
+
+# Bind deploy.network.name to the GL0 node the genesis is created against: the node must
+# report the configured peer ID and that ID must be on the network's seedlist. Without this,
+# a euclid.json that says "mainnet" but points gl0_node at another network's host would
+# produce a genesis whose provenance passes every downstream check.
+function check_gl0_node_on_network() {
+    local network="$1"
+    local host="$2"
+    local port="$3"
+    local expected_id="$4"
+    local seedlist_url
+    seedlist_url=$(seedlist_url_for_network "$network")
+    if [[ -z "$seedlist_url" ]]; then
+        return
+    fi
+
+    local observed_id
+    observed_id=$(curl -sf -m 15 "http://$host:$port/node/info" | jq -r '.id // empty' 2>/dev/null)
+    if [[ -z "$observed_id" ]]; then
+        echo_red "Could not read the peer ID of the GL0 node at $host:$port (/node/info)."
+        exit 1
+    fi
+    if [[ "$observed_id" != "$expected_id" ]]; then
+        echo_red "The GL0 node at $host:$port reports peer ID $observed_id, but euclid.json deploy.network.gl0_node.id is $expected_id."
+        exit 1
+    fi
+
+    local seedlist
+    seedlist=$(curl -sL "$seedlist_url")
+    if [[ -z "$seedlist" ]]; then
+        echo_red "Failed to fetch seedlist from $seedlist_url"
+        exit 1
+    fi
+    if ! echo "$seedlist" | grep -qF "$observed_id"; then
+        echo_red "The GL0 node at $host:$port ($observed_id) is NOT on the $network seedlist."
+        echo_red "deploy.network.gl0_node must be a $network node, otherwise the genesis references the wrong network."
+        exit 1
+    fi
+    echo_green "  GL0 node $host:$port ($observed_id) found on the $network seedlist"
+}
+
 function check_seedlist() {
     local network="$1"
-    local seedlist_url=""
+    local seedlist_url
+    seedlist_url=$(seedlist_url_for_network "$network")
 
-    if [[ "$network" == "integrationnet" ]]; then
-        seedlist_url="https://constellationlabs-dag.s3.us-west-1.amazonaws.com/integrationnet-seedlist"
-    elif [[ "$network" == "mainnet" ]]; then
-        seedlist_url="https://github.com/Constellation-Labs/tessellation/releases/latest/download/mainnet-seedlist"
-    else
+    if [[ -z "$seedlist_url" ]]; then
         return
     fi
 
@@ -287,7 +332,7 @@ function check_seedlist() {
     echo_white "Checking if node peer IDs are on the $network seedlist..."
 
     local seedlist
-    seedlist=$(curl -s "$seedlist_url")
+    seedlist=$(curl -sL "$seedlist_url")
     if [[ -z "$seedlist" ]]; then
         echo_red "Failed to fetch seedlist from $seedlist_url"
         exit 1
